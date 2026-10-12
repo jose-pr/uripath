@@ -5,9 +5,6 @@
 !/.gitignore
 !/.gitattributes
 !/.github/
-# Shared editor settings (black on save, pytest discovery, build task) are
-# tracked deliberately.
-!/.vscode/
 
 # Private agent config. No trailing slash on `.agents` on purpose: it may be a
 # symlink, which git treats as a file, so a directory-only `.agents/` would not
@@ -41,3 +38,4 @@ htmlcov/
 .DS_Store
 Thumbs.db
 .idea/
+.vscode/

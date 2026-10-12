@@ -4,18 +4,10 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-# The DISTRIBUTION name, hyphenated to match what PyPI displays and what
-# `pip install pathlib-next` takes. PEP 503 normalises `_` to `-`, so this
-# was already published as `pathlib-next`; spelling it that way here just
-# stops the repo, the docs and the index from disagreeing.
-#
-# The IMPORT name stays `pathlib_next` (`packages` below, and every
-# `import pathlib_next`) -- a hyphen is not legal in a Python identifier.
-# Distribution name and import name differing is ordinary and intended.
-name = "pathlib-next"
-version = "0.9.14"
+name = "uripath"
+version = "0.10.0"
 authors = [{ name = "Jose A" }]
-description = "Generic Path Protocol based pathlib"
+description = "pathlib-style paths for URIs: file:, data:, ftp:, zip:, tar:, http:, dav:, github:, gitlab: and git:"
 readme = "README.md"
 requires-python = ">=3.9"
 # PEP 639: SPDX license expression plus the file it refers to. This replaces
@@ -32,107 +24,78 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
-    # src/pathlib_next/py.typed ships in the wheel.
+    # src/uripath/py.typed ships in the wheel.
     "Typing :: Typed",
 ]
-dependencies = []
-
-[project.scripts]
-uripath = "pathlib_next.tools.uripath:main"
-
-[project.optional-dependencies]
-# Each floor is the oldest release the test suite passes against on Python 3.9;
-# the `floors` job of the test workflow installs exactly these lower bounds.
-uri = [
-    # uritools 6 needs Python 3.10; 5.0 is the newest release for 3.9.
-    "uritools>=5.0,<7",
+dependencies = [
+    "pathlib-next>=0.10.0,<0.11",
     # 0.3.3 and 0.3.4 break asyncssh's SFTP server on Windows; 0.4.0 does not.
     "netimps>=0.4.0,<0.5",
+    # uritools 6 needs Python 3.10; 5.0 is the newest release for 3.9.
+    "uritools>=5.0,<7",
 ]
-http = [
-    # `http:`, `dav:`, `github:`, `gitlab:` and `git:` run on the standard library;
-    # this extra adds `requests` for `RequestsTransport`.
-    # Before 2.18 the bundled urllib3 imports the ABCs from `collections`
-    # (a DeprecationWarning on 3.9); 2.21 caps urllib3 below 1.25, which
-    # botocore 1.36 cannot share.
-    "requests>=2.22.0,<3",
-    "pathlib_next[uri]",
+
+[project.scripts]
+uripath = "uripath._oldcli:main"
+
+[project.optional-dependencies]
+dev = [
+    'build',
+    'twine',
+    'hatchling',
+    'pytest',
+    'pytest-cov',
+    'pyftpdlib',
+    'wsgidav',
+    'cheroot',
+    'cryptography',
+    'hypothesis',
+    'black',
 ]
-sftp = ["paramiko>=5.0,<6", "pathlib_next[uri]"]
-sftp-async = [
-    # The connection cache calls SSHClientConnection.is_closed(), absent in
-    # 2.14; the loopback server the tests use answers readlink of an absolute
-    # target only from 2.20. asyncssh 2.22 needs Python 3.10.
-    "asyncssh>=2.20.0,<2.22; python_version<'3.10'",
-    "asyncssh>=2.20.0,<3; python_version>='3.10'",
-    "pathlib_next[uri]",
-]
-s3 = [
-    # PutObject(IfNoneMatch=) is rejected by 1.34; the tests build a client with
-    # Config(response_checksum_validation=), which botocore has from 1.36.
-    "boto3>=1.36.0,<2",
-    "pathlib_next[uri]",
-]
-gs = ["google-cloud-storage>=3.0,<4", "pathlib_next[uri]"]
-az = [
-    # BlobPrefix is not exported from azure.storage.blob in 12.3.
-    "azure-storage-blob>=12.4.0,<13",
-    "azure-identity>=1.0,<2",
-    "pathlib_next[uri]",
-]
-dev = ['build', 'twine', 'hatchling', 'pytest', 'pytest-cov', 'pyftpdlib', 'wsgidav', 'cheroot', 'moto[s3]', 'hypothesis', 'black']
 docs = ['mkdocs', 'mkdocs-material', 'mkdocstrings[python]']
 
-[project.entry-points."pathlib_next.schemes"]
-file = "pathlib_next.uri.schemes.file:FileUri"
-data = "pathlib_next.uri.schemes.data:DataUri"
-zip = "pathlib_next.uri.schemes.archive:ZipUri"
-tar = "pathlib_next.uri.schemes.archive:TarUri"
-archive = "pathlib_next.uri.schemes.archive:ArchiveUri"
-"archive+zip" = "pathlib_next.uri.schemes.archive:ArchiveZipUri"
-"archive+tar" = "pathlib_next.uri.schemes.archive:ArchiveTarUri"
-ftp = "pathlib_next.uri.schemes.ftp:FtpPath"
-ftps = "pathlib_next.uri.schemes.ftp:FtpPath"
-http = "pathlib_next.uri.schemes.http:HttpPath"
-https = "pathlib_next.uri.schemes.http:HttpPath"
-dav = "pathlib_next.uri.schemes.dav:DavPath"
-davs = "pathlib_next.uri.schemes.dav:DavPath"
-sftp = "pathlib_next.uri.schemes.sftp:SftpPath"
-s3 = "pathlib_next.uri.schemes.s3:S3Path"
-gs = "pathlib_next.uri.schemes.gs:GsPath"
-az = "pathlib_next.uri.schemes.az:AzPath"
-github = "pathlib_next.uri.schemes.github:GitHubPath"
-gitlab = "pathlib_next.uri.schemes.gitlab:GitLabPath"
-git = "pathlib_next.uri.schemes.git:GitPath"
-"git+github" = "pathlib_next.uri.schemes.git:GitHubGitPath"
-"git+gitlab" = "pathlib_next.uri.schemes.git:GitLabGitPath"
+[project.entry-points."uripath.schemes"]
+file = "uripath.schemes.file:FileUri"
+data = "uripath.schemes.data:DataUri"
+zip = "uripath.schemes.archive:ZipUri"
+tar = "uripath.schemes.archive:TarUri"
+archive = "uripath.schemes.archive:ArchiveUri"
+"archive+zip" = "uripath.schemes.archive:ArchiveZipUri"
+"archive+tar" = "uripath.schemes.archive:ArchiveTarUri"
+ftp = "uripath.schemes.ftp:FtpPath"
+ftps = "uripath.schemes.ftp:FtpPath"
+http = "uripath.schemes.http:HttpPath"
+https = "uripath.schemes.http:HttpPath"
+dav = "uripath.schemes.dav:DavPath"
+davs = "uripath.schemes.dav:DavPath"
+github = "uripath.schemes.github:GitHubPath"
+gitlab = "uripath.schemes.gitlab:GitLabPath"
+git = "uripath.schemes.git:GitPath"
+"git+github" = "uripath.schemes.git:GitHubGitPath"
+"git+gitlab" = "uripath.schemes.git:GitLabGitPath"
 
 [project.urls]
-Homepage = "https://github.com/jose-pr/pathlib-next/"
-Documentation = "https://jose-pr.github.io/pathlib-next/"
-Issues = "https://github.com/jose-pr/pathlib-next/issues"
-
+Homepage = "https://github.com/jose-pr/uripath/"
+Documentation = "https://jose-pr.github.io/uripath/"
+Issues = "https://github.com/jose-pr/uripath/issues"
 
 # Ship the consumer-facing docs inside the installed package, so they are
 # readable from site-packages via importlib.resources without the repo.
-# src/pathlib_next/AGENTS.md (the API header) is included automatically by
-# living in the package dir. The repo-root AGENTS.md is contributor
-# orientation for a checkout and is not part of the wheel.
+# src/uripath/AGENTS.md (the API header) is included automatically by living
+# in the package dir. The repo-root AGENTS.md is contributor orientation for a
+# checkout and is not part of the wheel.
 [tool.hatch.build.targets.wheel.force-include]
-"README.md" = "pathlib_next/README.md"
+"README.md" = "uripath/README.md"
 
 # `*.local.*` files are per-machine overrides and `CLAUDE*` is agent config:
 # neither is ever packaged (both are also gitignored). `/.*` does not match
-# them, since their names do not start with a dot. The repo-root AGENTS.md
-# orients a contributor in a checkout; the API header that ships is
-# src/pathlib_next/AGENTS.md.
+# them, since their names do not start with a dot.
 [tool.hatch.build.targets.sdist]
 exclude = ["/.*", "/AGENTS.md", "/benchmarks", "*.local.*", "CLAUDE*"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pathlib_next"]
+packages = ["src/uripath"]
 exclude = ["*.local.*", "CLAUDE*"]
-
 
 [tool.black]
 # Pinned to the project's *minimum* supported Python so black never emits
@@ -142,9 +105,4 @@ target-version = ["py39"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-filterwarnings = [
-    "error",
-    # boto3 emits a Python 3.9 EOL notice warning; filter by module/message
-    # so pytest doesn't need boto3 importable just to parse the warning rule.
-    "ignore:.*Python 3\\.9.*:Warning:boto3(\\..*)?$",
-]
+filterwarnings = ["error"]
