@@ -39,11 +39,8 @@ NOT_THE_CORES = {
 }
 
 # (module, file that imports it, private name): what this package takes from a
-# private place in `pathlib_next`. Nothing else may be private.
-PRIVATE_FROM_PATHLIB_NEXT = {
-    ("pathlib_next.path._pure", "__init__.py", "_name_stem"),
-    ("pathlib_next.path._pure", "__init__.py", "_name_suffix"),
-}
+# private place in `pathlib_next`. Nothing may be private.
+PRIVATE_FROM_PATHLIB_NEXT: set[tuple[str, str, str]] = set()
 
 # (module, public name): documented helpers a provider calls, defined in a
 # private module and listed in the public module's `__all__`.

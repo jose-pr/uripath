@@ -18,7 +18,8 @@ else:
 
 from pathlib_next import FileStat, Path, Pathname
 from pathlib_next import providers as _providers
-from pathlib_next.path._pure import _name_stem, _name_suffix
+from pathlib_next.providers import name_stem as _name_stem
+from pathlib_next.providers import name_suffix as _name_suffix
 from .query import Query
 from .source import (
     _ERRORS,
