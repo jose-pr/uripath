@@ -733,12 +733,12 @@ class URI(Pathname):
             path = "/" + path
         return self._from_parsed_parts(self.source, path, self.query, self.fragment)
 
-    def with_query(self, query: QueryLike):
+    def with_query(self, query: "QueryLike | None"):
         """Return a new URI with the query replaced.
 
         A `str` is taken in the percent-encoded form `.query` returns and is
         sent as given; a mapping or a sequence of pairs is encoded by
-        `Query`."""
+        `Query`; `None` removes the query."""
         query = _coerce(query)
         return self._from_parsed_parts(self.source, self.path, query, self.fragment)
 

@@ -115,8 +115,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   (`directory / "f.txt"` keeps it). A `str` destination of `rename()`,
   `copy()` and `move()` is another resource and takes neither. What to do:
   nothing, unless a caller relied on the join dropping them; call
-  `with_query("")` and `with_fragment("")` on the result (or on the base)
+  `with_query(None)` and `with_fragment("")` on the result (or on the base)
   there.
+- `URI.with_query(None)` removes the query. Was: a `TypeError` ("'NoneType' object
+  is not iterable"). `with_fragment("")` removes the fragment as before.
 - Text that is not a URI raises `URISyntaxError` where it raised a bare
   `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
   `Source.parse()` of text with a path, a `git:` URI on a host with no

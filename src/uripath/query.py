@@ -224,13 +224,17 @@ QueryLike: TypeAlias = (
     " | _ty.Sequence[tuple[str, str | None]]"
 )
 """What `URI.with_query()` accepts in place of a `Query`: query text (taken as
-already percent-encoded), a mapping or a sequence of pairs, or a `Query`."""
+already percent-encoded), a mapping or a sequence of pairs, or a `Query`; `None`
+removes the query."""
 
 
-def _coerce(query: QueryLike) -> Query:
-    """`query` as a `Query`: text is parsed, pairs and mappings are encoded."""
+def _coerce(query: "QueryLike | None") -> Query:
+    """`query` as a `Query`: text is parsed, pairs and mappings are encoded,
+    and `None` is the empty query."""
     if isinstance(query, Query):
         return query
+    if query is None:
+        return Query.parse("")
     if isinstance(query, str):
         return Query.parse(query)
     return Query(query)

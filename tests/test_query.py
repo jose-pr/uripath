@@ -227,3 +227,11 @@ def test_a_query_copies_and_pickles_with_its_separator_and_encoding():
     assert again == query and str(again) == str(query)
     assert (again.separator, again.encoding) == (";", "latin-1")
     assert again.to_pairs() == [("a", "1"), ("b", "\xe9")]
+
+
+def test_with_query_none_removes_the_query_and_keeps_the_rest():
+    uri = URI("http://h/x?a=1&b=2#frag")
+    removed = uri.with_query(None)
+    assert removed.as_uri() == "http://h/x#frag"
+    assert not removed.query
+    assert removed.with_query("c=3").as_uri() == "http://h/x?c=3#frag"

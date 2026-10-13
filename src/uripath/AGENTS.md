@@ -94,8 +94,8 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   (`http://h/a` → `http://h/`; a trailing `/` is kept, so
   `URI("http://h/d/").name == ""`).
 - Methods: `as_uri(sanitize=False)`, `with_source()`, `with_path()`,
-  `with_segments()`, `with_query(QueryLike)` (a `str` is taken as
-  already encoded), `with_fragment()`. `with_path(path)` gives a relative path under an
+  `with_segments()`, `with_query(QueryLike | None)` (a `str` is taken as
+  already encoded; `None` removes the query), `with_fragment()`. `with_path(path)` gives a relative path under an
   authority the leading `/` the constructor gives it; `with_segments(*segments)`
   joins the spelling `segments` returns (a leading `""` is the root) with `/`,
   and an element may be `str`, `bytes`, a `PurePath` or an `os.PathLike`.
@@ -119,7 +119,7 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   not reach the entries; `directory / "f.txt"` keeps them. A `str`
   destination of `rename()`, `copy()` and `move()` is another resource and
   takes neither (a signature in the query signs this resource only). To drop
-  them from any path, `with_query("")` and `with_fragment("")`.
+  them from any path, `with_query(None)` and `with_fragment("")`.
 - `stem` and `suffix` are those of `name` (the last segment of the decoded
   path; the query and the fragment are not part of it). `URILike` =
   `str | URI | os.PathLike`, what the constructor and the join accept.
@@ -344,7 +344,7 @@ is not a `str` and has no length, items or iteration (`len(query)` and
   == query`. Copies and pickles keep the separator and encoding.
 - `QueryLike` = `str | Query | Mapping | Sequence[tuple[str, str | None]]` is
   what `URI.with_query()` accepts: text (taken as already percent-encoded), a
-  mapping, pairs, or a `Query`.
+  mapping, pairs, or a `Query`; `None` removes the query.
 
 ## Built-in schemes (`uripath.schemes`)
 
