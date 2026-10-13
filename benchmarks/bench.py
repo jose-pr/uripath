@@ -1,15 +1,13 @@
-"""pathlib_next benchmark runner.
+"""uripath benchmark runner.
 
-Run `python benchmarks/bench.py --help` for the suites. `--save` writes the
+Run `python benchmarks/bench.py --help` for the options. `--save` writes the
 run as structured JSON into `benchmarks/results/`; the schema is documented in
 `benchmarks/README.md`.
 """
 
 from __future__ import annotations
 
-import asyncio
 import argparse
-import contextlib
 import json
 import os
 import platform
@@ -19,25 +17,21 @@ import subprocess
 import sysconfig
 import timeit
 import tempfile
-import shutil
 import functools
 import http.server
 import threading
-import time
 import datetime
 from pathlib import Path as StdlibPath
 
-# Add src to sys.path so we can import pathlib_next without installing it
+# Add src to sys.path so we can import uripath without installing it
 import sys
 
 REPO_ROOT = StdlibPath(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from pathlib_next import Uri, UriPath, LocalPath
-from pathlib_next.mempath import MemPath, MemPathBackend
-from pathlib_next.sync import PathSyncer
+from uripath import Uri
 
-SCHEMA = "pathlib_next.bench/1"
+SCHEMA = "uripath.bench/1"
 MAX_SAMPLES = 100
 
 
@@ -93,7 +87,7 @@ def _timeit(stmt, *, number, name, group, setup="pass", repeat=5):
 
 def benchmark_uri_parse():
     # Parse a typical complex URI 10,000 times
-    setup = "from pathlib_next import Uri"
+    setup = "from uripath import Uri"
     code = "Uri('http://user:pass@host:80/path/to/resource?query=1#fragment')"
     return _timeit(
         code,
@@ -115,7 +109,7 @@ def benchmark_uri_parse_unique():
     # library caches by input (verified true of urllib.urlsplit, ~28x;
     # not true of uritools/our own parser, but always bench unique inputs
     # regardless so this stays an apples-to-apples comparison).
-    from pathlib_next import Uri
+    from uripath import Uri
 
     n = 5000
     urls = [
@@ -144,7 +138,7 @@ def benchmark_uri_parse_and_compose_unique():
     # the one-pass parse (_parse_uri) and direct-assembly compose
     # (_format_parsed_parts) together, which is what "Uri() construction"
     # means end to end.
-    from pathlib_next import Uri
+    from uripath import Uri
 
     n = 5000
     urls = [
@@ -167,14 +161,14 @@ def benchmark_uri_parse_and_compose_unique():
 
 def benchmark_path_join():
     # Join paths using / operator 10,000 times
-    setup = "from pathlib_next import Uri; p = Uri('http://host/path')"
+    setup = "from uripath import Uri; p = Uri('http://host/path')"
     code = "p / 'sub' / 'child'"
     return _timeit(code, setup=setup, number=10000, name="uri: path join", group="uri")
 
 
 def benchmark_segments_name_access():
     # Access .segments and .name 10,000 times
-    setup = "from pathlib_next import Uri; u = Uri('http://host/a/b/c/d/e')"
+    setup = "from uripath import Uri; u = Uri('http://host/a/b/c/d/e')"
     code = "_ = u.segments; _ = u.name"
     return _timeit(
         code, setup=setup, number=10000, name="uri: segments + name access", group="uri"
@@ -183,214 +177,11 @@ def benchmark_segments_name_access():
 
 def benchmark_suffix_stem():
     # Access .suffix and .stem 10,000 times
-    setup = "from pathlib_next import Uri; u = Uri('http://host/path/file.tar.gz')"
+    setup = "from uripath import Uri; u = Uri('http://host/path/file.tar.gz')"
     code = "_ = u.suffix; _ = u.stem"
     return _timeit(
         code, setup=setup, number=10000, name="uri: suffix + stem access", group="uri"
     )
-
-
-def benchmark_glob_mempath():
-    # Glob over a 1k-file MemPath tree
-    backend = MemPathBackend()
-    root = MemPath("/", backend=backend)
-    # Build 10 x 10 x 10 tree = 1000 files
-    for i in range(10):
-        for j in range(10):
-            for k in range(10):
-                p = root / f"dir_{i}" / f"sub_{j}" / f"file_{k}.txt"
-                p.parent.mkdir(parents=True, exist_ok=True)
-                p.write_text("content")
-
-    # Run glob 20 times per sample
-    samples = timeit.repeat(
-        lambda: list(root.glob("**/*.txt")), number=20, repeat=_reps(3)
-    )
-    RECORDER.timing(
-        "mem: MemPath glob('**/*.txt') 1k files", samples, group="mem", calls=20
-    )
-    return statistics.median(samples)
-
-
-def benchmark_localpath_vs_stdlib():
-    # Measure LocalPath construct + stat vs raw pathlib.Path
-    with tempfile.TemporaryDirectory() as tmpdir:
-        temp_file = StdlibPath(tmpdir) / "test.txt"
-        temp_file.write_text("hello")
-
-        setup_local = (
-            f"from pathlib_next import LocalPath; p = LocalPath({repr(str(temp_file))})"
-        )
-        code_local = "p.stat()"
-        t_local = _timeit(
-            code_local,
-            setup=setup_local,
-            number=2000,
-            name="local: LocalPath stat() (timeit)",
-            group="local",
-        )
-
-        setup_std = f"from pathlib import Path; p = Path({repr(str(temp_file))})"
-        code_std = "p.stat()"
-        t_std = _timeit(
-            code_std,
-            setup=setup_std,
-            number=2000,
-            name="local: pathlib.Path stat() (timeit)",
-            group="local",
-        )
-
-        ratio = t_local / t_std if t_std > 0 else 0.0
-        return t_local, t_std, ratio
-
-
-def benchmark_localpath_matrix():
-    """Compare LocalPath against pathlib.Path on common local hot paths."""
-    rows = []
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = StdlibPath(tmpdir)
-        payload = os.urandom(64 * 1024)
-
-        for i in range(6):
-            for j in range(8):
-                subdir = root / f"dir_{i}" / f"sub_{j}"
-                subdir.mkdir(parents=True, exist_ok=True)
-                for k in range(5):
-                    (subdir / f"file_{k}.txt").write_text(
-                        f"{i}-{j}-{k}\n", encoding="utf-8"
-                    )
-
-        sample_file = root / "dir_0" / "sub_0" / "sample.bin"
-        sample_file.write_bytes(payload)
-
-        def add_case(name, local_operation, std_operation, *, repeat=5, calls=1):
-            t_local = _measure(
-                local_operation,
-                repeat=_reps(repeat),
-                name=f"local: LocalPath {name}",
-                group="local",
-                calls=calls,
-            )
-            t_std = _measure(
-                std_operation,
-                repeat=_reps(repeat),
-                name=f"local: pathlib.Path {name}",
-                group="local",
-                calls=calls,
-            )
-            ratio = t_local / t_std if t_std > 0 else float("inf")
-            rows.append((name, t_local, t_std, ratio))
-
-        add_case(
-            "construct path (10k)",
-            lambda: [LocalPath(str(sample_file)) for _ in range(10000)],
-            lambda: [StdlibPath(str(sample_file)) for _ in range(10000)],
-            repeat=3,
-            calls=10000,
-        )
-        add_case(
-            "join path (10k)",
-            lambda base=LocalPath(str(root)): [
-                base / "alpha" / "beta" / "gamma.txt" for _ in range(10000)
-            ],
-            lambda base=StdlibPath(str(root)): [
-                base / "alpha" / "beta" / "gamma.txt" for _ in range(10000)
-            ],
-            repeat=3,
-            calls=10000,
-        )
-        add_case(
-            "stat() file (2k)",
-            lambda path=LocalPath(str(sample_file)): [path.stat() for _ in range(2000)],
-            lambda path=StdlibPath(str(sample_file)): [
-                path.stat() for _ in range(2000)
-            ],
-            repeat=3,
-            calls=2000,
-        )
-        add_case(
-            "read_bytes() 64 KiB",
-            lambda path=LocalPath(str(sample_file)): path.read_bytes(),
-            lambda path=StdlibPath(str(sample_file)): path.read_bytes(),
-            repeat=5,
-        )
-        add_case(
-            "iterdir() 8 entries",
-            lambda path=LocalPath(str(root / "dir_0")): list(path.iterdir()),
-            lambda path=StdlibPath(str(root / "dir_0")): list(path.iterdir()),
-            repeat=5,
-        )
-        add_case(
-            "glob('**/*.txt') 240 files",
-            lambda path=LocalPath(str(root)): list(path.glob("**/*.txt")),
-            lambda path=StdlibPath(str(root)): list(path.glob("**/*.txt")),
-            repeat=3,
-        )
-    return rows
-
-
-def benchmark_pathsyncer_matrix():
-    """Measure PathSyncer on local trees before considering parallelism."""
-    rows = []
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = StdlibPath(tmpdir)
-        source = root / "source"
-        target = root / "target"
-        source.mkdir()
-        target.mkdir()
-        for i in range(8):
-            for j in range(16):
-                path = source / f"dir_{i}" / f"file_{j:03d}.txt"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(f"{i}-{j}\n", encoding="utf-8")
-        for i in range(4):
-            extra = target / f"extra_{i}.txt"
-            extra.write_text("extra\n", encoding="utf-8")
-
-        def checksum(entry):
-            return entry.stat.st_size
-
-        def fresh_target():
-            if target.exists():
-                shutil.rmtree(target)
-            target.mkdir()
-
-        def copy_all():
-            fresh_target()
-            PathSyncer(checksum).sync(LocalPath(source), LocalPath(target))
-
-        def dry_run():
-            fresh_target()
-            PathSyncer(checksum).sync(
-                LocalPath(source), LocalPath(target), dry_run=True
-            )
-
-        def remove_missing():
-            fresh_target()
-            for i in range(4):
-                (target / f"extra_{i}.txt").write_text("extra\n", encoding="utf-8")
-            PathSyncer(checksum, remove_missing=True).sync(
-                LocalPath(source), LocalPath(target)
-            )
-
-        for name, operation in (
-            ("copy 128 local files", copy_all),
-            ("dry-run 128 local files", dry_run),
-            ("remove-missing 4 extras + copy 128 local files", remove_missing),
-        ):
-            rows.append(
-                (
-                    name,
-                    _measure(
-                        operation,
-                        repeat=_reps(3),
-                        warmup=False,
-                        name=f"syncer: {name}",
-                        group="syncer",
-                    ),
-                )
-            )
-    return rows
 
 
 def benchmark_walk_glob_http():
@@ -418,7 +209,7 @@ def benchmark_walk_glob_http():
 
         try:
             # We import the HttpPath scheme
-            from pathlib_next.uri.schemes.http import HttpPath
+            from uripath.schemes.http import HttpPath
 
             url = f"http://127.0.0.1:{port}"
 
@@ -453,21 +244,11 @@ def benchmark_walk_glob_http():
 
 
 def _benchmark_http_transports(url):
-    """The same listing work and a run of small GETs, once per transport:
-    `HTTPTransport` (the default above) and `RequestsTransport`."""
-    from pathlib_next.uri.schemes.http import (
-        HttpPath,
-        HTTPTransport,
-        RequestsTransport,
-    )
+    """The same listing work and a run of small GETs on the transport
+    `HTTPTransport` (the default above)."""
+    from uripath.schemes.http import HttpPath, HTTPTransport
 
     transports = [("builtin", HTTPTransport)]
-    try:
-        import requests  # noqa: F401
-    except ImportError:
-        pass
-    else:
-        transports.append(("requests", RequestsTransport))
     for name, make in transports:
         transport = make()
         try:
@@ -508,7 +289,7 @@ def benchmark_http_directory_parser():
     # directly against realistic synthetic HTML (during the replacement
     # work this in-house parser was verified equivalent to, and 2.9x-6.2x faster
     # than, the bs4+html5lib+htmllistparse implementation it replaced).
-    from pathlib_next.uri.schemes.http import _DirectoryListingParser
+    from uripath.schemes.http import _DirectoryListingParser
 
     def make_apache_pre(n):
         rows = ['<a href="../">../</a>\n']
@@ -582,1103 +363,6 @@ def benchmark_http_directory_parser():
     )
 
 
-@contextlib.contextmanager
-def _loopback_sftp_server():
-    try:
-        import asyncssh
-    except ImportError as error:
-        raise RuntimeError("asyncssh is required for local SFTP benchmarks") from error
-
-    root_tmp = tempfile.TemporaryDirectory()
-    root = StdlibPath(root_tmp.name)
-
-    class _NoAuth(asyncssh.SSHServer):
-        def begin_auth(self, username):
-            return False
-
-    def _sftp_factory(chan):
-        return asyncssh.SFTPServer(chan, chroot=str(root))
-
-    async def _start():
-        return await asyncssh.listen(
-            "127.0.0.1",
-            0,
-            server_factory=_NoAuth,
-            server_host_keys=[asyncssh.generate_private_key("ssh-rsa")],
-            sftp_factory=_sftp_factory,
-            process_factory=None,
-        )
-
-    async def _stop(server):
-        server.close()
-        await server.wait_closed()
-        await asyncio.sleep(0.1)
-
-    loop = (
-        asyncio.SelectorEventLoop()
-        if sys.platform == "win32"
-        else asyncio.new_event_loop()
-    )
-    thread = threading.Thread(target=loop.run_forever, daemon=True)
-    thread.start()
-    server = asyncio.run_coroutine_threadsafe(_start(), loop).result()
-    port = server.sockets[0].getsockname()[1]
-    try:
-        yield f"sftp://x:x@127.0.0.1:{port}/", root
-    finally:
-        try:
-            asyncio.run_coroutine_threadsafe(_stop(server), loop).result(timeout=5)
-        except Exception:
-            loop.call_soon_threadsafe(server.close)
-        loop.call_soon_threadsafe(loop.stop)
-        thread.join(timeout=5)
-        root_tmp.cleanup()
-
-
-def _write_tree(root: StdlibPath, files: dict[str, bytes | str]) -> None:
-    for relpath, data in files.items():
-        path = root / relpath
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(data, bytes):
-            path.write_bytes(data)
-        else:
-            path.write_text(data, encoding="utf-8")
-
-
-def _measure(operation, *, repeat=5, warmup=True, name=None, group=None, calls=1):
-    """Time `repeat` samples of `operation`; return the median sample seconds.
-
-    With `name`, the samples are also recorded for `--save`.
-    """
-    if warmup:
-        operation()
-    samples = []
-    for _ in range(repeat):
-        start = time.perf_counter()
-        operation()
-        samples.append(time.perf_counter() - start)
-    if name is not None:
-        RECORDER.timing(name, samples, group=group, calls=calls)
-    return statistics.median(samples)
-
-
-def _measure_status(
-    operation, *, repeat=1, warmup=False, name=None, group=None, calls=1
-):
-    """Like `_measure`, but an exception becomes an `"Error: message"` result."""
-    samples = []
-    try:
-        if warmup:
-            operation()
-        for _ in range(repeat):
-            start = time.perf_counter()
-            operation()
-            samples.append(time.perf_counter() - start)
-    except Exception as error:
-        message = f"{type(error).__name__}: {error}"
-        if name is not None:
-            RECORDER.error(name, message, group=group)
-        return message
-    if name is not None:
-        RECORDER.timing(name, samples, group=group, calls=calls)
-    return statistics.median(samples)
-
-
-def _fmt_metric(value):
-    if isinstance(value, (int, float)):
-        return f"{value:.4f}s"
-    return str(value)
-
-
-def _fmt_ratio(value):
-    if isinstance(value, (int, float)):
-        return f"{value:.2f}x"
-    return str(value)
-
-
-def benchmark_sftp_backends(mode="all"):
-    """Benchmark paramiko vs asyncssh across a broad SFTP operation matrix.
-
-    Uses an in-process loopback asyncssh server so the two client backends
-    hit the same target filesystem with identical data and no external
-    host dependency. The numbers therefore emphasize backend overhead and
-    request/throughput behavior more than WAN latency. The expensive
-    recursive-copy stress case is opt-in via
-    PATHLIB_NEXT_BENCH_SFTP_RECURSIVE=1 so the default suite stays fast
-    and avoids leaving a timed-out async bridge task behind.
-    """
-    try:
-        import paramiko
-        from pathlib_next.uri.schemes.sftp import (
-            AsyncsshSftpBackend,
-            SftpBackend,
-            SftpPath,
-            _asyncssh as asyncssh_backend_mod,
-        )
-        from pathlib_next.uri.schemes.sftp._paramiko import _CACHED_CLIENTS
-    except ImportError as error:
-        RECORDER.skip("sftp", f"{type(error).__name__}: {error}", group="sftp")
-        return None, [], f"SFTP benchmark skipped: {error}"
-
-    def make_paramiko_backend():
-        return SftpBackend(
-            {"allow_agent": False, "look_for_keys": False},
-            paramiko.AutoAddPolicy(),
-            known_hosts=None,
-        )
-
-    def make_asyncssh_backend():
-        return AsyncsshSftpBackend(
-            {
-                "config": None,
-                "client_keys": None,
-                "agent_path": None,
-                "public_key_auth": False,
-                "kbdint_auth": False,
-                "gss_kex": False,
-                "gss_auth": False,
-                "preferred_auth": "none,password",
-                # Throwaway loopback server with a fresh key every run: opt out
-                # of host-key verification explicitly (it is on by default).
-                "known_hosts": None,
-            },
-            max_concurrency=8,
-            sftp_version=4,
-        )
-
-    def close_backend(backend, source):
-        if type(backend).__name__ == "SftpBackend":
-            try:
-                client = backend.client(source)
-            except Exception:
-                client = None
-            if client is not None:
-                try:
-                    client.close()
-                except Exception:
-                    pass
-                try:
-                    client.sock.get_transport().close()
-                except Exception:
-                    pass
-            with _CACHED_CLIENTS.lock:
-                _CACHED_CLIENTS.cache.pop(
-                    (backend, source, threading.get_ident()), None
-                )
-            return
-        asyncssh_backend_mod._CACHE.invalidate((backend, source))
-
-    if mode not in {"all", "batch", "recursive", "recursive-copy", "recursive-large"}:
-        raise ValueError(f"unknown SFTP benchmark mode: {mode!r}")
-
-    rows = []
-    scaling_rows = []
-    old_asyncssh_timeout = asyncssh_backend_mod._DEFAULT_TIMEOUT
-    asyncssh_backend_mod._DEFAULT_TIMEOUT = 3.0
-    try:
-        with _loopback_sftp_server() as (server_uri, local_root):
-            backends = {
-                "paramiko": make_paramiko_backend(),
-                "asyncssh": make_asyncssh_backend(),
-            }
-            roots = {
-                name: SftpPath(server_uri, backend=backend)
-                for name, backend in backends.items()
-            }
-
-            static_files = {
-                "bench/stat/small.txt": "hello world\n",
-                "bench/read/small.txt": "read me\n" * 64,
-                "bench/copy_file/source.bin": os.urandom(256 * 1024),
-            }
-            _write_tree(local_root, static_files)
-
-            list_files = {
-                f"bench/listing/file_{i:03d}.txt": f"listing {i}\n" for i in range(64)
-            }
-            list_dirs = {
-                f"bench/listing/dir_{i:02d}/nested.txt": "nested\n" for i in range(8)
-            }
-            _write_tree(local_root, {**list_files, **list_dirs})
-
-            walk_tree = {}
-            for i in range(4):
-                for j in range(5):
-                    for k in range(4):
-                        walk_tree[f"bench/walk/dir_{i}/sub_{j}/file_{k}.txt"] = (
-                            f"{i}-{j}-{k}\n"
-                        )
-            _write_tree(local_root, walk_tree)
-
-            copy_tree = {
-                f"bench/copy_tree/source/dir_{i:02d}/file_{j:02d}.txt": (
-                    "payload\n" * 32
-                )
-                for i in range(4)
-                for j in range(4)
-            }
-            _write_tree(local_root, copy_tree)
-            recursive_copy_tree = {
-                f"bench/copy_tree_small/source/dir_{i:02d}/file_{j:02d}.txt": (
-                    "small\n" * 8
-                )
-                for i in range(2)
-                for j in range(2)
-            }
-            _write_tree(local_root, recursive_copy_tree)
-            recursive_rm_tree = {
-                f"bench/rm_tree/template/dir_{i:02d}/file_{j:02d}.txt": ("rm\n" * 8)
-                for i in range(3)
-                for j in range(3)
-            }
-            _write_tree(local_root, recursive_rm_tree)
-            recursive_large_tree = {
-                f"bench/recursive_large/source/dir_{i:02d}/file_{j:02d}.txt": (
-                    "large\n" * 8
-                )
-                for i in range(8)
-                for j in range(16)
-            }
-            recursive_large_rm_tree = {
-                f"bench/recursive_large/template/dir_{i:02d}/file_{j:02d}.txt": (
-                    "large-rm\n" * 8
-                )
-                for i in range(8)
-                for j in range(16)
-            }
-            _write_tree(local_root, recursive_large_tree)
-            _write_tree(local_root, recursive_large_rm_tree)
-            for relpath in (
-                "bench/write",
-                "bench/mkdir",
-                "bench/rename",
-                "bench/unlink",
-                "bench/copy_file",
-                "bench/copy_tree",
-                "bench/copy_tree_small",
-                "bench/rm_tree",
-                "bench/recursive_large",
-            ):
-                (local_root / relpath).mkdir(parents=True, exist_ok=True)
-            for backend_name in backends:
-                (local_root / "bench/write" / backend_name).mkdir(
-                    parents=True, exist_ok=True
-                )
-                (local_root / "bench/mkdir" / backend_name).mkdir(
-                    parents=True, exist_ok=True
-                )
-
-            try:
-                for root in roots.values():
-                    _ = root.exists()
-
-                def compare(name, operation_factory, *, repeat=5, warmup=True):
-                    timings = {}
-                    for backend_name, root in roots.items():
-                        timings[backend_name] = _measure(
-                            operation_factory(root, backend_name),
-                            repeat=_reps(repeat),
-                            warmup=warmup,
-                            name=f"sftp: {backend_name} {name}",
-                            group="sftp",
-                        )
-                    ratio = (
-                        timings["paramiko"] / timings["asyncssh"]
-                        if timings["asyncssh"] > 0
-                        else float("inf")
-                    )
-                    rows.append((name, timings["paramiko"], timings["asyncssh"], ratio))
-
-                def compare_status(name, operation_factory, *, repeat=1, warmup=False):
-                    timings = {}
-                    for backend_name, root in roots.items():
-                        timings[backend_name] = _measure_status(
-                            operation_factory(root, backend_name),
-                            repeat=_reps(repeat),
-                            warmup=warmup,
-                            name=f"sftp: {backend_name} {name}",
-                            group="sftp",
-                        )
-                    if all(
-                        isinstance(value, (int, float)) for value in timings.values()
-                    ):
-                        ratio = (
-                            timings["paramiko"] / timings["asyncssh"]
-                            if timings["asyncssh"] > 0
-                            else float("inf")
-                        )
-                    else:
-                        ratio = "n/a"
-                    rows.append((name, timings["paramiko"], timings["asyncssh"], ratio))
-
-                def make_recursive_rm_operation(root, backend_name):
-                    counter = iter(range(1000))
-
-                    def operation():
-                        idx = next(counter)
-                        local_target = (
-                            local_root / f"bench/rm_tree/{backend_name}_rm_{idx:03d}"
-                        )
-                        if local_target.exists():
-                            shutil.rmtree(local_target)
-                        shutil.copytree(
-                            local_root / "bench/rm_tree/template", local_target
-                        )
-                        target = root / f"bench/rm_tree/{backend_name}_rm_{idx:03d}"
-                        target.rm(recursive=True)
-
-                    return operation
-
-                if mode == "all":
-                    compare(
-                        "warm stat()",
-                        lambda root, _backend_name: lambda: (
-                            root / "bench/stat/small.txt"
-                        ).stat(),
-                        repeat=5,
-                    )
-                    compare(
-                        "iterdir() 72 entries",
-                        lambda root, _backend_name: lambda: list(
-                            (root / "bench/listing").iterdir()
-                        ),
-                        repeat=3,
-                    )
-                    compare(
-                        "walk() 80 files",
-                        lambda root, _backend_name: lambda: list(
-                            (root / "bench/walk").walk()
-                        ),
-                        repeat=2,
-                    )
-                    compare(
-                        "glob('**/*.txt') 80 files",
-                        lambda root, _backend_name: lambda: list(
-                            (root / "bench/walk").glob("**/*.txt")
-                        ),
-                        repeat=2,
-                    )
-                    compare(
-                        "read_bytes() small file",
-                        lambda root, _backend_name: lambda: (
-                            root / "bench/read/small.txt"
-                        ).read_bytes(),
-                        repeat=5,
-                    )
-
-                if mode in {"all", "batch"}:
-                    compare(
-                        "read_bytes() 64-file batch",
-                        lambda root, _backend_name: lambda: [
-                            (root / f"bench/listing/file_{i:03d}.txt").read_bytes()
-                            for i in range(64)
-                        ],
-                        repeat=2,
-                    )
-                    compare(
-                        "stat() 64-file batch",
-                        lambda root, _backend_name: lambda: [
-                            (root / f"bench/listing/file_{i:03d}.txt").stat()
-                            for i in range(64)
-                        ],
-                        repeat=2,
-                    )
-
-                if mode == "all":
-                    compare(
-                        "write_bytes() 256 KiB",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(1000)): (
-                                (
-                                    root
-                                    / f"bench/write/{backend_name}/out_{next(counter):03d}.bin"
-                                ).write_bytes(b"x" * (256 * 1024))
-                            )
-                        ),
-                        repeat=3,
-                        warmup=False,
-                    )
-
-                    compare(
-                        "mkdir() leaf dir",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(1000)): (
-                                (
-                                    root
-                                    / f"bench/mkdir/{backend_name}/dir_{next(counter):03d}"
-                                ).mkdir(exist_ok=False)
-                            )
-                        ),
-                        repeat=3,
-                        warmup=False,
-                    )
-
-                # One fixture file per sample (plus slack), however many
-                # samples `--samples` asks for.
-                fixture_count = max(8, _reps(3) + 1)
-                for backend_name in backends:
-                    (local_root / "bench/rename" / backend_name).mkdir(
-                        parents=True, exist_ok=True
-                    )
-                    for i in range(fixture_count):
-                        (
-                            local_root
-                            / "bench/rename"
-                            / backend_name
-                            / f"src_{i:03d}.txt"
-                        ).write_text("rename\n", encoding="utf-8")
-                if mode == "all":
-                    compare(
-                        "rename() file",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(fixture_count)): (
-                                (
-                                    lambda i: (
-                                        root
-                                        / f"bench/rename/{backend_name}/src_{i:03d}.txt"
-                                    ).rename(
-                                        root
-                                        / f"bench/rename/{backend_name}/dst_{i:03d}.txt"
-                                    )
-                                )(next(counter))
-                            )
-                        ),
-                        repeat=3,
-                        warmup=False,
-                    )
-
-                for backend_name in backends:
-                    (local_root / "bench/unlink" / backend_name).mkdir(
-                        parents=True, exist_ok=True
-                    )
-                    for i in range(fixture_count):
-                        (
-                            local_root
-                            / "bench/unlink"
-                            / backend_name
-                            / f"victim_{i:03d}.txt"
-                        ).write_text("unlink\n", encoding="utf-8")
-                if mode in {"all", "batch"}:
-                    compare(
-                        "unlink() file",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(fixture_count)): (
-                                (
-                                    root
-                                    / f"bench/unlink/{backend_name}/victim_{next(counter):03d}.txt"
-                                ).unlink()
-                            )
-                        ),
-                        repeat=3,
-                        warmup=False,
-                    )
-
-                if mode == "all":
-                    compare(
-                        "copy() single 256 KiB file",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(1000)): (
-                                (root / "bench/copy_file/source.bin").copy(
-                                    root
-                                    / f"bench/copy_file/{backend_name}_out_{next(counter):03d}.bin",
-                                    overwrite=True,
-                                )
-                            )
-                        ),
-                        repeat=3,
-                        warmup=False,
-                    )
-
-                if mode in {"all", "recursive"}:
-                    compare_status(
-                        "rm(recursive=True) 9-file tree",
-                        make_recursive_rm_operation,
-                        repeat=1,
-                        warmup=False,
-                    )
-
-                if mode == "recursive-copy" or (
-                    mode == "all"
-                    and os.getenv("PATHLIB_NEXT_BENCH_SFTP_RECURSIVE") == "1"
-                ):
-                    compare_status(
-                        "copy(recursive=True) 4-file tree",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(1000)): (
-                                (root / "bench/copy_tree_small/source").copy(
-                                    root
-                                    / f"bench/copy_tree_small/{backend_name}_out_{next(counter):03d}",
-                                    overwrite=True,
-                                    recursive=True,
-                                )
-                            )
-                        ),
-                        repeat=1,
-                        warmup=False,
-                    )
-                    for max_concurrency in (1, 4):
-                        backend = AsyncsshSftpBackend(
-                            {
-                                "config": None,
-                                "client_keys": None,
-                                "agent_path": None,
-                                "public_key_auth": False,
-                                "kbdint_auth": False,
-                                "gss_kex": False,
-                                "gss_auth": False,
-                                "preferred_auth": "none,password",
-                                # Throwaway loopback server, fresh key per run:
-                                # opt out of host-key verification explicitly.
-                                "known_hosts": None,
-                            },
-                            max_concurrency=max_concurrency,
-                            sftp_version=4,
-                        )
-                        root = SftpPath(server_uri, backend=backend)
-
-                        def scaling_operation(
-                            counter=iter(range(1000)),
-                            max_concurrency=max_concurrency,
-                        ):
-                            (root / "bench/copy_tree_small/source").copy(
-                                root
-                                / f"bench/copy_tree_small/asyncssh_mc{max_concurrency}_{next(counter):03d}",
-                                overwrite=True,
-                                recursive=True,
-                            )
-
-                        metric = _measure_status(
-                            scaling_operation,
-                            repeat=_reps(1),
-                            warmup=False,
-                            name=f"sftp: asyncssh recursive copy mc={max_concurrency}",
-                            group="sftp",
-                        )
-                        scaling_rows.append(
-                            (f"asyncssh recursive copy mc={max_concurrency}", metric)
-                        )
-                        try:
-                            close_backend(backend, root.source)
-                        except Exception:
-                            pass
-
-                if mode == "recursive-large":
-                    compare_status(
-                        "copy(recursive=True) 128-file tree",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(1000)): (
-                                (root / "bench/recursive_large/source").copy(
-                                    root
-                                    / f"bench/recursive_large/{backend_name}_copy_{next(counter):03d}",
-                                    overwrite=True,
-                                    recursive=True,
-                                )
-                            )
-                        ),
-                        repeat=1,
-                        warmup=False,
-                    )
-                    compare_status(
-                        "rm(recursive=True) 128-file tree",
-                        lambda root, backend_name: (
-                            lambda counter=iter(range(1000)): (
-                                (
-                                    lambda idx: (
-                                        shutil.copytree(
-                                            local_root
-                                            / "bench/recursive_large/template",
-                                            local_root
-                                            / f"bench/recursive_large/{backend_name}_rm_{idx:03d}",
-                                        ),
-                                        (
-                                            root
-                                            / f"bench/recursive_large/{backend_name}_rm_{idx:03d}"
-                                        ).rm(recursive=True),
-                                    )
-                                )(next(counter))
-                            )
-                        ),
-                        repeat=1,
-                        warmup=False,
-                    )
-                    for max_concurrency in (1, 4, 8):
-                        backend = AsyncsshSftpBackend(
-                            {
-                                "config": None,
-                                "client_keys": None,
-                                "agent_path": None,
-                                "public_key_auth": False,
-                                "kbdint_auth": False,
-                                "gss_kex": False,
-                                "gss_auth": False,
-                                "preferred_auth": "none,password",
-                                # Throwaway loopback server, fresh key per run:
-                                # opt out of host-key verification explicitly.
-                                "known_hosts": None,
-                            },
-                            max_concurrency=max_concurrency,
-                            sftp_version=4,
-                        )
-                        root = SftpPath(server_uri, backend=backend)
-
-                        def large_scaling_operation(
-                            counter=iter(range(1000)),
-                            max_concurrency=max_concurrency,
-                        ):
-                            (root / "bench/recursive_large/source").copy(
-                                root
-                                / f"bench/recursive_large/asyncssh_large_mc{max_concurrency}_{next(counter):03d}",
-                                overwrite=True,
-                                recursive=True,
-                            )
-
-                        metric = _measure_status(
-                            large_scaling_operation,
-                            repeat=_reps(1),
-                            warmup=False,
-                            name=f"sftp: asyncssh large recursive copy mc={max_concurrency}",
-                            group="sftp",
-                        )
-                        scaling_rows.append(
-                            (
-                                f"asyncssh large recursive copy mc={max_concurrency}",
-                                metric,
-                            )
-                        )
-                        try:
-                            close_backend(backend, root.source)
-                        except Exception:
-                            pass
-
-                if mode == "all":
-                    cold_timings = {}
-                    for backend_name, backend_factory in (
-                        ("paramiko", make_paramiko_backend),
-                        ("asyncssh", make_asyncssh_backend),
-                    ):
-
-                        def cold_operation():
-                            backend = backend_factory()
-                            path = (
-                                SftpPath(server_uri, backend=backend)
-                                / "bench/stat/small.txt"
-                            )
-                            try:
-                                path.stat()
-                            finally:
-                                close_backend(backend, path.source)
-
-                        cold_timings[backend_name] = _measure(
-                            cold_operation,
-                            repeat=_reps(3),
-                            warmup=False,
-                            name=f"sftp: {backend_name} cold connect + stat()",
-                            group="sftp",
-                        )
-                    rows.append(
-                        (
-                            "cold connect + stat()",
-                            cold_timings["paramiko"],
-                            cold_timings["asyncssh"],
-                            cold_timings["paramiko"] / cold_timings["asyncssh"],
-                        )
-                    )
-            finally:
-                for backend_name, backend in backends.items():
-                    try:
-                        close_backend(backend, roots[backend_name].source)
-                    except Exception:
-                        pass
-    finally:
-        asyncssh_backend_mod._DEFAULT_TIMEOUT = old_asyncssh_timeout
-
-    return rows, scaling_rows, f"loopback asyncssh server, {mode} mode, median seconds"
-
-
-def print_sftp_results(sftp_rows, sftp_scaling_rows, sftp_info, *, markdown=False):
-    if sftp_rows is None:
-        print(f"SFTP backend comparison: {sftp_info}")
-        return
-    if markdown:
-        print("| Benchmark Case | Time / Metric |")
-        print("|---|---|")
-        for name, t_paramiko, t_asyncssh, sftp_ratio in sftp_rows:
-            print(
-                f"| SFTP {name} | paramiko: {_fmt_metric(t_paramiko)}, "
-                f"asyncssh: {_fmt_metric(t_asyncssh)} "
-                f"(paramiko/asyncssh: {_fmt_ratio(sftp_ratio)}) |"
-            )
-        for name, metric in sftp_scaling_rows:
-            print(f"| SFTP {name} | {_fmt_metric(metric)} |")
-        return
-
-    print(f"SFTP backend comparison ({sftp_info}):")
-    for name, t_paramiko, t_asyncssh, sftp_ratio in sftp_rows:
-        if isinstance(t_paramiko, (int, float)) and isinstance(
-            t_asyncssh, (int, float)
-        ):
-            winner = "asyncssh" if sftp_ratio > 1 else "paramiko"
-        else:
-            winner = "n/a"
-        print(
-            f"   - {name}: paramiko={_fmt_metric(t_paramiko)}, "
-            f"asyncssh={_fmt_metric(t_asyncssh)} "
-            f"(paramiko/asyncssh={_fmt_ratio(sftp_ratio)}, faster={winner})"
-        )
-    if sftp_scaling_rows:
-        print("Asyncssh recursive copy scaling:")
-        for name, metric in sftp_scaling_rows:
-            print(f"   - {name}: {_fmt_metric(metric)}")
-
-
-def print_pathsyncer_results(rows, *, markdown=False):
-    if markdown:
-        print("| Benchmark Case | Time / Metric |")
-        print("|---|---|")
-        for name, metric in rows:
-            print(f"| PathSyncer {name} | {_fmt_metric(metric)} |")
-        return
-    print("PathSyncer local comparison:")
-    for name, metric in rows:
-        print(f"   - {name}: {_fmt_metric(metric)}")
-
-
-def _recursive_matrix_files():
-    files = {}
-    for i in range(4):
-        for j in range(8):
-            files[f"dir_{i}/file_{j:02d}.txt"] = f"{i}-{j}\n"
-    files["dir_0/nested/deep.txt"] = "deep\n"
-    return files
-
-
-def _seed_stdlib_tree(root):
-    if root.exists():
-        shutil.rmtree(root)
-    root.mkdir(parents=True)
-    _write_tree(root, _recursive_matrix_files())
-
-
-def _seed_mem_tree(path):
-    for relpath, data in _recursive_matrix_files().items():
-        file_path = path / relpath
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(data)
-
-
-def benchmark_recursive_matrix():
-    """Narrow recursive operation probes for local, mem, and fake providers."""
-    rows = []
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = StdlibPath(tmpdir)
-        src = root / "src"
-        dst = root / "dst"
-        victim = root / "victim"
-        _seed_stdlib_tree(src)
-
-        def local_copy():
-            if dst.exists():
-                shutil.rmtree(dst)
-            LocalPath(src).copy(LocalPath(dst), recursive=True)
-
-        def local_rm():
-            _seed_stdlib_tree(victim)
-            LocalPath(victim).rm(recursive=True)
-
-        for name, operation in (
-            ("LocalPath copy(recursive=True) 33-file tree", local_copy),
-            ("LocalPath rm(recursive=True) 33-file tree", local_rm),
-        ):
-            rows.append(
-                (
-                    name,
-                    _measure_status(
-                        operation,
-                        repeat=_reps(3),
-                        name=f"recursive: {name}",
-                        group="recursive",
-                    ),
-                )
-            )
-
-    def mem_copy():
-        backend = MemPathBackend()
-        src = MemPath("/src", backend=backend)
-        dst = MemPath("/dst", backend=backend)
-        src.mkdir()
-        _seed_mem_tree(src)
-        src.copy(dst, recursive=True)
-
-    def mem_rm():
-        backend = MemPathBackend()
-        victim = MemPath("/victim", backend=backend)
-        victim.mkdir()
-        _seed_mem_tree(victim)
-        victim.rm(recursive=True)
-
-    for name, operation in (
-        ("MemPath copy(recursive=True) 33-file tree", mem_copy),
-        ("MemPath rm(recursive=True) 33-file tree", mem_rm),
-    ):
-        rows.append(
-            (
-                name,
-                _measure_status(
-                    operation,
-                    repeat=_reps(3),
-                    name=f"recursive: {name}",
-                    group="recursive",
-                ),
-            )
-        )
-    rows.extend(_provider_recursive_call_count_rows())
-    return rows
-
-
-def _record_calls(name, values):
-    RECORDER.counter(f"recursive: {name}", values, group="recursive")
-
-
-def _provider_recursive_call_count_rows():
-    rows = []
-
-    try:
-        from pathlib_next.uri.schemes.s3 import BaseS3Backend, S3Path
-    except Exception as error:
-        RECORDER.skip(
-            "recursive: S3 rm(recursive=True) call count", str(error), group="recursive"
-        )
-        rows.append(("S3 rm(recursive=True) call count", f"skipped: {error}"))
-    else:
-
-        class FakeS3Client:
-            def __init__(self):
-                self.objects = {"dir/": b""}
-                self.calls = {
-                    "head_object": 0,
-                    "list_objects_v2": 0,
-                    "delete_objects": 0,
-                }
-                for relpath in _recursive_matrix_files():
-                    self.objects[f"dir/{relpath}"] = b"x"
-
-            def head_object(self, Bucket, Key):
-                self.calls["head_object"] += 1
-                if Key not in self.objects:
-                    from botocore.exceptions import ClientError
-
-                    raise ClientError(
-                        {"Error": {"Code": "404", "Message": "404"}},
-                        "HeadObject",
-                    )
-                return {
-                    "ContentLength": len(self.objects[Key]),
-                    "LastModified": datetime.datetime(2026, 1, 1, 12, 0, 0),
-                }
-
-            def get_paginator(self, name):
-                assert name == "list_objects_v2"
-                return self
-
-            def paginate(self, **kwargs):
-                yield self.list_objects_v2(**kwargs)
-
-            def list_objects_v2(self, Bucket, Prefix="", **_kwargs):
-                self.calls["list_objects_v2"] += 1
-                contents = [
-                    {"Key": key}
-                    for key in sorted(self.objects)
-                    if key.startswith(Prefix)
-                ]
-                return {"KeyCount": len(contents), "Contents": contents}
-
-            def delete_objects(self, Bucket, Delete):
-                self.calls["delete_objects"] += 1
-                for item in Delete["Objects"]:
-                    self.objects.pop(item["Key"], None)
-                return {"Deleted": Delete["Objects"]}
-
-        class FakeS3Backend(BaseS3Backend):
-            def __init__(self):
-                self.client_obj = FakeS3Client()
-
-            def client(self):
-                return self.client_obj
-
-        backend = FakeS3Backend()
-        S3Path("s3://bucket/dir", backend=backend).rm(recursive=True)
-        calls = backend.client_obj.calls
-        deleted = 34 - len(backend.client_obj.objects)
-        _record_calls(
-            "S3 rm(recursive=True) fake 33-file tree", {**calls, "deleted": deleted}
-        )
-        rows.append(
-            (
-                "S3 rm(recursive=True) fake 33-file tree",
-                "head_object={head_object}, list_objects_v2={list_objects_v2}, "
-                "delete_objects={delete_objects}, deleted={deleted}".format(
-                    deleted=deleted,
-                    **calls,
-                ),
-            )
-        )
-
-    from pathlib_next.uri.schemes.gs import BaseGsBackend, GsPath
-
-    class FakeGsBlob:
-        def __init__(self, bucket, name):
-            self.bucket = bucket
-            self.name = name
-
-        def reload(self):
-            self.bucket.calls["reload"] += 1
-            if self.name not in self.bucket.objects:
-                raise FileNotFoundError(self.name)
-
-        def delete(self):
-            self.bucket.calls["delete"] += 1
-            self.bucket.objects.pop(self.name, None)
-
-    class FakeGsBucket:
-        def __init__(self):
-            self.objects = {"dir/": b""}
-            self.calls = {"reload": 0, "list_blobs": 0, "delete": 0}
-            for relpath in _recursive_matrix_files():
-                self.objects[f"dir/{relpath}"] = b"x"
-
-        def blob(self, name):
-            return FakeGsBlob(self, name)
-
-        def list_blobs(self, prefix="", **_kwargs):
-            self.calls["list_blobs"] += 1
-            for name in sorted(self.objects):
-                if name.startswith(prefix):
-                    yield FakeGsBlob(self, name)
-
-    class FakeGsClient:
-        def __init__(self):
-            self.bucket_obj = FakeGsBucket()
-
-        def bucket(self, _name):
-            return self.bucket_obj
-
-    class FakeGsBackend(BaseGsBackend):
-        def __init__(self):
-            self.client_obj = FakeGsClient()
-
-        def client(self):
-            return self.client_obj
-
-    gs_backend = FakeGsBackend()
-    GsPath("gs://bucket/dir", backend=gs_backend).rm(recursive=True)
-    gs_bucket = gs_backend.client_obj.bucket_obj
-    _record_calls(
-        "GCS rm(recursive=True) fake 33-file tree",
-        {**gs_bucket.calls, "deleted": 34 - len(gs_bucket.objects)},
-    )
-    rows.append(
-        (
-            "GCS rm(recursive=True) fake 33-file tree",
-            "reload={reload}, list_blobs={list_blobs}, delete={delete}, deleted={deleted}".format(
-                deleted=34 - len(gs_bucket.objects),
-                **gs_bucket.calls,
-            ),
-        )
-    )
-
-    from pathlib_next.uri.schemes.az import AzPath, BaseAzBackend
-
-    class FakeAzBlobClient:
-        def __init__(self, container, name):
-            self.container = container
-            self.name = name
-
-        def get_blob_properties(self):
-            self.container.calls["get_blob_properties"] += 1
-            if self.name not in self.container.objects:
-                raise FileNotFoundError(self.name)
-            return {}
-
-        def delete_blob(self):
-            self.container.calls["delete_blob"] += 1
-            self.container.objects.pop(self.name, None)
-
-    class FakeAzBlobItem:
-        def __init__(self, name):
-            self.name = name
-
-    class FakeAzContainer:
-        def __init__(self):
-            self.objects = {"dir/": b""}
-            self.calls = {
-                "get_blob_properties": 0,
-                "list_blobs": 0,
-                "delete_blobs": 0,
-                "delete_blob": 0,
-            }
-            for relpath in _recursive_matrix_files():
-                self.objects[f"dir/{relpath}"] = b"x"
-
-        def get_blob_client(self, name):
-            return FakeAzBlobClient(self, name)
-
-        def list_blobs(self, name_starts_with=""):
-            self.calls["list_blobs"] += 1
-            for name in sorted(self.objects):
-                if name.startswith(name_starts_with):
-                    yield FakeAzBlobItem(name)
-
-        def delete_blobs(self, *names):
-            self.calls["delete_blobs"] += 1
-            for name in names:
-                self.objects.pop(name, None)
-
-    class FakeAzClient:
-        def __init__(self):
-            self.container = FakeAzContainer()
-
-        def get_container_client(self, _name):
-            return self.container
-
-    class FakeAzBackend(BaseAzBackend):
-        def __init__(self):
-            self.client_obj = FakeAzClient()
-
-        def client(self):
-            return self.client_obj
-
-    az_backend = FakeAzBackend()
-    AzPath("az://account/container/dir", backend=az_backend).rm(recursive=True)
-    az_container = az_backend.client_obj.container
-    _record_calls(
-        "Azure rm(recursive=True) fake 33-file tree",
-        {**az_container.calls, "deleted": 34 - len(az_container.objects)},
-    )
-    rows.append(
-        (
-            "Azure rm(recursive=True) fake 33-file tree",
-            "get_blob_properties={get_blob_properties}, list_blobs={list_blobs}, "
-            "delete_blobs={delete_blobs}, delete_blob={delete_blob}, deleted={deleted}".format(
-                deleted=34 - len(az_container.objects),
-                **az_container.calls,
-            ),
-        )
-    )
-    return rows
-
-
-def print_recursive_matrix_results(rows, *, markdown=False):
-    if markdown:
-        print("| Benchmark Case | Time / Metric |")
-        print("|---|---|")
-        for name, metric in rows:
-            print(f"| {name} | {_fmt_metric(metric)} |")
-        return
-    print("Recursive operation matrix:")
-    for name, metric in rows:
-        print(f"   - {name}: {_fmt_metric(metric)}")
-
-
 def main():
     print("Running benchmarks...")
 
@@ -1702,39 +386,17 @@ def main():
     t_suffix_stem = benchmark_suffix_stem()
     print(f"3b. Suffix/Stem Access (10k runs): {t_suffix_stem:.4f}s")
 
-    t_glob_mem = benchmark_glob_mempath()
-    print(f"4. Glob over 1k MemPath (20 runs): {t_glob_mem:.4f}s")
-
-    t_local, t_std, local_ratio = benchmark_localpath_vs_stdlib()
-    print(
-        f"5. LocalPath stat (2k runs): {t_local:.4f}s vs pathlib.Path: "
-        f"{t_std:.4f}s (Ratio: {local_ratio:.2f}x)"
-    )
-    local_matrix = benchmark_localpath_matrix()
-    print("5b. LocalPath vs pathlib.Path matrix:")
-    for name, t_local_case, t_std_case, case_ratio in local_matrix:
-        winner = "LocalPath" if case_ratio < 1 else "pathlib.Path"
-        print(
-            f"   - {name}: LocalPath={t_local_case:.4f}s, "
-            f"pathlib.Path={t_std_case:.4f}s "
-            f"(LocalPath/pathlib={case_ratio:.2f}x, faster={winner})"
-        )
-
     t_http_glob, t_http_walk = benchmark_walk_glob_http()
-    print(f"6. HTTP Glob (10 runs): {t_http_glob:.4f}s")
-    print(f"7. HTTP Walk (10 runs): {t_http_walk:.4f}s")
+    print(f"4. HTTP Glob (10 runs): {t_http_glob:.4f}s")
+    print(f"5. HTTP Walk (10 runs): {t_http_walk:.4f}s")
 
     t_parser_pre, t_parser_table = benchmark_http_directory_parser()
     print(
-        f"8. HTTP dir listing parse, Apache <pre>, n=1000 (ms/parse): {t_parser_pre:.4f}ms"
+        f"6. HTTP dir listing parse, Apache <pre>, n=1000 (ms/parse): {t_parser_pre:.4f}ms"
     )
     print(
-        f"9. HTTP dir listing parse, nginx <table>, n=1000 (ms/parse): {t_parser_table:.4f}ms"
+        f"7. HTTP dir listing parse, nginx <table>, n=1000 (ms/parse): {t_parser_table:.4f}ms"
     )
-
-    sftp_rows, sftp_scaling_rows, sftp_info = benchmark_sftp_backends()
-    print("10.", end=" ")
-    print_sftp_results(sftp_rows, sftp_scaling_rows, sftp_info)
 
     # Print Markdown table format for copy-pasting
     print("\n| Benchmark Case | Time / Metric |")
@@ -1747,16 +409,6 @@ def main():
     print(f"| Path Join (10k) | {t_join:.4f}s |")
     print(f"| Segments/Name Access (10k) | {t_seg_name:.4f}s |")
     print(f"| Suffix/Stem Access (10k) | {t_suffix_stem:.4f}s |")
-    print(f"| Glob 1k MemPath (20) | {t_glob_mem:.4f}s |")
-    print(
-        f"| LocalPath vs Stdlib (2k stat) | Local: {t_local:.4f}s, "
-        f"Stdlib: {t_std:.4f}s (Ratio: {local_ratio:.2f}x) |"
-    )
-    for name, t_local_case, t_std_case, case_ratio in local_matrix:
-        print(
-            f"| LocalPath {name} | Local: {t_local_case:.4f}s, "
-            f"Stdlib: {t_std_case:.4f}s (Local/Stdlib: {case_ratio:.2f}x) |"
-        )
     print(f"| HTTP Glob (10) | {t_http_glob:.4f}s |")
     print(f"| HTTP Walk (10) | {t_http_walk:.4f}s |")
     print(
@@ -1765,17 +417,6 @@ def main():
     print(
         f"| HTTP dir listing parse, nginx <table> (n=1000) | {t_parser_table:.4f}ms/parse |"
     )
-    if sftp_rows is not None:
-        for name, t_paramiko, t_asyncssh, sftp_ratio in sftp_rows:
-            print(
-                f"| SFTP {name} | paramiko: {_fmt_metric(t_paramiko)}, "
-                f"asyncssh: {_fmt_metric(t_asyncssh)} "
-                f"(paramiko/asyncssh: {_fmt_ratio(sftp_ratio)}) |"
-            )
-        for name, metric in sftp_scaling_rows:
-            print(f"| SFTP {name} | {_fmt_metric(metric)} |")
-    else:
-        print(f"| SFTP backend comparison | {sftp_info} |")
 
 
 def _pyproject_version():
@@ -1820,17 +461,12 @@ def build_result(suite, *, name, note=None):
         "created_utc": datetime.datetime.now(datetime.timezone.utc)
         .replace(microsecond=0)
         .isoformat(),
-        "package": {"name": "pathlib-next", "version": _pyproject_version()},
+        "package": {"name": "uripath", "version": _pyproject_version()},
         "git": _git_state(),
         "python": f"{platform.python_implementation()} {platform.python_version()}",
         "interpreter": _interpreter_tag(),
         "processor": f"{platform.system()}-{platform.machine()}",
         "cpu_count": os.cpu_count(),
-        "env": {
-            "PATHLIB_NEXT_BENCH_SFTP_RECURSIVE": os.environ.get(
-                "PATHLIB_NEXT_BENCH_SFTP_RECURSIVE", ""
-            )
-        },
         "metrics": dict(sorted(RECORDER.metrics.items())),
         "counters": dict(sorted(RECORDER.counters.items())),
         "errors": dict(sorted(RECORDER.errors.items())),
@@ -1864,25 +500,11 @@ def _samples_arg(value):
     return count
 
 
-SUITES = {
-    "sftp-recursive": "run only recursive SFTP remove probe rows",
-    "sftp-recursive-copy": "run recursive SFTP copy probe rows",
-    "sftp-recursive-large": "run larger recursive SFTP copy/remove probe rows",
-    "sftp-batch": "run only batch SFTP probe rows",
-    "syncer": "run PathSyncer local tree probes",
-    "recursive-matrix": "run narrow recursive local/mem/provider call-count probes",
-}
-
-
 def cli(argv=None):
     global _SAMPLES_OVERRIDE
 
     parser = argparse.ArgumentParser(
-        description="Run pathlib_next benchmarks (the default suite when no suite is named).",
-        epilog=(
-            "Options go before the suite name, e.g. "
-            "`python benchmarks/bench.py --save --samples 5 syncer`."
-        ),
+        description="Run the uripath benchmarks.",
     )
     parser.add_argument(
         "--save",
@@ -1905,47 +527,17 @@ def cli(argv=None):
         "(default: each case's own count, 1-5)",
     )
     parser.add_argument("--note", help="free-text note stored in the saved JSON")
-    subparsers = parser.add_subparsers(dest="command", metavar="suite")
-    for suite_name, help_text in SUITES.items():
-        subparsers.add_parser(suite_name, help=help_text)
     args = parser.parse_args(argv)
     _SAMPLES_OVERRIDE = args.samples
 
-    run_suite(args.command)
+    main()
     if args.save:
         save_result(
-            args.command or "default",
+            "default",
             name=args.name,
             results_dir=args.results_dir,
             note=args.note,
         )
-
-
-def run_suite(command):
-    if command == "sftp-recursive":
-        print("Running SFTP recursive benchmarks...")
-        print_sftp_results(*benchmark_sftp_backends(mode="recursive"), markdown=True)
-    elif command == "sftp-recursive-copy":
-        print("Running SFTP recursive copy benchmarks...")
-        print_sftp_results(
-            *benchmark_sftp_backends(mode="recursive-copy"), markdown=True
-        )
-    elif command == "sftp-recursive-large":
-        print("Running large SFTP recursive benchmarks...")
-        print_sftp_results(
-            *benchmark_sftp_backends(mode="recursive-large"), markdown=True
-        )
-    elif command == "sftp-batch":
-        print("Running SFTP batch benchmarks...")
-        print_sftp_results(*benchmark_sftp_backends(mode="batch"), markdown=True)
-    elif command == "syncer":
-        print("Running PathSyncer benchmarks...")
-        print_pathsyncer_results(benchmark_pathsyncer_matrix(), markdown=True)
-    elif command == "recursive-matrix":
-        print("Running recursive operation matrix...")
-        print_recursive_matrix_results(benchmark_recursive_matrix(), markdown=True)
-    else:
-        main()
 
 
 if __name__ == "__main__":
