@@ -1,6 +1,6 @@
 # `ftp:` and `ftps:`
 
-::: pathlib_next.uri.schemes.ftp
+::: uripath.schemes.ftp
     options:
       members:
         - DEFAULT_TIMEOUT

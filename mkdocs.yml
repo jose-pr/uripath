@@ -1,8 +1,8 @@
-site_name: pathlib_next
-site_description: Generic Path Protocol based pathlib
-site_url: https://jose-pr.github.io/pathlib-next/
-repo_url: https://github.com/jose-pr/pathlib-next
-repo_name: jose-pr/pathlib-next
+site_name: uripath
+site_description: pathlib-style paths for URIs
+site_url: https://jose-pr.github.io/uripath/
+repo_url: https://github.com/jose-pr/uripath
+repo_name: jose-pr/uripath
 edit_uri: edit/main/docs/
 
 theme:
@@ -31,26 +31,13 @@ nav:
   - Benchmarks: benchmarks.md
   - Divergences from pathlib: divergences.md
   - API Reference:
-      - Core Path: api/path.md
-      - Memory Path: api/mempath.md
-      - FTP Path: api/ftp.md
-      - Archive Paths: api/archive.md
-      - Protocols: api/protocols.md
       - URI: api/uri.md
       - Schemes:
           - "file: and data:": api/schemes/local.md
           - "http: and dav:": api/schemes/http.md
           - "ftp:": api/schemes/ftp.md
-          - "sftp:": api/schemes/sftp.md
-          - "s3:, gs: and az:": api/schemes/objstore.md
           - Archives: api/schemes/archive.md
           - "github:, gitlab: and git:": api/schemes/git.md
-      - Sync: api/sync.md
-      - Glob: api/glob.md
-      - Checksum: api/checksum.md
-      - Providers: api/providers.md
-      - Exceptions: api/exceptions.md
-      - Testing Contracts: api/testing.md
       - CLI: api/cli.md
   - Changelog: changelog.md
 

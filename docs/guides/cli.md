@@ -1,14 +1,13 @@
 # `uripath` CLI
 
-`pathlib_next` installs a `uripath` command for basic operations on local
-paths and URI-backed paths. It is also runnable as
-`python -m pathlib_next.tools.uripath`.
+`uripath` installs a `uripath` command for basic operations on local paths
+and URI-backed paths.
 
 ```bash
-uripath read s3://bucket/path/file.txt
+uripath read https://example.com/path/file.txt
 uripath write output.txt "hello"
-uripath cp input.txt sftp://host/tmp/input.txt
-uripath rm --recursive sftp://host/tmp/work
+uripath cp input.txt ftp://host/tmp/input.txt
+uripath rm --recursive ftp://host/tmp/work
 uripath sync --remove-missing source/ target/
 ```
 
@@ -17,8 +16,8 @@ Use `-` for stdin or stdout wherever a command reads or writes bytes:
 ```bash
 uripath read path.txt > copy.txt
 cat notes.txt | uripath write path.txt
-uripath cp - s3://bucket/stdin.bin < local.bin
-uripath cp s3://bucket/stdout.bin - > local.bin
+uripath cp - ftp://host/stdin.bin < local.bin
+uripath cp ftp://host/stdout.bin - > local.bin
 ```
 
 ## Commands
@@ -47,9 +46,6 @@ and `symlink`.
 An argument containing `://`, or starting with a scheme that a class
 registers (`data:`, `zip:`, `file:`, ...), is a `UriPath`; anything else is a
 local path, so `C:/data`, `12:30.txt` and `notes:draft` stay local.
-Without the `uri` extra, local paths and `-` still work and a URI argument
-fails with `the '<scheme>' scheme needs the 'uri' extra`; the argument itself
-is never echoed, since it can carry a password.
 
 ## Exit status
 
@@ -63,7 +59,7 @@ is never echoed, since it can carry a password.
 
 ## From Python
 
-`pathlib_next.tools.uripath.main(argv=None, *, stdin=None, stdout=None,
+`uripath._oldcli.main(argv=None, *, stdin=None, stdout=None,
 stderr=None)` runs one command and returns its exit status; it never raises
 `SystemExit`. `stdin` and `stdout` are binary streams and `stderr` a text or a
 binary stream; the usage and help text go to the process's own stderr and

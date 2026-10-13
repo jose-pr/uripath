@@ -8,36 +8,29 @@ Where a backend lacks a primitive, the operation raises
 `NotImplementedError`; `move()` falls back to copy + delete when `rename()` is
 unavailable or the target is elsewhere.
 
-`UriPath("scheme://...")` returns the class registered for the scheme. Every
-URI scheme needs the `uri` extra (`uritools`, `netimps`); the extras below
-install it too.
+`UriPath("scheme://...")` returns the class registered for the scheme. None of
+the schemes below needs a third-party client library. `sftp:`, `s3:`, `gs:`
+and `az:` are provided by other distributions (see "Other distributions").
 
 ## Capability matrix
 
-| Implementation | Read | Write | Append | List | mkdir | Delete | rename | chmod | Extra |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `LocalPath` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | none |
-| `MemPath` (no URI scheme) | Yes | Yes | Yes | Yes | Yes | Yes | No | No | none |
-| `file:` (`FileUri`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `uri` |
-| `data:` (`DataUri`) | Yes | No | No | No | No | No | No | No | `uri` |
-| `zip:` (`ZipUri`) | Yes | Local `file:` archive | No | Yes | Local archive | Local archive | Local archive | No | `uri` |
-| `tar:` (`TarUri`) | Yes | No | No | Yes | No | No | No | No | `uri` |
-| `archive:` / `archive+zip:` / `archive+tar:` | As `zip:` or `tar:` for the detected or pinned format | | | | | | | | `uri` |
-| `ftp:` / `ftps:` (`FtpPath`) | Yes | Yes | Yes (`APPE`) | Yes | Yes | Yes | Yes | `SITE CHMOD`, if the server has it | `uri` |
-| `http:` / `https:` (`HttpPath`) | Yes | Yes (`PUT`) | Yes (rewrite or `PATCH`) | Yes (HTML index) | No | Yes (`DELETE`) | No | No | `uri` |
-| `dav:` / `davs:` (`DavPath`) | Yes | Yes | No | Yes (`PROPFIND`) | Yes (`MKCOL`) | Yes | Yes (`MOVE`) | No | `uri` |
-| `sftp:` (`SftpPath`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `sftp` or `sftp-async` |
-| `s3:` (`S3Path`) | Yes | Yes | No | Yes (prefixes) | Yes (marker) | Yes | Same bucket | No | `s3` |
-| `gs:` (`GsPath`) | Yes | Yes | No | Yes (prefixes) | Yes (marker) | Yes | Same bucket | No | `gs` |
-| `az:` (`AzPath`) | Yes | Yes | No | Yes (prefixes) | Yes (marker) | Yes | Same container | No | `az` |
-| `github:` (`GitHubPath`) | Yes | No | No | Yes | No | No | No | No | `uri` |
-| `gitlab:` (`GitLabPath`) | Yes | No | No | Yes | No | No | No | No | `uri` |
-| `git:` / `git+github:` / `git+gitlab:` | As `github:`/`gitlab:` | | | | | | | | `uri` |
+| Implementation | Read | Write | Append | List | mkdir | Delete | rename | chmod |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `file:` (`FileUri`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `data:` (`DataUri`) | Yes | No | No | No | No | No | No | No |
+| `zip:` (`ZipUri`) | Yes | Local `file:` archive | No | Yes | Local archive | Local archive | Local archive | No |
+| `tar:` (`TarUri`) | Yes | No | No | Yes | No | No | No | No |
+| `archive:` / `archive+zip:` / `archive+tar:` | As `zip:` or `tar:` for the detected or pinned format |  |  |  |  |  |  |  |
+| `ftp:` / `ftps:` (`FtpPath`) | Yes | Yes | Yes (`APPE`) | Yes | Yes | Yes | Yes | `SITE CHMOD`, if the server has it |
+| `http:` / `https:` (`HttpPath`) | Yes | Yes (`PUT`) | Yes (rewrite or `PATCH`) | Yes (HTML index) | No | Yes (`DELETE`) | No | No |
+| `dav:` / `davs:` (`DavPath`) | Yes | Yes | No | Yes (`PROPFIND`) | Yes (`MKCOL`) | Yes | Yes (`MOVE`) | No |
+| `github:` (`GitHubPath`) | Yes | No | No | Yes | No | No | No | No |
+| `gitlab:` (`GitLabPath`) | Yes | No | No | Yes | No | No | No | No |
+| `git:` / `git+github:` / `git+gitlab:` | As `github:`/`gitlab:` |  |  |  |  |  |  |  |
 
 `stat()` works everywhere. `st_mtime` is real on every implementation except
 `data:` and `github:`/`gitlab:`, where it is `0`. `symlink_to()` is
-implemented by `LocalPath` and `sftp:` only; `readlink()` by `LocalPath` and
-`sftp:`.
+implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
 
 ## Common behavior
 
@@ -50,8 +43,8 @@ implemented by `LocalPath` and `sftp:` only; `readlink()` by `LocalPath` and
   for `github:`/`gitlab:`/`git:` the whole userinfo). A backend (session,
   connection, token) is reused only for the same scheme, userinfo, host and
   port, so joining a path onto another host never sends it there.
-- **`rename()`** stays on one endpoint: a target on another host, bucket,
-  container or archive raises `NotImplementedError`, and `move()` copies and
+- **`rename()`** stays on one endpoint: a target on another host
+  or archive raises `NotImplementedError`, and `move()` copies and
   deletes instead. A `str` target is a path (not URI syntax); a relative one
   is a sibling.
 - **Backends** are passed as `UriPath(uri, backend=...)` or
@@ -60,14 +53,8 @@ implemented by `LocalPath` and `sftp:` only; `readlink()` by `LocalPath` and
   one backend the first of them builds, so 20 children of a fresh root use one
   connection; paths constructed separately do not share.
 
-## Local and in-memory
+## Local files and data
 
-- **`LocalPath`** is `pathlib.WindowsPath`/`PosixPath` with pathlib_next's
-  `Path` mixed in.
-- **`MemPath`** is a plain `Path` subclass over nested dicts
-  (`MemPathBackend`), not a `UriPath`. Share a tree between separately built
-  paths with `MemPath(..., backend=other.backend)`. `as_uri()` returns
-  `mempath:/...`, but no `mempath:` scheme is registered.
 - **`file:`** (`FileUri`) wraps a `LocalPath` (`filepath`) and delegates all
   I/O to it. `rename()` accepts local targets only.
 - **`data:`** (`DataUri`, RFC 2397) keeps the whole content in the URI
@@ -83,13 +70,11 @@ implemented by `LocalPath` and `sftp:` only; `readlink()` by `LocalPath` and
   response raises `NotADirectoryError`, and an HTML file cannot be told apart
   from an index page. An index is read like a file: one that is cut short or
   stalls raises (`OSError` or `TimeoutError`) instead of listing part of it,
-  and one larger than `pathlib_next.uri.schemes.http.MAX_LISTING_BYTES` (8 MiB)
+  and one larger than `uripath.schemes.http.MAX_LISTING_BYTES` (8 MiB)
   raises `OSError` (`EFBIG`); assign a larger number to list it. Configure it with
   `path.with_transport(transport, headers=None, timeout=(10, 60),
   write_method="PUT", append_mode="rewrite")`; the default transport is the
-  built-in one (see "Transports" below), and
-  `path.with_session(session, write_method="PUT", append_mode="rewrite",
-  **requests_args)` sends through a `requests.Session` instead.
+  built-in one (see "Transports" below).
   - Writes send `write_method` with the whole body on close. `open("x")`
     calls `stat()` first: a file that exists raises `FileExistsError`, and so
     does any failure of that check other than not-found (nothing is sent).
@@ -109,8 +94,7 @@ implemented by `LocalPath` and `sftp:` only; `readlink()` by `LocalPath` and
   - The library follows redirects itself, up to 30, for `GET`, `HEAD` and
     `OPTIONS`, but not for `PROPFIND` or the writes: `PROPFIND`, `PUT`,
     `PATCH`, `DELETE`, `MKCOL`, `MOVE` and a custom `write_method` are never
-    followed (an `allow_redirects` in `with_session()` does not apply to
-    them). A 307 or 308 (for `PROPFIND` also a 301, 302 or
+    followed. A 307 or 308 (for `PROPFIND` also a 301, 302 or
     303) to the same scheme, host and port is sent once more with the same
     method, headers and body; any other 3xx, a redirect to another origin and
     a second redirect raise `OSError` (`EIO`) naming the status and the
@@ -129,7 +113,7 @@ implemented by `LocalPath` and `sftp:` only; `readlink()` by `LocalPath` and
   - The mode of `open()` is matched exactly: `"r+"`, `"w+"` and `"a+"` raise
     `NotImplementedError`.
 - **`dav(s):`** (`DavPath`) is WebDAV (RFC 4918) over the equivalent
-  `http(s):` URL, with the same `with_transport()` and `with_session()`. `PROPFIND` gives real
+  `http(s):` URL, with the same `with_transport()`. `PROPFIND` gives real
   directory metadata, `MKCOL`/`PUT`/`DELETE`/`MOVE` full writes. A reply that
   is not a `multistatus` document, or that names neither the collection nor
   any member of it, raises `OSError` (`EIO`), and a listing keeps only the
@@ -160,17 +144,17 @@ exception, so every transport behaves alike.
   when one cannot be reached; `KeyError` means direct. A proxy is a URL or an
   object with a `url`, so a proxy resolver of that shape works as it is. Only `http://`
   proxies are supported (`CONNECT` for `https:`); for SOCKS or an `https://`
-  proxy use `RequestsTransport`.
-- **`RequestsTransport(session=None, **requests_args)`** needs the `http` extra
-  and keeps what `requests` does: `~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi,
-  SOCKS proxies, digest and NTLM authentication, cookies, mounted adapters.
-- `PATHLIB_NEXT_HTTP_TRANSPORT=requests` makes `RequestsTransport` the default
-  of a process.
+  proxy use the `requests` transport of `uripath-http-requests`.
+- **The `requests` transport** is provided by the `uripath-http-requests`
+  distribution (`~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi, SOCKS proxies,
+  digest and NTLM authentication, cookies, mounted adapters). Without it,
+  `path.with_session(...)` and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an
+  `ImportError` that names it.
 
 ## FTP
 
 **`ftp(s):`** (`FtpPath`) uses stdlib `ftplib`, through
-[`pathlib_next.ftp.FTPPath`](../api/ftp.md), which needs no URI: `FTPPath("/pub/x",
+[`pathlib_next.ftp.FTPPath`](https://jose-pr.github.io/pathlib-next/api/ftp/), which needs no URI: `FTPPath("/pub/x",
 host="h", user="u", tls=True)` is the same tree without a `ftp://` string.
 
 - `FtpBackend(timeout=30.0, ssl_context=None, verify=True)` configures it.
@@ -190,118 +174,20 @@ host="h", user="u", tls=True)` is the same tree without a `ftp://` string.
   and uploaded on close. `chmod()` uses `SITE CHMOD` and raises
   `NotImplementedError` when the server lacks it.
 
-## SFTP
+## Other distributions
 
-**`sftp:`** (`SftpPath`) is a full remote filesystem with two backends:
-paramiko (`SftpBackend`, the `sftp` extra) and asyncssh
-(`AsyncsshSftpBackend`, the `sftp-async` extra; one shared background event
-loop bridges it to the synchronous API).
+These schemes and this transport are known to `uripath` and provided by other
+distributions. A path of one of the schemes builds, joins, compares and prints
+without it; the first operation that needs the server (`stat()`, `exists()`,
+`open()`, `iterdir()`, ...) raises an `ImportError` that names what to install.
 
-- **Selection**, highest first: an explicit `backend=` > a
-  `SftpPath._default_backend_cls` subclass attribute > the
-  `PATHLIB_NEXT_SFTP_BACKEND` environment variable (`auto`, `asyncssh` or
-  `paramiko`; naming an uninstalled backend raises `ImportError`) > auto
-  (asyncssh if importable, else paramiko).
-- **Host keys are verified by default** on both backends, so an unknown or
-  changed key fails before any password is sent. paramiko reads
-  `~/.ssh/known_hosts` plus ssh_config `UserKnownHostsFile` and rejects
-  unknown keys (`RejectPolicy`); asyncssh applies its own `known_hosts` and
-  ssh_config handling. The opt-out is explicit, in code:
-  `SftpBackend(connect_opts, paramiko.AutoAddPolicy(), known_hosts=None)` or
-  `AsyncsshSftpBackend(connect_opts={"known_hosts": None})`.
-- **Timeouts**: paramiko's connect, banner, auth and channel-open timeouts
-  default to 30 seconds (`SftpBackend(..., timeout=...)`). asyncssh bounds
-  each single request at 60 seconds (`AsyncsshSftpBackend(timeout=...)`);
-  recursive `copy()`/`rm()` and file transfers have no wall-clock bound.
-- **ssh_config**: `SftpPath(url, ssh_config=...)` takes a path, a list of
-  paths or `None` (default `~/.ssh/config`). The port is the URI's, else the
-  `Port` of the host's config entry, on both backends. The paramiko backend
-  expands `Include` (inside a `Host` or `Match` block the included blocks stay
-  conditional on it), expands a `ProxyCommand`'s `%h`, `%n`, `%p`, `%r` and
-  `%%` with the host, port and user of the connection, and refuses
-  `ProxyJump` (use asyncssh, a `ProxyCommand`, or `connect_opts["sock"]`).
-- **Host names**: a URI host that is not a plain host name or address (white
-  space, quotes, control characters, a leading `-`, shell metacharacters)
-  raises `ValueError` on the first connection or config lookup, never a
-  `ProxyCommand` argument; the path itself can still be built and joined.
-- **Connections** are cached per backend and server (paramiko also per
-  thread) and replaced when they drop; `backend.close()` closes them.
-- **Capabilities**: `readlink()`/`symlink_to()` on both backends;
-  `hardlink_to()` and `chmod(follow_symlinks=False)` on asyncssh only
-  (paramiko raises `NotImplementedError` without a round trip). `rename()`
-  replaces an existing target where the server supports
-  `posix-rename@openssh.com`. On asyncssh, `copy(recursive=True)` to the same
-  server and `rm(recursive=True)` run concurrently, bounded by
-  `max_concurrency` (default 16); one that raises or is interrupted has
-  stopped by the time the exception arrives, and a destination file whose copy
-  did not complete is removed. `checksum()` uses the `check-file-handle`
-  extension where the server has it (OpenSSH does not).
-- `os.fspath()`/`host_fspath()` return the path on the remote host.
-
-## Object storage
-
-**`s3://bucket/key`** (`S3Path`), **`gs://bucket/key`** (`GsPath`) and
-**`az://account/container/key`** (`AzPath`) share one model.
-
-- There are no real directories: `is_dir()` is true when any key exists under
-  `key/`, `mkdir()` writes a zero-byte `key/` marker, and `rmdir()` requires an
-  empty prefix. A key that is both an object and a prefix is the object. A
-  trailing `/` in the URI is dropped from the key.
-- A prefix that holds keys a directory walk does not reach (an empty, `.` or
-  `..` segment, the subtree under a key that is also an object, a `name/`
-  key that holds data) cannot be copied, moved or removed recursively: the
-  call raises `OSError` naming the keys and changes nothing. A write or
-  `rename()` onto a prefix directory raises `IsADirectoryError`.
-- Writes are uploaded on close; `open("x")` is a conditional create (an S3
-  upload above 5 GiB checks first, then writes); append mode is not
-  supported; writes below a missing "directory" succeed. A write is spooled
-  (in memory up to a few megabytes, then in a temp file) and uploaded from the
-  spool, so an object of any size is written with a bounded amount of memory.
-  A read holds one chunk of the object: `s3:` streams the response and its
-  stream is not seekable, `gs:` and `az:` ask for ranges as the stream is read
-  and it stays seekable (`schemes.az.READ_CHUNK` is the size of an `az:`
-  range). A read is one version of the object: `gs:` and `az:` require the
-  generation or ETag their first request reported in every later one, so an
-  object replaced while it is being read raises `OSError` (`ESTALE`: the
-  object changed while it was being read) and never returns a mix of two;
-  one deleted meanwhile is `FileNotFoundError`.
-- `copy()` of a file onto a key of the same store is one request of the store,
-  within a bucket (between buckets, when one client reaches both) on `s3:` and
-  `gs:` and within a container on `az:`; the file's content type and metadata
-  come along. `copy(recursive=True)` and `move()` of a prefix do so for each
-  file. Between different clients, schemes or containers the file is read and
-  written.
-- `checksum()` returns the digest the store keeps (`md5` on all three, `crc32c`
-  on `gs:`, the stored full-object checksums on `s3:`) and raises
-  `NotImplementedError` when the store keeps none of the whole content, as for
-  a multipart `s3:` object; `PathSyncer` uses it, so syncing an unchanged tree
-  between two object stores reads no object.
-- `rename()` is a server-side copy + delete within one bucket (container);
-  renaming a prefix directory raises `NotImplementedError`, so `move()` copies
-  it. `S3Path.rm(recursive=True)` at the bucket root raises
-  `PermissionError`. `AzPath.rename()` waits for the copy at most
-  `schemes.az.COPY_POLL_TIMEOUT` (300 s), then aborts it and raises
-  `TimeoutError`.
-- A failed request is an `OSError`: `FileNotFoundError`, `PermissionError`,
-  `TimeoutError` for a request that runs out of time, `ConnectionError` for
-  an endpoint that cannot be reached, `ConnectionResetError` for a connection
-  that breaks while a body arrives. The SDK's exception is not chained and its
-  text (the request URL) is not repeated. A bucket root read or written is
-  `IsADirectoryError`, and a path with no bucket does not exist.
-- Clients: `S3Backend(**client_kwargs)` builds `boto3.client("s3",
-  **client_kwargs)`; `GsBackend(**client_kwargs)` builds
-  `google.cloud.storage.Client(**client_kwargs)` (for an emulator pass
-  `client_options={"api_endpoint": url}` and `use_auth_w_custom_endpoint=False`;
-  `timeout=` and `retry=` go to every call instead: the SDK's defaults keep an
-  unreachable endpoint waiting for about two minutes);
-  `AzBackend(account=None, **client_kwargs)` builds a `BlobServiceClient`
-  (`connection_string=`, or `account_url=`/`credential=`). An `AzPath`
-  without `backend=` targets `https://<account>.blob.core.windows.net` with
-  `azure-identity`'s `DefaultAzureCredential` (installed by the `az` extra).
-  `S3Path` and `GsPath` built without `backend=` share one default backend
-  (one client) per process, `AzPath` one per account; pass `backend=` for a
-  client of their own. A supplied `AzBackend` is used for whatever account
-  the URI names.
+| Provides | Install |
+| --- | --- |
+| `sftp:` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
+| `s3:` | `pip install "uripath-objstore[s3]"` |
+| `gs:` | `pip install "uripath-objstore[gs]"` |
+| `az:` | `pip install "uripath-objstore[az]"` |
+| the `requests` HTTP transport | `pip install uripath-http-requests` |
 
 ## Archives
 
@@ -309,10 +195,10 @@ loop bridges it to the synchronous API).
 `zip:<archive-uri>!/<inner-path>` (the Java-style `!/` separator of JAR URLs).
 The `<archive-uri>` is any absolute URI with an explicit scheme, so
 `zip:file:///backups/site.zip!/index.html` and
-`zip:sftp://host/nightly.zip!/index.html` work the same way. `name`,
+`zip:ftp://host/nightly.zip!/index.html` work the same way. `name`,
 `parent`, `glob()`, ... operate on the inner path.
 
-The members are read and written by [`pathlib_next.archive`](../api/archive.md)
+The members are read and written by [`pathlib_next.archive`](https://jose-pr.github.io/pathlib-next/api/archive/)
 (`ZipPath`, `TarPath`, `ArchivePath`), which take the archive as any `Path` and
 need no URI: `ZipPath("index.html", archive="/backups/site.zip")`.
 
@@ -409,7 +295,5 @@ See [Divergences from pathlib](../divergences.md) for the reasons behind these
 choices. Every class and backend signature is in the API reference:
 [`file:`/`data:`](../api/schemes/local.md),
 [`http:`/`dav:`](../api/schemes/http.md), [`ftp:`](../api/schemes/ftp.md),
-[`sftp:`](../api/schemes/sftp.md),
-[`s3:`/`gs:`/`az:`](../api/schemes/objstore.md),
 [archives](../api/schemes/archive.md) and
 [`github:`/`gitlab:`/`git:`](../api/schemes/git.md).

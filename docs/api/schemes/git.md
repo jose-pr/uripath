@@ -2,7 +2,7 @@
 
 None needs a client library: they send through the same transport as `http:`.
 
-::: pathlib_next.uri.schemes._gitrepo
+::: uripath.schemes._gitrepo
     options:
       members:
         - DEFAULT_TIMEOUT
@@ -11,17 +11,17 @@ None needs a client library: they send through the same transport as `http:`.
         - RepoBackend
       show_root_heading: true
 
-::: pathlib_next.uri.schemes._gitrepo._RepoApiPath
+::: uripath.schemes._gitrepo._RepoApiPath
     options:
       show_if_no_docstring: true
       filters: ["!^_"]
 
-::: pathlib_next.uri.schemes.github.GitHubPath
+::: uripath.schemes.github.GitHubPath
 
-::: pathlib_next.uri.schemes.gitlab.GitLabPath
+::: uripath.schemes.gitlab.GitLabPath
 
-::: pathlib_next.uri.schemes.git._base.GitPath
+::: uripath.schemes.git._base.GitPath
 
-::: pathlib_next.uri.schemes.git.github.GitHubGitPath
+::: uripath.schemes.git.github.GitHubGitPath
 
-::: pathlib_next.uri.schemes.git.gitlab.GitLabGitPath
+::: uripath.schemes.git.gitlab.GitLabGitPath

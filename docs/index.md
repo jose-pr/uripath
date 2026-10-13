@@ -1,11 +1,13 @@
-# pathlib_next
+# uripath
 
-A **robust, extensible pathlib-like base** for any resource addressable as a
-path or URI. Same method names, signatures, semantics and exception types as
-`pathlib.Path` wherever a `pathlib.Path` equivalent exists: write code against
-`Path`/`UriPath` once and it works against your local disk, an in-memory tree,
-an archive member, HTTP/WebDAV, FTP/SFTP, S3, Google Cloud Storage, Azure Blob
-Storage or a GitHub/GitLab repository.
+**One `pathlib`-style API for URIs.** `UriPath("https://...")`, `UriPath("zip:...")`
+and `UriPath("ftp://...")` return the class registered for the scheme, and each
+has the method names, signatures and exception types of `pathlib.Path`: write
+code once and it works against a local file, an archive member, an FTP or
+WebDAV server, a web directory or a GitHub or GitLab repository. `uripath`
+builds on [`pathlib-next`](https://jose-pr.github.io/pathlib-next/), which holds
+the `Path` base classes, the local, in-memory, FTP and archive paths, `glob` and
+`PathSyncer`.
 
 Deliberate behavioral differences from `pathlib` are listed, with their
 reasons, in [Divergences from pathlib](divergences.md).
@@ -13,53 +15,30 @@ reasons, in [Divergences from pathlib](divergences.md).
 ## Installation
 
 ```bash
-pip install pathlib-next
+pip install uripath
 ```
 
-| Extra | Adds | Needed for |
-| --- | --- | --- |
-| `uri` | `uritools`, `netimps` | `pathlib_next.uri` and every URI scheme that needs no client library (`file:`, `data:`, `ftp(s):`, archives, `http(s):`, `dav(s):`, `github:`, `gitlab:`, `git:`; HTTP runs on the standard library) |
-| `http` | `requests` | `RequestsTransport` for the HTTP schemes (`~/.netrc`, certifi, SOCKS proxies, digest/NTLM auth, cookies) |
-| `sftp` | `paramiko` | `sftp:` with the paramiko backend |
-| `sftp-async` | `asyncssh` | `sftp:` with the asyncssh backend |
-| `s3` | `boto3` | `s3:` |
-| `gs` | `google-cloud-storage` | `gs:` |
-| `az` | `azure-storage-blob`, `azure-identity` | `az:` |
+It requires `pathlib-next`, `netimps` and `uritools`, which pip installs with
+it; there are no extras. The schemes of this package run on the standard
+library, including HTTP. `sftp:`, `s3:`, `gs:` and `az:` are provided by other
+distributions:
 
-Every scheme extra also installs `uri`. With **no extras**,
-`pathlib_next.Path`/`LocalPath`, `pathlib_next.mempath.MemPath`, the utilities,
-the test contracts and the `uripath` command on local paths all work.
+| Provides | Install |
+| --- | --- |
+| `sftp:` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
+| `s3:`, `gs:`, `az:` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
+| the `requests` HTTP transport | `pip install uripath-http-requests` |
 
 ## Tour
-
-**Local filesystem**, as `pathlib.Path`:
-
-```python
-from pathlib_next import Path
-
-p = Path("data") / "report.txt"
-p.parent.mkdir(parents=True, exist_ok=True)
-p.write_text("hello")
-print(p.read_text())
-```
-
-**In memory**, a virtual filesystem for tests and mocks:
-
-```python
-from pathlib_next.mempath import MemPath
-
-p = MemPath("/config/settings.json")
-p.parent.mkdir(parents=True, exist_ok=True)
-p.write_text('{"debug": true}')
-print(p.stat().st_size, [child.name for child in p.parent.iterdir()])
-```
 
 **URIs**: `UriPath` returns the class registered for the scheme:
 
 ```python
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 report = UriPath("file:data/report.txt")
+report.parent.mkdir(parents=True, exist_ok=True)
+report.write_text("hello")
 print(type(report).__name__, report.read_text())
 
 inline = UriPath("data:text/plain;base64,aGVsbG8=")
@@ -71,7 +50,7 @@ URI:
 
 ```python
 import zipfile
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 with zipfile.ZipFile("backup.zip", "w") as archive:
     archive.writestr("etc/config.ini", "[main]\n")
@@ -84,12 +63,12 @@ print(member.read_text())
 
 <!-- example: skip: reads from remote hosts -->
 ```python
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 for child in UriPath("https://example.com/data/").iterdir():
     print(child.name, child.stat().st_size)
 
-print(UriPath("sftp://user@host/var/log/app.log").read_text())
+print(UriPath("ftp://user@host/pub/README").read_text())
 ```
 
 `exists()`, `is_dir()`, `iterdir()`, `glob()`, `walk()`,
@@ -101,11 +80,11 @@ per-scheme capabilities are in [Schemes](guides/schemes.md).
 ## Where to go next
 
 - **[Schemes](guides/schemes.md)**: capability matrix and per-scheme notes
-  (backends, timeouts, authentication, security defaults).
+  (timeouts, authentication, security defaults).
 - **[CLI](guides/cli.md)**: the `uripath` command.
-- **[Extending](guides/extending.md)**: add a path type by subclassing `Path`
-  or `UriPath`, and verify it with the bundled contracts.
+- **[Extending](guides/extending.md)**: add a scheme by subclassing `UriPath`,
+  and verify it with the bundled contracts.
 - **[Divergences from pathlib](divergences.md)**: every deliberate behavioral
   difference from `pathlib.Path`.
-- **[API Reference](api/path.md)**: generated from the docstrings.
+- **[API Reference](api/uri.md)**: generated from the docstrings.
 - **[Changelog](changelog.md)**.
