@@ -1,0 +1,121 @@
+{
+  "schema": "uripath.bench/1",
+  "name": "baseline-local-0.10.0-py3.9-nt-amd64",
+  "suite": "default",
+  "source": "local",
+  "note": "Local sanity baseline of the default run on the supported floor; not CI, not a performance claim.",
+  "created_utc": "2026-10-13T00:45:34+00:00",
+  "package": {
+    "name": "uripath",
+    "version": "0.10.0"
+  },
+  "git": {
+    "commit": "2477d6f3ef883d6a710dd12a56b0b22dc1e725c4",
+    "dirty": false
+  },
+  "python": "CPython 3.9.13",
+  "interpreter": "3.9-nt-amd64",
+  "processor": "Windows-AMD64",
+  "cpu_count": 12,
+  "metrics": {
+    "http: 50 GETs of one small file, builtin transport": {
+      "group": "http",
+      "min_ms": 5.987606,
+      "median_ms": 9.105784,
+      "max_ms": 9.92351,
+      "samples": 3,
+      "calls_per_sample": 50
+    },
+    "http: HttpPath glob('**/*.html') 20 files": {
+      "group": "http",
+      "min_ms": 64.45024,
+      "median_ms": 67.5856,
+      "max_ms": 87.71676,
+      "samples": 3,
+      "calls_per_sample": 10
+    },
+    "http: HttpPath walk() 20 files": {
+      "group": "http",
+      "min_ms": 62.90844,
+      "median_ms": 68.35601,
+      "max_ms": 77.13947,
+      "samples": 3,
+      "calls_per_sample": 10
+    },
+    "http: HttpPath walk() 20 files, builtin transport": {
+      "group": "http",
+      "min_ms": 76.03126,
+      "median_ms": 77.77272,
+      "max_ms": 82.31302,
+      "samples": 3,
+      "calls_per_sample": 10
+    },
+    "http: listing parse, Apache <pre>, 1000 entries": {
+      "group": "http",
+      "min_ms": 29.296725,
+      "median_ms": 29.35562,
+      "max_ms": 29.677315,
+      "samples": 3,
+      "calls_per_sample": 20
+    },
+    "http: listing parse, nginx <table>, 1000 entries": {
+      "group": "http",
+      "min_ms": 51.632565,
+      "median_ms": 53.12997,
+      "max_ms": 61.254015,
+      "samples": 3,
+      "calls_per_sample": 20
+    },
+    "uri: Uri() construct, same literal": {
+      "group": "uri",
+      "min_ms": 0.00243,
+      "median_ms": 0.002467,
+      "max_ms": 0.00256,
+      "samples": 5,
+      "calls_per_sample": 10000
+    },
+    "uri: parse+compose, unique URIs": {
+      "group": "uri",
+      "min_ms": 0.031207,
+      "median_ms": 0.032035,
+      "max_ms": 0.032287,
+      "samples": 5,
+      "calls_per_sample": 5000
+    },
+    "uri: parse, unique URIs, forced": {
+      "group": "uri",
+      "min_ms": 0.014296,
+      "median_ms": 0.014303,
+      "max_ms": 0.014565,
+      "samples": 5,
+      "calls_per_sample": 5000
+    },
+    "uri: path join": {
+      "group": "uri",
+      "min_ms": 0.003935,
+      "median_ms": 0.003997,
+      "max_ms": 0.004056,
+      "samples": 5,
+      "calls_per_sample": 10000
+    },
+    "uri: segments + name access": {
+      "group": "uri",
+      "min_ms": 0.000185,
+      "median_ms": 0.000186,
+      "max_ms": 0.00019,
+      "samples": 5,
+      "calls_per_sample": 10000
+    },
+    "uri: suffix + stem access": {
+      "group": "uri",
+      "min_ms": 0.000128,
+      "median_ms": 0.00013,
+      "max_ms": 0.000135,
+      "samples": 5,
+      "calls_per_sample": 10000
+    }
+  },
+  "counters": {},
+  "errors": {},
+  "skipped": {}
+}
