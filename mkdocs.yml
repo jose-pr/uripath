@@ -5,6 +5,10 @@ repo_url: https://github.com/jose-pr/uripath
 repo_name: jose-pr/uripath
 edit_uri: edit/main/docs/
 
+# Constrain the scan to docs/ so pymdownx.snippets + strict nav don't trip on
+# repo-level markdown.
+docs_dir: docs
+
 theme:
   name: material
   palette:

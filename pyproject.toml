@@ -29,7 +29,6 @@ classifiers = [
 ]
 dependencies = [
     "pathlib-next>=0.10.0,<0.11",
-    # 0.3.3 and 0.3.4 break asyncssh's SFTP server on Windows; 0.4.0 does not.
     "netimps>=0.4.0,<0.5",
 ]
 
@@ -45,6 +44,9 @@ dev = [
     # composing are the standard library's. uritools 6 needs Python 3.10; 5.0 is
     # the newest release for 3.9.
     'uritools>=5.0,<7',
+    # The oracle of two tests: the form a URL takes on the wire (IDNA hosts) and
+    # a proxy in the shell that a loopback request must not use.
+    'requests',
     'build',
     'twine',
     'hatchling',
