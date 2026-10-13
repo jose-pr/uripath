@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib as _contextlib
 import typing as _ty
 
-from .. import URIPath
+from . import URIPath
 
 
 def _scandir(self):

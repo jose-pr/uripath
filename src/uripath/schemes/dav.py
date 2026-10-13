@@ -9,7 +9,7 @@ import xml.etree.ElementTree as _ET
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
 from pathlib_next.providers import check_follow
-from .. import URI
+from .._uri import URI
 from ..source import compose_uri
 from . import _httpdate
 from . import http as http_module

@@ -28,6 +28,10 @@ HEADERS = {
 }
 HEADER = PACKAGE / "AGENTS.md"
 
+# The modules of `uripath.schemes` that hold the contract (`URIPath`) and the
+# registry; the others are schemes.
+CONTRACT_MODULES = ("__init__.py", "_registry.py")
+
 # Names a scheme module reads that are its own: an attribute of one of its
 # helper classes, or of a stdlib named tuple. Each is a name the scan finds
 # in a core module too; a pair that no longer matches anything fails.
@@ -51,8 +55,8 @@ PROVIDER_HELPERS = [
 # (public module, module that defines it, public name, the underscore name it
 # replaced)
 PUBLIC_HELPERS = [
-    ("uripath", "uripath", "same_authority", "_same_authority"),
-    ("uripath", "uripath", "DerivedBackend", "_DerivedBackend"),
+    ("uripath.source", "uripath.source._source", "same_authority", "_same_authority"),
+    ("uripath.schemes", "uripath.schemes", "DerivedBackend", "_DerivedBackend"),
     ("uripath.source", "uripath.source._compose", "compose_uri", "_compose_uri"),
     ("uripath.source", "uripath.source._compose", "compose_host", "_compose_host"),
     ("uripath.source", "uripath.source._compose", "percent_encode", "_encode"),
@@ -87,8 +91,10 @@ def core_sources() -> dict[str, str]:
     }
     for path in (
         PACKAGE / "__init__.py",
+        PACKAGE / "_uri.py",
         PACKAGE / "query.py",
         *_files(PACKAGE / "source"),
+        *(PACKAGE / "schemes" / name for name in CONTRACT_MODULES),
     ):
         found["uripath/" + path.relative_to(PACKAGE).as_posix()] = path.read_text(
             encoding="utf-8"
@@ -101,7 +107,11 @@ def scheme_sources() -> dict[str, str]:
     return {
         p.relative_to(PACKAGE).as_posix(): p.read_text(encoding="utf-8")
         for p in _files(PACKAGE)
-        if "schemes" in p.relative_to(PACKAGE).parts or p.name == "_oldcli.py"
+        if (
+            "schemes" in p.relative_to(PACKAGE).parts
+            and p.relative_to(PACKAGE / "schemes").as_posix() not in CONTRACT_MODULES
+        )
+        or p.name == "_oldcli.py"
     }
 
 

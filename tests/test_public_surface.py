@@ -20,10 +20,17 @@ HEADER = PACKAGE / "AGENTS.md"
 
 # The names the shipped header documents, by the module they are imported from.
 DOCUMENTED = {
-    "uripath": {"DerivedBackend", "URI", "URILike", "URIPath", "same_authority"},
-    "uripath.source": {"Source", "compose_host", "compose_uri", "is_drive"},
+    "uripath": {"URI", "URILike", "URIPath"},
+    "uripath.source": {
+        "Source",
+        "compose_host",
+        "compose_uri",
+        "is_drive",
+        "same_authority",
+    },
     "uripath.query": {"Query"},
     "uripath.schemes": {
+        "DerivedBackend",
         "DataURIPath",
         "DAVURIPath",
         "FileURIPath",
@@ -48,7 +55,7 @@ def test_documented_names_stay_importable_from_where_they_are_documented(module)
 def test_the_scheme_names_of_the_package_export_every_built_in_class():
     from uripath import schemes
 
-    assert set(schemes._EXPORTS) == DOCUMENTED["uripath.schemes"]
+    assert set(schemes._EXPORTS) | {"DerivedBackend"} == DOCUMENTED["uripath.schemes"]
 
 
 def _header_import_lines():

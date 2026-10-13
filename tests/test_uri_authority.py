@@ -8,7 +8,8 @@ import ipaddress
 
 import pytest
 
-from uripath import URI, URIPath, _same_authority
+from uripath import URI, URIPath
+from uripath.source._source import _same_authority
 from uripath.source import Source
 
 # --- a host of digits ------------------------------------------------------

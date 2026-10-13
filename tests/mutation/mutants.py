@@ -122,7 +122,7 @@ mutant(
 )
 mutant(
     "uri-same-filesystem-always-true",
-    "__init__.py",
+    "schemes/__init__.py",
     "        return mine is None or theirs is None or mine is theirs\n",
     "        return True\n",
     "tests/test_same_filesystem_uri.py::test_two_supplied_backends_are_two_hosts",
@@ -130,7 +130,7 @@ mutant(
 )
 mutant(
     "uri-same-filesystem-always-false",
-    "__init__.py",
+    "schemes/__init__.py",
     "        return mine is None or theirs is None or mine is theirs\n",
     "        return False\n",
     "tests/test_same_filesystem_uri.py::test_separately_built_paths_to_one_url_are_the_same_file",
@@ -154,7 +154,7 @@ mutant(
 )
 mutant(
     "rename-accepts-another-location",
-    "__init__.py",
+    "_uri.py",
     "        if not self._same_location(result):\n",
     "        if False:\n",
     "tests/test_routing.py::test_ftp_rename_to_another_server_raises_not_implemented",
@@ -162,7 +162,7 @@ mutant(
 )
 mutant(
     "uri-str-shows-the-password",
-    "__init__.py",
+    "_uri.py",
     "        return self.as_uri(sanitize=True)\n",
     "        return self.as_uri(sanitize=False)\n",
     "tests/test_transport_security.py::test_http_error_text_and_traceback_carry_no_password",
@@ -194,7 +194,7 @@ mutant(
 )
 mutant(
     "uri-backend-inherited-by-another-endpoint",
-    "__init__.py",
+    "schemes/__init__.py",
     "            if source is mine or _same_authority(source, mine):\n                return backend, self._backend_derived\n",
     "            if True:\n                return backend, self._backend_derived\n",
     "tests/test_uri_path.py::test_a_same_endpoint_uri_destination_keeps_the_configured_backend",
@@ -202,7 +202,7 @@ mutant(
 )
 mutant(
     "uri-join-keeps-a-backend-of-another-endpoint",
-    "__init__.py",
+    "schemes/__init__.py",
     "            if not _same_authority(segment.source, source):\n                continue\n            if backend is not None:",
     "            if False:\n                continue\n            if backend is not None:",
     "tests/test_backend_family.py::test_a_path_that_crosses_to_another_endpoint_builds_its_own",
@@ -248,7 +248,7 @@ _SCHEME_TESTS = "tests/test_scheme_registry.py"
 
 mutant(
     "scheme-registry-second-claim-is-dropped-silently",
-    "__init__.py",
+    "schemes/_registry.py",
     "            elif name in _REPLACED and _is_builtin_class(name, cls):\n",
     "            elif True:\n",
     (
@@ -259,7 +259,7 @@ mutant(
 )
 mutant(
     "scheme-registry-built-in-name-is-free-until-its-module-is-imported",
-    "__init__.py",
+    "schemes/_registry.py",
     "                if name in _BUILTIN_SCHEMES and not _is_builtin_class(name, cls):\n",
     "                if False:\n",
     f"{_SCHEME_TESTS}::test_a_built_in_scheme_is_refused_before_its_module_is_imported",
@@ -267,7 +267,7 @@ mutant(
 )
 mutant(
     "scheme-registry-built-in-class-refused-after-a-replacement",
-    "__init__.py",
+    "schemes/_registry.py",
     "            elif name in _REPLACED and _is_builtin_class(name, cls):\n",
     "            elif False:\n",
     f"{_SCHEME_TESTS}::test_a_replaced_built_in_scheme_stays_replaced_when_its_module_is_imported",
@@ -275,7 +275,7 @@ mutant(
 )
 mutant(
     "scheme-lookup-asks-entry-points-before-the-built-in-table",
-    "__init__.py",
+    "schemes/__init__.py",
     "            cls._load_builtin_scheme(scheme, strict=strict)\n"
     "            or cls._load_entry_point(scheme)\n",
     "            cls._load_entry_point(scheme)\n"
@@ -285,7 +285,7 @@ mutant(
 )
 mutant(
     "scheme-listing-leaves-out-schemes-not-imported-yet",
-    "__init__.py",
+    "schemes/__init__.py",
     "                    *_BUILTIN_SCHEMES,\n                    *_elsewhere.SCHEMES,\n                    *_declared_entry_points(),\n",
     "",
     (
@@ -296,7 +296,7 @@ mutant(
 )
 mutant(
     "scheme-listing-leaves-out-the-schemes-provided-elsewhere",
-    "__init__.py",
+    "schemes/__init__.py",
     "                    *_elsewhere.SCHEMES,\n",
     "",
     "tests/test_elsewhere.py::test_a_scheme_provided_elsewhere_is_listed",
@@ -304,7 +304,7 @@ mutant(
 )
 mutant(
     "scheme-class-of-a-scheme-provided-elsewhere-does-not-raise",
-    "__init__.py",
+    "schemes/__init__.py",
     "            if strict:\n                raise _elsewhere.not_installed(scheme)\n",
     "            if False:\n                raise _elsewhere.not_installed(scheme)\n",
     "tests/test_elsewhere.py::test_the_scheme_class_of_a_scheme_provided_elsewhere_names_what_to_install",
@@ -320,7 +320,7 @@ mutant(
 )
 mutant(
     "scheme-registry-same-qualified-name-in-another-module-is-the-same-class",
-    "__init__.py",
+    "schemes/_registry.py",
     "    return a.__module__ == b.__module__ and a.__qualname__ == b.__qualname__\n",
     "    return a.__qualname__ == b.__qualname__\n",
     f"{_SCHEME_TESTS}::test_a_class_of_the_same_qualified_name_in_another_module_is_still_refused",

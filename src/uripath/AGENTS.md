@@ -294,7 +294,7 @@ form-urlencoding: only `%XX` escapes are decoded and a `+` stays a plus
 pairs, `to_dict(*, single=False)`. `Query.ENCODING` (`"utf-8"`) and
 `Query.SEPARATOR` (`"&"`) are the defaults of `encoding=` and `separator=`.
 
-### For scheme implementers (`uripath`, `uripath.source`)
+### For scheme implementers (`uripath`, `uripath.schemes`, `uripath.source`)
 
 The names a `URIPath` subclass overrides or calls beyond `URI` and `URIPath`
 above, in one place: the built-in schemes use all of them, so they are

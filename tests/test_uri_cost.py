@@ -10,7 +10,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-import uripath as uri_module
+from uripath.schemes import _registry as uri_module
 from uripath import URI, URIPath
 
 # --- the entry points are read once -----------------------------------------------------

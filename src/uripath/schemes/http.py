@@ -12,7 +12,7 @@ import urllib.parse as _urlparse
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from .. import DerivedBackend, URIPath
+from . import DerivedBackend, URIPath
 from . import _elsewhere, _httpdate
 from ._http import (
     HTTPResponse,

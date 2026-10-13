@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ... import URI, URIPath
+from ..._uri import URI
+from .. import URIPath
 from ..github import GitHubURIPath
 from ..gitlab import GitLabURIPath
 

@@ -10,7 +10,8 @@ from pathlib_next.ftp import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
 from pathlib_next.ftp import IDLE_PROBE_SECONDS as IDLE_PROBE_SECONDS
 from pathlib_next.ftp import BaseFTPBackend, FTPBackend, FTPPath
 from pathlib_next.providers import notimplemented as _notimplemented
-from .. import Source, URI
+from .._uri import URI
+from ..source import Source
 from ._delegate import DelegatingPath
 
 if _ty.TYPE_CHECKING:

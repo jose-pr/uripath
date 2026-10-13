@@ -7,7 +7,7 @@ server raises an `ImportError` that names what to install.
 
 from __future__ import annotations
 
-from .. import URIPath
+from . import URIPath
 
 #: Scheme -> (the distribution that provides it, its import name, what to run
 #: to get it). A name listed here is known without the distribution: a path of

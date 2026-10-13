@@ -10,7 +10,8 @@ from pathlib_next.archive import MAX_LINKS as MAX_LINKS
 from pathlib_next.archive import ArchivePath
 from pathlib_next.archive import LinkTarget as LinkTarget
 from pathlib_next.providers import as_error_handler, check_follow
-from ... import URI, URIPath
+from ..._uri import URI
+from .. import URIPath
 from ...source import SAFE_PATH, Source, percent_encode
 from .._delegate import DelegatingPath
 

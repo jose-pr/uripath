@@ -4,7 +4,7 @@ import os as _os
 
 from pathlib_next import FsPathLike
 from pathlib_next import LocalPath as _Local
-from .. import Source
+from ..source import Source
 from ..source import is_drive
 from ._delegate import DelegatingPath
 
