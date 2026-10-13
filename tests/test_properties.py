@@ -451,7 +451,7 @@ _HEX = "0123456789abcdefABCDEF"
 
 
 def _oracle_raw_query(query: str) -> str:
-    """Design Q1: a stored query is already encoded, so composing keeps every
+    """A stored query is already encoded, so composing keeps every
     valid %XX escape and every delimiter, and encodes only characters that
     cannot appear in a query (uritools.uricompose encodes "%" itself, which
     double-encoded a received query)."""

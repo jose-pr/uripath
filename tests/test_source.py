@@ -37,8 +37,7 @@ def test_parse():
 
 
 def test_is_local_localhost():
-    # B29: is_local() is lru_cache'd; localhost short-circuits before any
-    # DNS lookup, so this is safe/fast regardless.
+    # `localhost` short-circuits before any DNS lookup.
     assert Source(None, None, "localhost", None).is_local()
 
 

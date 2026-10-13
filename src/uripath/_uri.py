@@ -254,8 +254,8 @@ class URI(Pathname):
         return (self.source, self.path, self.query, self.fragment)
 
     def _load_parts(self):
-        """Join semantics (B26, documented -- this is deliberate, not RFC
-        3986 reference resolution): multiple constructor arguments are
+        """Join semantics (documented in docs/divergences.md -- deliberate, not
+        RFC 3986 reference resolution): multiple constructor arguments are
         joined pathlib-`joinpath`-style, right to left, stopping at the
         first absolute segment, and then RFC 3986 5.2.4 removes the dot
         segments of the joined path (`URI("http://h/d/", "../x")` is
@@ -699,8 +699,8 @@ class URI(Pathname):
     def _make_child_relpath(self, name: str, **kwargs) -> _ty.Self:
         new_path = _child_path(self.path, name, self._has_authority())
         # Through `_from_parsed_parts`, so a scheme that carries per-instance
-        # state rebuilds it (`SFTPURIPath._ssh_config`); building the instance
-        # directly dropped it, and `/` now walks segments through here.
+        # state rebuilds it (`SFTPURIPath._ssh_config`); `/` walks segments
+        # through here.
         return self._from_parsed_parts(self.source, new_path, "", "", **kwargs)
 
     def with_source(self, source: Source):

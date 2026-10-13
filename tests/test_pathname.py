@@ -160,15 +160,14 @@ def test_match_is_right_anchored_per_segment(cls, path, pattern, expected):
 @pytest.mark.parametrize("cls", IMPLS)
 def test_has_glob_pattern(cls):
     assert cls("a/*.py").has_glob_pattern()
-    assert cls("a/foo*").has_glob_pattern()  # B7 regression: "foo*" (not anchored)
+    assert cls("a/foo*").has_glob_pattern()  # "foo*" is a pattern, not anchored
     assert not cls("a/b/c.py").has_glob_pattern()
 
 
 @pytest.mark.parametrize("cls", IMPLS)
-def test_match_b6_b7(cls):
-    # B6: reversed isinstance() args used to crash URI/MemPath's match().
-    # B7: WILCARD_PATTERN.match (anchored) missed "foo*"-style trailing
-    # wildcards during has_glob_pattern's internal use.
+def test_match_with_a_trailing_wildcard(cls):
+    # URI and MemPath match() with an anchored pattern and a "foo*"-style
+    # trailing wildcard.
     p = cls("dir/foo.txt")
     assert p.match("*.txt")
     assert not p.match("*.py")

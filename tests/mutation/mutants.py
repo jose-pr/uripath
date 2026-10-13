@@ -87,7 +87,7 @@ mutant(
     "unlink() swallows a DELETE answered 404 although missing_ok is False",
 )
 
-# --- guards of the library, from the first review of the suite -------------
+# --- guards of the library ---------------------------------------------------
 mutant(
     "source-repr-shows-the-password",
     "source/_source.py",

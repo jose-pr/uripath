@@ -89,7 +89,7 @@ def test_truediv_pathlib():
     assert uri == "sftp://root@sftpexample/root/.ssh/authorized_keys"
 
     # A relative concrete Path joins like a relative PurePath and keeps the
-    # base's source (Design Q2). It used to become the LOCAL file
+    # base's source, and is not the LOCAL file
     # "file:/root/.ssh/authorized_keys".
     authkeys = sftp_root / pathlib.Path("root/.ssh/authorized_keys")
     uri = authkeys.as_uri()
@@ -175,7 +175,7 @@ def test_source_userinfo_field_still_carries_password():
     assert source["userinfo"] == "root:secret"
 
 
-# --- B15 regressions: URI.__init__ from various source types ---
+# --- URI.__init__ from various source types ---
 
 
 def test_from_pure_posix_path():
@@ -186,8 +186,8 @@ def test_from_pure_posix_path():
 
 
 def test_from_fspath_only_object():
-    # B15: constructing from an object that only implements __fspath__ (no
-    # as_posix()) used to crash with AttributeError.
+    # An object that only implements __fspath__ (no as_posix()) is read
+    # through os.fspath().
     class FspathOnly:
         def __fspath__(self):
             return "a/b/c.txt"
@@ -203,7 +203,7 @@ def test_from_relative_local_path_no_crash():
     assert "relative/path.txt" in uri.path
 
 
-# --- B26 regression: query/fragment "last segment that sets one wins" ---
+# --- query/fragment: "last segment that sets one wins" ---
 
 
 def test_join_query_fragment_last_setting_segment_wins():

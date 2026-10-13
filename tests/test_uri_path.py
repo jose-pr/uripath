@@ -29,7 +29,7 @@ def test_with_source_backend_preserved(tmp_path):
     assert retargeted.backend is root.backend
 
 
-# --- B27 (documented divergence): URI("a").parent -> "" (empty path,
+# --- documented divergence: URI("a").parent -> "" (empty path,
 # round-trips) instead of pathlib's "." ---
 
 
@@ -44,7 +44,7 @@ def test_empty_uri_round_trips_through_parent():
     assert empty.parent.path == empty.path == ""
 
 
-# --- B28 (documented divergence): with_name/with_suffix/with_stem keep
+# --- documented divergence: with_name/with_suffix/with_stem keep
 # query/fragment ---
 
 
@@ -64,7 +64,7 @@ def test_with_name_keeps_query_fragment():
     assert renamed.fragment == "frag"
 
 
-# --- B8: URI hashable, __eq__ contract ---
+# --- URI hashable, __eq__ contract ---
 
 
 def test_uri_hashable():
@@ -92,7 +92,7 @@ def test_uri_usable_as_dict_key():
     assert d[u2] == "value"
 
 
-# --- B30 (documented divergence): Path.__iter__ is iterdir ---
+# --- documented divergence: Path.__iter__ is iterdir ---
 
 
 def test_iter_is_iterdir(tmp_path):
@@ -290,7 +290,7 @@ def test_str_destination_reuses_the_backend_of_the_same_endpoint():
     assert base._coerce_target("b.txt").backend is base.backend
 
 
-# --- join review findings (2026-09-16) ------------------------------------
+# --- joins ------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

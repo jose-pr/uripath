@@ -1,4 +1,4 @@
-"""URI core soundness and core copy/open parity (wave 5, group G5).
+"""URI core soundness and core copy/open parity.
 
 Each test asserts an outcome -- the bytes a server received, the decoded
 pairs, the class and URI a join produced, what exists on disk -- not merely
@@ -24,7 +24,7 @@ from uripath import URI, URIPath
 from uripath.query import Query
 from uripath.schemes import FileURIPath
 
-# --- query: kept encoded, sent unchanged, decoded once (Design Q1) ---------
+# --- query: kept encoded, sent unchanged, decoded once ---------------------
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ def test_query_characters_illegal_on_the_wire_are_encoded():
     assert URI("http://h/?p=100%").as_uri() == "http://h/?p=100%25"
 
 
-# --- remote / relative concrete Path keeps the remote (Design Q2) ----------
+# --- remote / relative concrete Path keeps the remote ----------------------
 
 
 @pytest.mark.parametrize(

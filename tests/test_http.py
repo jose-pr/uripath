@@ -94,9 +94,8 @@ def site(serve_http):
 def test_iterdir_lists_files_and_dirs(http_server):
     root = URIPath(f"{http_server}/")
     names = {p.name for p in root.iterdir()}
-    # B-adjacent regression: subdirectory entries used to get name == ""
-    # because directory-listing entries carry a trailing "/" that wasn't
-    # stripped before deriving .name. iterdir() (unlike glob()) doesn't
+    # Subdirectory entries have name != "": directory-listing entries carry
+    # a trailing "/" that is stripped before deriving .name. iterdir() (unlike glob()) doesn't
     # filter hidden entries, matching pathlib.Path.iterdir().
     assert names == {"a.txt", "b.py", ".hidden.txt", "sub", "empty_dir"}
 

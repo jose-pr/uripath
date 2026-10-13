@@ -1,8 +1,7 @@
 """PathSyncer must never destroy data outside what it was asked to mirror.
 
-Regressions for the 2026-09-15 deep review (wave 1, phase 2). Every test
-asserts that the data which must survive actually survives -- a raised
-error alone proves nothing, the defects being fixed here raised nothing.
+Every test asserts that the data which must survive actually survives -- a
+raised error alone proves nothing, the defects covered here raised nothing.
 """
 
 import io
@@ -109,7 +108,7 @@ class _NoStatMemPath(MemPath):
 # --- sync-overlapping-source-target ----------------------------------------
 
 
-# --- wave 5 (G6): remaining PathSyncer soundness findings ------------------
+# --- more PathSyncer soundness cases -----------------------------------------
 
 import errno
 import stat as stat_module

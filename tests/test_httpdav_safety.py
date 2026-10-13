@@ -189,7 +189,7 @@ def test_dav_copy_missing_source_writes_no_error_page(dav_server, tmp_path):
     assert not out.exists() or b"<!DOCTYPE" not in out.read_bytes()
 
 
-# --- wave 5: a scriptable loopback server --------------------------------
+# --- a scriptable loopback server --------------------------------
 
 
 _LOCKED_MULTISTATUS = b"""<?xml version="1.0" encoding="utf-8"?>

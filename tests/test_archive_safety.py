@@ -1,4 +1,4 @@
-"""Archive data-loss and traversal regressions (2026-09-15 deep review).
+"""Archive data-loss and traversal regressions.
 
 Each test asserts what must SURVIVE: the bytes of an archive that was only
 read, member metadata across a rewrite, one entry per name after a rename,

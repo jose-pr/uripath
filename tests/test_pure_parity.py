@@ -2,8 +2,7 @@
 the fspath version shims, checked against `pathlib.PurePosixPath` /
 `PureWindowsPath` on the running interpreter.
 
-Covers the 2026-09-15 review's pure-path findings: right-anchored
-`match()`, `parents`/`parent` keeping the root, `with_name()` validation,
+Covers right-anchored `match()`, `parents`/`parent` keeping the root, `with_name()` validation,
 `MemPath` normalization, and authority roots in `relative_to()`.
 """
 

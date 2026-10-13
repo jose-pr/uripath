@@ -1,5 +1,4 @@
-"""Archive scheme and archive utility parity regressions (2026-09-15 deep
-review, wave 5 / G1).
+"""Archive scheme and archive utility parity with `pathlib`.
 
 Each test asserts an outcome a caller relies on: paths listed from the
 archive root exist and read back, a URI string names the member it came

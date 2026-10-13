@@ -1,4 +1,4 @@
-"""PathSyncer low-severity soundness regressions (2026-09-15 deep review).
+"""PathSyncer soundness regressions.
 
 Tolerated errors leave a WARNING record and a `SyncEvent.Error` hook call; a
 non-empty target directory is never deleted without `remove_missing`; hooks
