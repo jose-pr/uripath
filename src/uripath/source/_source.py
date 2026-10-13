@@ -16,7 +16,7 @@ from ._parse import (
 )
 
 if _ty.TYPE_CHECKING:
-    from .. import URIPath
+    from ..schemes._path import URIPath
 
 
 #: Schemes whose userinfo is an access token, not a user name: `str()` and
@@ -155,7 +155,7 @@ class Source(_ty.NamedTuple):
         itself. An explicit `schemesmap` is the complete set of classes to
         choose from: a scheme missing from it gives `URIPath`, and neither
         plugins nor the global registry are consulted."""
-        from .. import URIPath
+        from ..schemes._path import URIPath
 
         if self.scheme:
             if schemesmap is not None:

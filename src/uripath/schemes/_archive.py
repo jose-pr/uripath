@@ -7,7 +7,7 @@ from pathlib_next.archive import ArchivePath, LinkTarget, TarPath, ZipPath
 from pathlib_next.providers import as_error_handler, check_follow
 from .._uri import URI
 from ..source import SAFE_PATH, Source, percent_encode
-from . import URIPath
+from ._path import URIPath
 from ._delegate import DelegatingPath
 
 _SEP = "!/"

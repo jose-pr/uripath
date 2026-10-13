@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing as _ty
 
-from .. import DerivedBackend
+from .._path import DerivedBackend
 from . import _follow, _settings
 from ._follow import FOLLOWED_METHODS as _FOLLOWED_METHODS
 from ._follow import basic_authorization as _basic_authorization

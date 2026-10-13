@@ -122,7 +122,7 @@ mutant(
 )
 mutant(
     "uri-same-filesystem-always-true",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "        return mine is None or theirs is None or mine is theirs\n",
     "        return True\n",
     "tests/test_same_filesystem_uri.py::test_two_supplied_backends_are_two_hosts",
@@ -130,7 +130,7 @@ mutant(
 )
 mutant(
     "uri-same-filesystem-always-false",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "        return mine is None or theirs is None or mine is theirs\n",
     "        return False\n",
     "tests/test_same_filesystem_uri.py::test_separately_built_paths_to_one_url_are_the_same_file",
@@ -194,7 +194,7 @@ mutant(
 )
 mutant(
     "uri-backend-inherited-by-another-endpoint",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "            if source is mine or _same_authority(source, mine):\n                return backend, self._backend_derived\n",
     "            if True:\n                return backend, self._backend_derived\n",
     "tests/test_uri_path.py::test_a_same_endpoint_uri_destination_keeps_the_configured_backend",
@@ -202,7 +202,7 @@ mutant(
 )
 mutant(
     "uri-join-keeps-a-backend-of-another-endpoint",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "            if not _same_authority(segment.source, source):\n                continue\n            if backend is not None:",
     "            if False:\n                continue\n            if backend is not None:",
     "tests/test_backend_family.py::test_a_path_that_crosses_to_another_endpoint_builds_its_own",
@@ -275,7 +275,7 @@ mutant(
 )
 mutant(
     "scheme-lookup-asks-entry-points-before-the-built-in-table",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "            cls._load_builtin_scheme(scheme, strict=strict)\n"
     "            or cls._load_entry_point(scheme)\n",
     "            cls._load_entry_point(scheme)\n"
@@ -285,7 +285,7 @@ mutant(
 )
 mutant(
     "scheme-listing-leaves-out-schemes-not-imported-yet",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "                    *_BUILTIN_SCHEMES,\n                    *_elsewhere.SCHEMES,\n                    *_declared_entry_points(),\n",
     "",
     (
@@ -296,7 +296,7 @@ mutant(
 )
 mutant(
     "scheme-listing-leaves-out-the-schemes-provided-elsewhere",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "                    *_elsewhere.SCHEMES,\n",
     "",
     "tests/test_elsewhere.py::test_a_scheme_provided_elsewhere_is_listed",
@@ -304,7 +304,7 @@ mutant(
 )
 mutant(
     "scheme-class-of-a-scheme-provided-elsewhere-does-not-raise",
-    "schemes/__init__.py",
+    "schemes/_path.py",
     "            if strict:\n                raise _elsewhere.not_installed(scheme)\n",
     "            if False:\n                raise _elsewhere.not_installed(scheme)\n",
     "tests/test_elsewhere.py::test_the_scheme_class_of_a_scheme_provided_elsewhere_names_what_to_install",

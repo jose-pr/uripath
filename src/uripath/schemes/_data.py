@@ -6,7 +6,7 @@ from base64 import b64decode as _b64decode
 import uritools as _uritools
 
 from pathlib_next import FileStat
-from . import URIPath
+from ._path import URIPath
 from ..source import ERRORS
 
 _DEFAULT_MEDIATYPE = "text/plain;charset=US-ASCII"

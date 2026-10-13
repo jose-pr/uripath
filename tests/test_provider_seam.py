@@ -30,7 +30,7 @@ HEADER = PACKAGE / "AGENTS.md"
 
 # The modules of `uripath.schemes` that hold the contract (`URIPath`) and the
 # registry; the others are schemes.
-CONTRACT_MODULES = ("__init__.py", "_registry.py")
+CONTRACT_MODULES = ("__init__.py", "_path.py", "_registry.py")
 
 # Names a scheme module reads that are its own: an attribute of one of its
 # helper classes, or of a stdlib named tuple. Each is a name the scan finds
@@ -56,7 +56,7 @@ PROVIDER_HELPERS = [
 # replaced)
 PUBLIC_HELPERS = [
     ("uripath.source", "uripath.source._source", "same_authority", "_same_authority"),
-    ("uripath.schemes", "uripath.schemes", "DerivedBackend", "_DerivedBackend"),
+    ("uripath.schemes", "uripath.schemes._path", "DerivedBackend", "_DerivedBackend"),
     ("uripath.source", "uripath.source._compose", "compose_uri", "_compose_uri"),
     ("uripath.source", "uripath.source._compose", "compose_host", "_compose_host"),
     ("uripath.source", "uripath.source._compose", "percent_encode", "_encode"),

@@ -12,7 +12,7 @@ import pytest
 from pathlib_next.path._relation import _same_file
 from pathlib_next.providers import contains
 from uripath import URIPath
-from uripath.schemes import _DerivedBackend
+from uripath.schemes._path import _DerivedBackend
 from pathlib_next import FileStat
 from pathlib_next.sync import PathSyncer
 from pathlib_next.sync._paths import _paths_overlap

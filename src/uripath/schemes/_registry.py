@@ -7,7 +7,7 @@ import threading as _threading
 import typing as _ty
 
 if _ty.TYPE_CHECKING:
-    from . import URIPath
+    from ._path import URIPath
 
 #: `(entry_points function, {scheme: entry point})` for the
 #: `uripath.schemes` group, read once per lookup function; a scheme no

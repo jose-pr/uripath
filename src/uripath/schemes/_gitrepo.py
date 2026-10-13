@@ -10,7 +10,7 @@ import warnings as _warnings
 
 from pathlib_next import providers as _providers
 from ..source import Source
-from . import URIPath
+from ._path import URIPath
 from ..source import compose_host
 from . import _elsewhere
 from ._http import HTTPResponse, TransportOwner

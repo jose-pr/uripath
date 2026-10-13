@@ -8,7 +8,8 @@ import urllib.parse as _urlparse
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from .. import URIPath, _elsewhere, _httpdate
+from .. import _elsewhere, _httpdate
+from .._path import URIPath
 from . import _follow, _settings
 from ._backend import HTTPBackend, _DerivedHTTPBackend
 from ._errors import _path_error, _server_size, _translate_http_errors

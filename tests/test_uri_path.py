@@ -335,7 +335,7 @@ def test_join_reads_bytes_as_a_decoded_path_too():
     ],
 )
 def test_a_str_destination_is_only_a_uri_for_a_registered_scheme(value, is_uri):
-    from uripath.schemes import _looks_like_uri
+    from uripath.schemes._path import _looks_like_uri
 
     assert _looks_like_uri(value) is is_uri
 
