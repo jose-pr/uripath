@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 import re as _re
-import sys as _sys
-import types as _types
 import typing as _ty
 
-from pathlib_next import archive as _archive
-from pathlib_next.archive import MAX_LINKS as MAX_LINKS
-from pathlib_next.archive import ArchivePath
-from pathlib_next.archive import LinkTarget as LinkTarget
+from pathlib_next.archive import ArchivePath, LinkTarget, TarPath, ZipPath
 from pathlib_next.providers import as_error_handler, check_follow
-from ..._uri import URI
-from .. import URIPath
-from ...source import SAFE_PATH, Source, percent_encode
-from .._delegate import DelegatingPath
+from .._uri import URI
+from ..source import SAFE_PATH, Source, percent_encode
+from . import URIPath
+from ._delegate import DelegatingPath
 
 _SEP = "!/"
 _SCHEME_RE = _re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
-# Every scheme an `ArchiveURIPath` class registers (see `archive/__init__.py`).
+# Every scheme an `ArchiveURIPath` class registers.
 _ARCHIVE_SCHEMES = ("zip", "tar", "archive", "archive+zip", "archive+tar")
 
 
@@ -303,17 +298,38 @@ class ArchiveURIPath(DelegatingPath):
         )
 
 
-class _Module(_types.ModuleType):
-    """The module, with `MEMBER_SPOOL_BYTES` (the size past which a member read
-    goes to a temporary file) read from and written to where it takes effect."""
+class ZipURIPath(ArchiveURIPath):
+    """`zip:` scheme (`archive+zip:` is a second name for it). Read/write: write support (new entries, overwriting
+    existing entries, `unlink`/`rmdir`/`rename`) works when the outer
+    archive is a local `file:` URI; every other outer scheme is read-only
+    (fetched fully into memory first). Every mutation replaces the archive
+    atomically (temp file + `os.replace`), so the result is a new file: other
+    hard links keep the old content, and an archive the caller may not write
+    is refused first. A new entry is appended, deflated, to a byte copy of the
+    archive (nothing recompressed); overwriting/deleting/renaming an existing
+    entry rewrites the whole archive, since the standard library's zip module has no in-place
+    entry mutation, keeping every other entry's metadata and compression method.
+    The members are read and written by a `pathlib_next.archive.ZipPath`."""
 
-    @property
-    def MEMBER_SPOOL_BYTES(self) -> int:
-        return _archive.MEMBER_SPOOL_BYTES
-
-    @MEMBER_SPOOL_BYTES.setter
-    def MEMBER_SPOOL_BYTES(self, value: int) -> None:
-        _archive.MEMBER_SPOOL_BYTES = value
+    __SCHEMES = ("zip", "archive+zip")
+    __slots__ = ()
+    _core_cls = ZipPath
 
 
-_sys.modules[__name__].__class__ = _Module
+class TarURIPath(ArchiveURIPath):
+    """`tar:` scheme (also handles `.tar.gz`/`.tar.bz2`/`.tar.xz` via
+    the standard library's auto-detected "r:*" mode). Read-only. Members stored with a
+    `./` prefix are addressed without it. `archive+tar:` is the same scheme
+    under a second name. The members are read by a
+    `pathlib_next.archive.TarPath`."""
+
+    __SCHEMES = ("tar", "archive+tar")
+    __slots__ = ()
+    _core_cls = TarPath
+
+
+# `archive+zip:` and `archive+tar:` are second scheme names of `ZipURIPath` and
+# `TarURIPath` (they pin the format, which the extension-detecting `archive:`
+# does not); these class names stay importable.
+ArchiveZipURIPath = ZipURIPath
+ArchiveTarURIPath = TarURIPath

@@ -1,6 +1,5 @@
 """HTTP on a replaceable transport, for `http:`, `dav:`, `github:` and
-`gitlab:`. Private: the public names are re-exported by
-`uripath.schemes.http`."""
+`gitlab:`. Private: the public names are exported by `uripath.schemes`."""
 
 from __future__ import annotations
 

@@ -10,8 +10,8 @@ import pytest
 
 from http_fakes import spy_on_sends
 from uripath import URIPath
-from uripath.schemes.github import RepoBackend
-from uripath.schemes.gitlab import GitLabURIPath
+from uripath.schemes import RepoBackend
+from uripath.schemes import GitLabURIPath
 
 
 @pytest.fixture

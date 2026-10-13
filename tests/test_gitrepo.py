@@ -17,10 +17,10 @@ pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
 from http_fakes import FakeTransport, reply
 from uripath.schemes._gitrepo import BaseRepoBackend
-from uripath.schemes.github import GitHubURIPath, RepoBackend
-from uripath.schemes.http import HTTPTransport
-from uripath.schemes.git import GitHubGitURIPath, GitLabGitURIPath, GitURIPath
-from uripath.schemes.gitlab import GitLabURIPath
+from uripath.schemes import GitHubURIPath, RepoBackend
+from uripath.schemes import HTTPTransport
+from uripath.schemes import GitHubGitURIPath, GitLabGitURIPath, GitURIPath
+from uripath.schemes import GitLabURIPath
 from uripath import URIPath
 
 

@@ -9,7 +9,7 @@ import pytest
 from http_fakes import FakeTransport, reply
 from http_wire import Reply, Wire, response
 from uripath import URIPath
-from uripath.schemes.http import HTTPBackend
+from uripath.schemes import HTTPBackend
 
 AUTH = {"Authorization": "Bearer TOKEN-1"}
 

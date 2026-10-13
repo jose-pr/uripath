@@ -21,10 +21,10 @@ from pathlib_next.testing import (
     ReadPathContract,
     populate_fixture_tree,
 )
-from uripath.schemes.file import FileURIPath
-from uripath.schemes.data import DataURIPath
+from uripath.schemes import FileURIPath
+from uripath.schemes import DataURIPath
 from uripath import URIPath
-from uripath.schemes.archive import ZipURIPath, TarURIPath
+from uripath.schemes import ZipURIPath, TarURIPath
 
 
 def make_zip_from_local(local_dir, zip_path):
@@ -96,7 +96,7 @@ class TestHttpContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, http_server, http_transport_kind):
-        from uripath.schemes.http import HTTPURIPath
+        from uripath.schemes import HTTPURIPath
 
         return HTTPURIPath(http_server)
 
@@ -225,7 +225,7 @@ class TestFtpContract(PathContract):
 
     @pytest.fixture
     def root(self, ftp_server):
-        from uripath.schemes.ftp import FTPURIPath
+        from uripath.schemes import FTPURIPath
 
         return FTPURIPath(ftp_server)
 
@@ -242,7 +242,7 @@ class TestDavContract(PathContract):
 
     @pytest.fixture
     def root(self, dav_server, http_transport_kind):
-        from uripath.schemes.dav import DAVURIPath
+        from uripath.schemes import DAVURIPath
 
         return DAVURIPath(dav_server)
 
@@ -255,7 +255,7 @@ class TestGitHubContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, github_api_server, http_transport_kind):
-        from uripath.schemes.github import GitHubURIPath, RepoBackend
+        from uripath.schemes import GitHubURIPath, RepoBackend
 
         base_url, owner, repo = github_api_server
         backend = RepoBackend(api_base=base_url)
@@ -269,7 +269,7 @@ class TestGitLabContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, gitlab_api_server, http_transport_kind):
-        from uripath.schemes.gitlab import GitLabURIPath, RepoBackend
+        from uripath.schemes import GitLabURIPath, RepoBackend
 
         base_url, owner, repo = gitlab_api_server
         backend = RepoBackend(api_base=f"{base_url}/api/v4")
@@ -284,8 +284,8 @@ class TestGitGitHubContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, github_api_server, http_transport_kind):
-        from uripath.schemes.git import GitHubGitURIPath
-        from uripath.schemes.github import RepoBackend
+        from uripath.schemes import GitHubGitURIPath
+        from uripath.schemes import RepoBackend
 
         base_url, owner, repo = github_api_server
         backend = RepoBackend(api_base=base_url)
@@ -299,8 +299,8 @@ class TestGitGitLabContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, gitlab_api_server, http_transport_kind):
-        from uripath.schemes.git import GitLabGitURIPath
-        from uripath.schemes.gitlab import RepoBackend
+        from uripath.schemes import GitLabGitURIPath
+        from uripath.schemes import RepoBackend
 
         base_url, owner, repo = gitlab_api_server
         backend = RepoBackend(api_base=f"{base_url}/api/v4")

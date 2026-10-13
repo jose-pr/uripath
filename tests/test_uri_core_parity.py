@@ -22,7 +22,7 @@ import pathlib_next
 from pathlib_next.mempath import MemPath
 from uripath import URI, URIPath
 from uripath.query import Query
-from uripath.schemes.file import FileURIPath
+from uripath.schemes import FileURIPath
 
 # --- query: kept encoded, sent unchanged, decoded once (Design Q1) ---------
 

@@ -11,7 +11,7 @@ import time
 
 import pytest
 
-from uripath.schemes.http import _DirectoryListingParser, _human2bytes
+from uripath.schemes._http._listing import _DirectoryListingParser, _human2bytes
 
 
 def parse(html):

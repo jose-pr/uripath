@@ -18,7 +18,7 @@ Run directly:
 import os
 import sys
 
-from uripath.schemes.github import GitHubURIPath, RepoBackend
+from uripath.schemes import GitHubURIPath, RepoBackend
 
 
 def list_github(owner_repo: str, path: str, ref: str, token: str):

@@ -15,9 +15,9 @@ import pytest
 
 from http_fakes import on_current_transport
 from pathlib_next import LocalPath
-from uripath.schemes.dav import DAVURIPath
+from uripath.schemes import DAVURIPath
 from uripath import URIPath
-from uripath.schemes.http import HTTPURIPath
+from uripath.schemes import HTTPURIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 

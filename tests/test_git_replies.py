@@ -17,8 +17,8 @@ import http.server
 from http_fakes import is_client_error
 from uripath import URIPath
 from uripath.schemes._gitrepo import RepoBackend
-from uripath.schemes.github import GitHubURIPath
-from uripath.schemes.gitlab import GitLabURIPath
+from uripath.schemes import GitHubURIPath
+from uripath.schemes import GitLabURIPath
 
 
 class _Api:

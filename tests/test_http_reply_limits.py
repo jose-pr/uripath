@@ -11,8 +11,8 @@ import pytest
 
 from http_wire import Wire, response
 from uripath import URIPath
-from uripath.schemes import http as http_scheme
-from uripath.schemes.http import HTTPBackend
+from uripath import schemes as http_scheme
+from uripath.schemes import HTTPBackend
 from waits import wait_until
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
@@ -153,7 +153,7 @@ def test_a_dav_delete_with_a_207_reply_over_the_limit_is_efbig():
 
 
 def test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited():
-    from uripath.schemes.github import GitHubURIPath, RepoBackend
+    from uripath.schemes import GitHubURIPath, RepoBackend
 
     raw = {
         "Content-Type": "application/vnd.github.raw+json",
@@ -179,7 +179,7 @@ def test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited():
 
 
 def test_a_gitlab_api_reply_over_the_limit_is_efbig():
-    from uripath.schemes.gitlab import GitLabURIPath, RepoBackend
+    from uripath.schemes import GitLabURIPath, RepoBackend
 
     with Wire(lambda r: bomb(200, {"Content-Type": "application/json"})) as wire:
         backend = RepoBackend(api_base=wire.url + "/api/v4")

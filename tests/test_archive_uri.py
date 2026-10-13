@@ -15,12 +15,8 @@ from capabilities import requires_posix_modes
 
 from pathlib_next import LocalPath
 from uripath import URIPath
-from uripath.schemes.archive import (
-    ArchiveURIPath,
-    TarURIPath,
-    ZipURIPath,
-    _split_archive_path,
-)
+from uripath.schemes import ArchiveURIPath, TarURIPath, ZipURIPath
+from uripath.schemes._archive import _split_archive_path
 
 # --- URI splitting ---
 

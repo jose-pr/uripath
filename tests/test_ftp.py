@@ -8,7 +8,7 @@ import ftplib
 import pytest
 
 from uripath import Source, URI
-from uripath.schemes.ftp import BaseFTPURIBackend, FTPURIBackend, FTPURIPath
+from uripath.schemes import BaseFTPURIBackend, FTPURIBackend, FTPURIPath
 
 
 class _FakeFtpClient:

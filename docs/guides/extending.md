@@ -148,7 +148,7 @@ Conventions for a scheme implementation:
   neither parses its argument. A constructor-level override goes in
   `_init(source, path, query, fragment, **kwargs)`, which every construction
   ends in, and calls `super()._init()`. Two paths are on one endpoint when
-  `uripath.same_authority(a.source, b.source)`.
+  `uripath.source.same_authority(a.source, b.source)`.
 - A backend that cannot be written piecewise (an FTP `STOR`, an archive
   rewrite) is returned from `_open()` as
   `pathlib_next.providers.CommitOnClose(commit)`: `commit(buffer)` runs once,

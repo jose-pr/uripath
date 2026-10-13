@@ -19,7 +19,7 @@ Run directly:
 import os
 import sys
 
-from uripath.schemes.gitlab import GitLabURIPath, RepoBackend
+from uripath.schemes import GitLabURIPath, RepoBackend
 
 
 def list_gitlab(host: str, owner_repo: str, path: str, ref: str, token: str):

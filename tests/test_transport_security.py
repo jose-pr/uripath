@@ -34,13 +34,13 @@ from http_fakes import FakeTransport, reply
 import uripath
 from uripath import Source, URIPath
 from uripath.schemes import _gitrepo
-from uripath.schemes import http as http_scheme
-from uripath.schemes.dav import DAVURIPath
+from uripath.schemes._http import _settings as http_scheme
+from uripath.schemes import DAVURIPath
 from pathlib_next.ftp import FTPBackend
-from uripath.schemes.ftp import FTPURIBackend, FTPURIPath
-from uripath.schemes.github import GitHubURIPath
-from uripath.schemes.gitlab import GitLabURIPath
-from uripath.schemes.http import HTTPBackend, HTTPURIPath
+from uripath.schemes import FTPURIBackend, FTPURIPath
+from uripath.schemes import GitHubURIPath
+from uripath.schemes import GitLabURIPath
+from uripath.schemes import HTTPBackend, HTTPURIPath
 
 SRC = str(pathlib.Path(uripath.__file__).resolve().parent.parent)
 
@@ -678,4 +678,4 @@ def test_ftps_dispatches_in_fresh_process(disable):
         timeout=120,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "uripath.schemes.ftp.FTPURIPath"
+    assert result.stdout.strip() == "uripath.schemes._ftp.FTPURIPath"

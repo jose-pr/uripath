@@ -19,8 +19,8 @@ from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath, MemPathBackend
 from pathlib_next.protocols import BinaryOpen
 from uripath import URI, URIPath
-from uripath.schemes.data import DataURIPath
-from uripath.schemes.file import FileURIPath
+from uripath.schemes import DataURIPath
+from uripath.schemes import FileURIPath
 from uripath.source import Source
 from pathlib_next import checksum
 from pathlib_next import FileStat

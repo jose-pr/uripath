@@ -9,7 +9,7 @@ import pytest
 
 from http_wire import Reply, Wire, response
 from uripath import URIPath
-from uripath.schemes.http import HTTPBackend
+from uripath.schemes import HTTPBackend
 from uripath.schemes._http._headers import peer_text
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
@@ -67,7 +67,7 @@ def test_a_long_reason_phrase_is_cut():
 
 
 def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
-    from uripath.schemes.github import GitHubURIPath, RepoBackend
+    from uripath.schemes import GitHubURIPath, RepoBackend
 
     with Wire(reply_with_reason(f"Oops {ESC}", 500)) as wire:
         path = GitHubURIPath(
@@ -80,7 +80,7 @@ def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
 
 
 def test_a_rate_limit_header_is_shown_escaped_and_cut():
-    from uripath.schemes.github import GitHubURIPath, RepoBackend
+    from uripath.schemes import GitHubURIPath, RepoBackend
 
     def script(request):
         return response(

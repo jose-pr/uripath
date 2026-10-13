@@ -40,7 +40,7 @@ Append a call to `mutants.py`:
 ```python
 mutant(
     "http-unlink-of-a-directory",            # a unique id: what breaks, in words
-    "schemes/http.py",                       # relative to src/uripath
+    "schemes/_http/_path.py",                # relative to src/uripath
     "        if self.is_dir():\n            raise IsADirectoryError(\n",   # exact text, once
     "        if False:\n            raise IsADirectoryError(\n",           # its replacement
     "tests/test_http.py::test_http_unlink_on_directory_sends_no_delete",

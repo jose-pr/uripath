@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 import typing
 
-from uripath.schemes.http import HTTPResponse
+from uripath.schemes import HTTPResponse
 
 _REASONS = {
     200: "OK",
@@ -42,7 +42,7 @@ def is_client_error(error):
 
 def make_transport(kind, **arguments):
     """A real transport: `"builtin"`."""
-    from uripath.schemes.http import HTTPTransport
+    from uripath.schemes import HTTPTransport
 
     assert kind == "builtin", kind
     return HTTPTransport(**arguments)
@@ -51,7 +51,7 @@ def make_transport(kind, **arguments):
 def spy_on_sends(monkeypatch, project=lambda method, url, **kwargs: (method, url)):
     """A list that gains `project(method, url, **keywords)` for every request
     the real transport sends; the requests still go to the server."""
-    from uripath.schemes.http import HTTPTransport
+    from uripath.schemes import HTTPTransport
 
     log = []
 

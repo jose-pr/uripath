@@ -6,8 +6,8 @@ PUT/DELETE/MKCOL/MOVE.
 import pytest
 
 from http_fakes import FakeTransport, reply
-from uripath.schemes.http import HTTPBackend, HTTPResponse
-from uripath.schemes.dav import DAVURIPath
+from uripath.schemes import HTTPBackend, HTTPResponse
+from uripath.schemes import DAVURIPath
 
 
 def _FakeResponse(status_code=200, content=b"", headers=None):

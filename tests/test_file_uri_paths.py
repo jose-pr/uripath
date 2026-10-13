@@ -11,7 +11,7 @@ import pytest
 
 from pathlib_next import LocalPath
 from uripath import URI, URIPath
-from uripath.schemes.file import FileURIPath
+from uripath.schemes import FileURIPath
 
 WINDOWS = os.name == "nt"
 BACKSLASH = chr(92)

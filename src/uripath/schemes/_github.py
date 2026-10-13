@@ -5,19 +5,17 @@ import errno as _errno
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from ._gitrepo import (  # noqa: F401  (re-exported)
-    InsecureTransportWarning,
-    RepoBackend,
-    _RepoApiPath,
-    _drop_body,
+from ._gitrepo import (
+    _RepoAPIPath,
     _raise_for_status,
     _reply_limit,
     _translate_repo_errors,
 )
-from .http import _server_size
+from ._http._errors import _server_size
+from ._http._status import drop_body as _drop_body
 
 
-class GitHubURIPath(_RepoApiPath):
+class GitHubURIPath(_RepoAPIPath):
     """`github:` scheme: read-only access to a GitHub repository tree via
     the REST contents API (`GET /repos/{owner}/{repo}/contents/{path}`).
     `host` defaults to `github.com` (API at `api.github.com`); any other

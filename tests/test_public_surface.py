@@ -30,15 +30,31 @@ DOCUMENTED = {
     },
     "uripath.query": {"Query"},
     "uripath.schemes": {
-        "DerivedBackend",
-        "DataURIPath",
+        "ArchiveTarURIPath",
+        "ArchiveURIPath",
+        "ArchiveZipURIPath",
+        "BaseFTPURIBackend",
+        "BaseRepoBackend",
         "DAVURIPath",
-        "FileURIPath",
+        "DataURIPath",
+        "DerivedBackend",
+        "FTPURIBackend",
         "FTPURIPath",
+        "FileURIPath",
+        "GitHubGitURIPath",
         "GitHubURIPath",
+        "GitLabGitURIPath",
         "GitLabURIPath",
         "GitURIPath",
+        "HTTPAppendStream",
+        "HTTPBackend",
+        "HTTPResponse",
+        "HTTPTransport",
         "HTTPURIPath",
+        "HTTPWriteStream",
+        "MAX_LISTING_BYTES",
+        "MEMBER_SPOOL_BYTES",
+        "RepoBackend",
         "TarURIPath",
         "ZipURIPath",
     },
@@ -52,10 +68,13 @@ def test_documented_names_stay_importable_from_where_they_are_documented(module)
     assert missing == []
 
 
-def test_the_scheme_names_of_the_package_export_every_built_in_class():
+def test_the_package_exports_exactly_the_documented_names():
     from uripath import schemes
 
-    assert set(schemes._EXPORTS) | {"DerivedBackend"} == DOCUMENTED["uripath.schemes"]
+    assert set(schemes.__all__) == DOCUMENTED["uripath.schemes"]
+    assert set(schemes._EXPORTS) <= set(schemes.__all__)
+    for name in schemes.__all__:
+        assert hasattr(schemes, name), name
 
 
 def _header_import_lines():

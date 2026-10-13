@@ -10,7 +10,7 @@ import pytest
 
 from http_wire import Drop, Reply, Wire, response
 from uripath.schemes._http import _builtin
-from uripath.schemes.http import HTTPTransport
+from uripath.schemes import HTTPTransport
 from waits import wait_until
 
 TIMEOUT = (5, 5)

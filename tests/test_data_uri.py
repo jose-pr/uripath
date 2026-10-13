@@ -3,7 +3,7 @@
 import pytest
 
 from uripath import URIPath
-from uripath.schemes.data import DataURIPath
+from uripath.schemes import DataURIPath
 
 
 def test_scheme_dispatch():

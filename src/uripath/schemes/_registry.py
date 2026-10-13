@@ -1,4 +1,5 @@
-"""Which class a scheme name belongs to: the classes that registered, the built-in table and the `uripath.schemes` entry points."""
+"""Which class a scheme name belongs to: the classes that registered, the
+built-in table and the `uripath.schemes` entry points."""
 
 from __future__ import annotations
 
@@ -22,24 +23,24 @@ _ENTRY_POINTS_LOADED: "set[str]" = set()
 #: Built-in scheme -> the module that defines its class. A name listed here is
 #: resolved from this table before any entry point is consulted.
 _BUILTIN_SCHEMES = {
-    "file": "uripath.schemes.file",
-    "data": "uripath.schemes.data",
-    "zip": "uripath.schemes.archive",
-    "tar": "uripath.schemes.archive",
-    "archive": "uripath.schemes.archive",
-    "archive+zip": "uripath.schemes.archive",
-    "archive+tar": "uripath.schemes.archive",
-    "ftp": "uripath.schemes.ftp",
-    "ftps": "uripath.schemes.ftp",
-    "http": "uripath.schemes.http",
-    "https": "uripath.schemes.http",
-    "dav": "uripath.schemes.dav",
-    "davs": "uripath.schemes.dav",
-    "github": "uripath.schemes.github",
-    "gitlab": "uripath.schemes.gitlab",
-    "git": "uripath.schemes.git",
-    "git+github": "uripath.schemes.git",
-    "git+gitlab": "uripath.schemes.git",
+    "file": "uripath.schemes._file",
+    "data": "uripath.schemes._data",
+    "zip": "uripath.schemes._archive",
+    "tar": "uripath.schemes._archive",
+    "archive": "uripath.schemes._archive",
+    "archive+zip": "uripath.schemes._archive",
+    "archive+tar": "uripath.schemes._archive",
+    "ftp": "uripath.schemes._ftp",
+    "ftps": "uripath.schemes._ftp",
+    "http": "uripath.schemes._http._path",
+    "https": "uripath.schemes._http._path",
+    "dav": "uripath.schemes._dav",
+    "davs": "uripath.schemes._dav",
+    "github": "uripath.schemes._github",
+    "gitlab": "uripath.schemes._gitlab",
+    "git": "uripath.schemes._git",
+    "git+github": "uripath.schemes._git",
+    "git+gitlab": "uripath.schemes._git",
 }
 
 

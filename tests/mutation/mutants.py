@@ -48,7 +48,7 @@ def mutant(
 
 mutant(
     "http-unlink-of-a-directory",
-    "schemes/http.py",
+    "schemes/_http/_path.py",
     "        if self.is_dir():\n            raise IsADirectoryError(\n",
     "        if False:\n            raise IsADirectoryError(\n",
     "tests/test_http.py::test_http_unlink_on_directory_sends_no_delete",
@@ -56,7 +56,7 @@ mutant(
 )
 mutant(
     "http-rmdir-of-a-file",
-    "schemes/http.py",
+    "schemes/_http/_path.py",
     "        if not self.is_dir():\n            raise NotADirectoryError(self)\n",
     "        if False:\n            raise NotADirectoryError(self)\n",
     "tests/test_http.py::test_http_rmdir_on_file_raises_notadirectoryerror",
@@ -64,7 +64,7 @@ mutant(
 )
 mutant(
     "http-rmdir-of-a-non-empty-directory",
-    "schemes/http.py",
+    "schemes/_http/_path.py",
     '        for _ in self._scandir():\n            raise OSError(_errno.ENOTEMPTY, "Directory not empty", str(self))\n        self._delete()\n',
     "        self._delete()\n",
     "tests/test_http.py::test_http_rmdir_not_empty",
@@ -72,7 +72,7 @@ mutant(
 )
 mutant(
     "http-delete-answered-404-with-missing-ok",
-    "schemes/http.py",
+    "schemes/_http/_path.py",
     "                if missing_ok:\n                    return\n                raise FileNotFoundError(self)\n",
     "                if False:\n                    return\n                raise FileNotFoundError(self)\n",
     "tests/test_http.py::test_http_unlink_missing_ok_accepts_a_delete_answered_404",
@@ -80,7 +80,7 @@ mutant(
 )
 mutant(
     "dav-delete-answered-404-without-missing-ok",
-    "schemes/dav.py",
+    "schemes/_dav.py",
     "        except FileNotFoundError:\n            if not missing_ok:\n                raise\n",
     "        except FileNotFoundError:\n            if False:\n                raise\n",
     "tests/test_webdav.py::test_unlink_without_missing_ok_raises_for_a_delete_answered_404",
@@ -106,7 +106,7 @@ mutant(
 )
 mutant(
     "http-listing-keeps-unsafe-names",
-    "schemes/http.py",
+    "schemes/_http/_path.py",
     "            if not _providers.is_safe_child_name(name):\n",
     "            if False:\n",
     "tests/test_http.py::test_http_listing_leaves_out_a_name_that_is_not_a_safe_component",
@@ -114,7 +114,7 @@ mutant(
 )
 mutant(
     "dav-listing-keeps-unsafe-names",
-    "schemes/dav.py",
+    "schemes/_dav.py",
     "            if _providers.is_safe_child_name(name):\n",
     "            if True:\n",
     "tests/test_webdav.py::test_propfind_dot_entries_are_not_children",
@@ -138,7 +138,7 @@ mutant(
 )
 mutant(
     "http-404-is-a-generic-oserror",
-    "schemes/http.py",
+    "schemes/_http/_errors.py",
     "        if status in (404, 410):\n            raise _path_error(FileNotFoundError, path_obj) from None\n",
     "        if status in (410,):\n            raise _path_error(FileNotFoundError, path_obj) from None\n",
     "tests/test_destructive_safety.py::test_copy_http_404_source_leaves_local_target_intact",
@@ -146,7 +146,7 @@ mutant(
 )
 mutant(
     "http-connection-error-chains-the-request-error",
-    "schemes/http.py",
+    "schemes/_http/_errors.py",
     '        raise ConnectionError(\n            f"Connection error for {path_obj} ({type(e).__name__})"\n        ) from None\n',
     '        raise ConnectionError(\n            f"Connection error for {path_obj} ({type(e).__name__})"\n        ) from e\n',
     "tests/test_transport_security.py::test_http_refused_connection_carries_no_password",
@@ -178,7 +178,7 @@ mutant(
 )
 mutant(
     "http-403-is-a-generic-oserror",
-    "schemes/http.py",
+    "schemes/_http/_errors.py",
     "        elif status in (401, 403):\n",
     "        elif status in (401,):\n",
     "tests/test_transport_security.py::test_http_error_text_and_traceback_carry_no_password",
@@ -186,7 +186,7 @@ mutant(
 )
 mutant(
     "http-timeout-chains-the-request-error",
-    "schemes/http.py",
+    "schemes/_http/_errors.py",
     '        raise TimeoutError(f"Timeout for {path_obj} ({type(e).__name__})") from None\n',
     '        raise TimeoutError(f"Timeout for {path_obj} ({type(e).__name__})") from e\n',
     "tests/test_transport_security.py::test_http_timeout_carries_no_password",
@@ -226,7 +226,7 @@ mutant(
 )
 mutant(
     "http-write-stream-uploads-before-it-is-ready",
-    "schemes/http.py",
+    "schemes/_http/_streams.py",
     "            if self._ready:\n                self._upload(self.getvalue())\n",
     "            if True:\n                self._upload(self.getvalue())\n",
     "tests/test_http_writes.py",
@@ -236,7 +236,7 @@ mutant(
 
 mutant(
     "github-head-believes-a-reply-that-is-not-the-api-s",
-    "schemes/github.py",
+    "schemes/_github.py",
     '            if "X-GitHub-Media-Type" not in resp.headers:\n                return None\n            _raise_for_status(resp)',
     "            _raise_for_status(resp)",
     "tests/test_github_stat.py::test_a_reply_that_is_not_the_api_s_own_is_not_believed",
@@ -312,7 +312,7 @@ mutant(
 )
 mutant(
     "with-session-builds-a-backend-without-the-requests-distribution",
-    "schemes/http.py",
+    "schemes/_http/_path.py",
     "        raise _elsewhere.requests_transport_missing()\n",
     "        return self\n",
     "tests/test_elsewhere.py::test_with_session_names_the_distribution_that_provides_the_transport",
@@ -530,7 +530,7 @@ mutant(
 )
 mutant(
     "http-reason-phrase-unescaped",
-    "schemes/http.py",
+    "schemes/_http/_errors.py",
     '        reason = peer_text(response.reason or "")\n',
     '        reason = response.reason or ""\n',
     (
@@ -557,7 +557,7 @@ mutant(
 )
 mutant(
     "http-redirect-reask-forgets-the-origin",
-    "schemes/http.py",
+    "schemes/_http/_backend.py",
     "            method, location, sent, None, None, stream, timeout, first=url\n",
     "            method, location, sent, None, None, stream, timeout, first=None\n",
     (
@@ -614,8 +614,8 @@ mutant(
 )
 mutant(
     "dav-propfind-reply-read-unbounded",
-    "schemes/dav.py",
-    "        body = _read_limited(resp, http_module.MAX_LISTING_BYTES, self)\n",
+    "schemes/_dav.py",
+    "        body = _read_limited(resp, _settings.MAX_LISTING_BYTES, self)\n",
     "        body = resp.read()\n",
     f"{_LIMITS}::test_a_propfind_reply_over_the_limit_is_efbig_counted_in_decoded_bytes",
     "a PROPFIND reply is read whole whatever its size",
@@ -630,7 +630,7 @@ mutant(
 )
 mutant(
     "http-backend-buffers-without-a-cap",
-    "schemes/http.py",
+    "schemes/_http/_backend.py",
     "            resp._buffered(limit, _too_large(_follow.shown(url), limit))\n",
     "            resp._buffered()\n",
     f"{_LIMITS}::test_the_backend_reads_a_reply_whole_only_up_to_the_limit",

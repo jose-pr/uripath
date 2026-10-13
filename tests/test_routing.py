@@ -66,7 +66,7 @@ def test_with_source_keeps_backend_only_for_the_same_authority():
 
 
 def test_github_token_backend_does_not_follow_join_to_another_host():
-    from uripath.schemes.github import GitHubURIPath
+    from uripath.schemes import GitHubURIPath
 
     root = GitHubURIPath("github://ghp_SECRET@github.com/acme/widgets")
 

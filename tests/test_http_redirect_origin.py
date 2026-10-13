@@ -8,7 +8,7 @@ import pytest
 from http_fakes import on_current_transport
 from http_wire import Wire, make_authority, response
 from uripath import URIPath
-from uripath.schemes.http import HTTPURIPath, HTTPTransport
+from uripath.schemes import HTTPURIPath, HTTPTransport
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -151,7 +151,7 @@ def test_a_redirect_from_https_to_plain_http_does_not_carry_authorization(tmp_pa
 
 
 def test_the_git_apis_send_their_token_to_their_own_origin_only():
-    from uripath.schemes.github import GitHubURIPath, RepoBackend
+    from uripath.schemes import GitHubURIPath, RepoBackend
 
     raw = {
         "X-GitHub-Media-Type": "github.v3; param=raw",

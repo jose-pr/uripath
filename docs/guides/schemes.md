@@ -70,7 +70,7 @@ implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
   response raises `NotADirectoryError`, and an HTML file cannot be told apart
   from an index page. An index is read like a file: one that is cut short or
   stalls raises (`OSError` or `TimeoutError`) instead of listing part of it,
-  and one larger than `uripath.schemes.http.MAX_LISTING_BYTES` (8 MiB)
+  and one larger than `uripath.schemes.MAX_LISTING_BYTES` (8 MiB)
   raises `OSError` (`EFBIG`); assign a larger number to list it. Configure it with
   `path.with_transport(transport, headers=None, timeout=(10, 60),
   write_method="PUT", append_mode="rewrite")`; the default transport is the

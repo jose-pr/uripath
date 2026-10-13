@@ -13,8 +13,8 @@ import pytest
 pytest.importorskip("uritools")
 
 from uripath import URIPath
-from uripath.schemes import archive
-from uripath.schemes.archive import (
+from uripath import schemes
+from uripath.schemes import (
     ArchiveTarURIPath,
     ArchiveURIPath,
     ArchiveZipURIPath,
@@ -32,12 +32,12 @@ SCHEMES = {
 
 
 def test_the_documented_class_names_are_still_importable():
-    assert archive.ArchiveZipURIPath is ZipURIPath
-    assert archive.ArchiveTarURIPath is TarURIPath
+    assert schemes.ArchiveZipURIPath is ZipURIPath
+    assert schemes.ArchiveTarURIPath is TarURIPath
     assert ArchiveZipURIPath is ZipURIPath and ArchiveTarURIPath is TarURIPath
     for entry_point in (
-        "uripath.schemes.archive:ArchiveZipURIPath",
-        "uripath.schemes.archive:ArchiveTarURIPath",
+        "uripath.schemes:ArchiveZipURIPath",
+        "uripath.schemes:ArchiveTarURIPath",
     ):
         module, _, name = entry_point.partition(":")
         assert getattr(importlib.import_module(module), name) in (

@@ -31,10 +31,6 @@ KINDS = {
 }
 
 
-class Unavailable(Exception):
-    """A module of the block cannot be imported (an extra is not installed)."""
-
-
 def blocks(text):
     """`[(headings, modules, line, source)]` for every ```python fence."""
     found, stack, lines = [], [], text.splitlines()
@@ -64,13 +60,9 @@ def blocks(text):
 
 def lookup(modules, name):
     for module in modules:
-        try:
-            imported = importlib.import_module(module)
-            if hasattr(imported, name):
-                return getattr(imported, name)
-        except ImportError as error:
-            # A module, or a lazy attribute such as a backend, needs an extra.
-            raise Unavailable(f"{module}: {error}") from None
+        imported = importlib.import_module(module)
+        if hasattr(imported, name):
+            return getattr(imported, name)
     raise AttributeError(f"{name} is in none of {modules}")
 
 
@@ -253,8 +245,6 @@ def header_problems(text):
             found += [
                 f"line {line} ({titles[-1]}): {p}" for p in check_block(modules, source)
             ]
-        except Unavailable:
-            pass
         except AttributeError as error:
             found.append(f"line {line} ({titles[-1]}): {error}")
     return found
@@ -267,11 +257,7 @@ def _cases():
 
 @pytest.mark.parametrize(("modules", "source"), list(_cases()))
 def test_the_stubs_of_each_block_match_the_code(modules, source):
-    try:
-        problems = check_block(modules, source)
-    except Unavailable as error:
-        pytest.skip(f"an extra is not installed: {error}")
-    assert problems == []
+    assert check_block(modules, source) == []
 
 
 def test_the_header_has_blocks_for_the_package():
@@ -280,7 +266,7 @@ def test_the_header_has_blocks_for_the_package():
     assert {m for _t, mods, _l, _s in found for m in mods} >= {
         "uripath",
         "uripath.source",
-        "uripath.schemes.http",
+        "uripath.schemes",
     }
 
 

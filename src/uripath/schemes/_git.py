@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from ..._uri import URI
-from .. import URIPath
-from ..github import GitHubURIPath
-from ..gitlab import GitLabURIPath
+from .._uri import URI
+from . import URIPath
+from ._github import GitHubURIPath
+from ._gitlab import GitLabURIPath
 
 
 class GitURIPath(URIPath):
@@ -49,3 +49,17 @@ class GitURIPath(URIPath):
         inst = URIPath.__new__(provider_cls, *args, **kwargs)
         inst._init(uri.source, uri.path, uri.query, uri.fragment, **kwargs)
         return inst
+
+
+class GitHubGitURIPath(GitHubURIPath):
+    """`git+github:` explicit GitHub-hosted repository scheme."""
+
+    __SCHEMES = ("git+github",)
+    __slots__ = ()
+
+
+class GitLabGitURIPath(GitLabURIPath):
+    """`git+gitlab:` explicit GitLab-hosted repository scheme."""
+
+    __SCHEMES = ("git+gitlab",)
+    __slots__ = ()

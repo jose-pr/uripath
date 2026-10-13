@@ -9,7 +9,7 @@ import traceback
 import pytest
 
 from http_wire import Proxy, Wire, make_authority, refusing_port, response
-from uripath.schemes.http import HTTPTransport
+from uripath.schemes import HTTPTransport
 
 TIMEOUT = (5, 5)
 

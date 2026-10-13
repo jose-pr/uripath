@@ -20,7 +20,6 @@ from ._http._headers import check_url as _check_url
 from ._http._headers import merge_headers as _merge_headers
 from ._http._headers import peer_text
 from ._http._status import HTTPStatusError as _HTTPStatusError
-from ._http._status import drop_body as _drop_body
 from ._http._status import json_body as _json_body
 from ._http._status import too_large as _too_large
 
@@ -127,10 +126,10 @@ def _translate_repo_errors(path_obj):
 
 def _reply_limit() -> int:
     """The most bytes of a reply the library reads whole: the limit a listing
-    has (`http.MAX_LISTING_BYTES`), read now so that assigning it applies."""
-    from . import http
+    has (`MAX_LISTING_BYTES`), read now so that assigning it applies."""
+    from ._http import _settings
 
-    return http.MAX_LISTING_BYTES
+    return _settings.MAX_LISTING_BYTES
 
 
 class BaseRepoBackend(object):
@@ -149,7 +148,7 @@ class BaseRepoBackend(object):
 
 class RepoBackend(TransportOwner, BaseRepoBackend):
     """The transport and the optional bearer `token` sent on every request
-    (mirrors `HTTPBackend` in `http.py`). Unauthenticated works fine for
+    (mirrors `HTTPBackend`). Unauthenticated works fine for
     public repos, subject to the host's anonymous rate limit (60 req/h for
     github.com).
 
@@ -248,7 +247,7 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         return resp
 
 
-class _RepoApiPath(URIPath):
+class _RepoAPIPath(URIPath):
     """Shared base for `github:`/`gitlab:` (`<scheme>://host/owner/repo/path
     /in/repo?ref=<ref>`): read-only access to a git-hosting REST API. `ref`
     (branch/tag/SHA) is always optional, carried in the `?ref=` query string
@@ -394,7 +393,7 @@ class _RepoApiPath(URIPath):
         if source and source.scheme == "git" and "git" not in type(self)._schemes():
             # `git:` re-dispatches by host; the base implementation would
             # construct `git:` with no host, which always raised ValueError.
-            from .git._base import GitURIPath
+            from ._git import GitURIPath
 
             provider_cls = GitURIPath._provider_cls(source)
             inst = URIPath.__new__(provider_cls)

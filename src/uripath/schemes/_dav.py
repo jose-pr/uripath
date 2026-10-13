@@ -12,22 +12,15 @@ from pathlib_next.providers import check_follow
 from .._uri import URI
 from ..source import compose_uri
 from . import _httpdate
-from . import http as http_module
-from ._http._headers import peer_text
-from .http import (
-    _EXCLUSIVE_CREATE,
-    _IDENTITY_ENCODING,
-    HTTPURIPath,
-    _UploadStream,
-    _drop_body,
-    _path_error,
-    _raise_for_status,
-    _read_limited,
-    _response_reader,
-    _server_size,
-    _split_userinfo,
-    _translate_http_errors,
-)
+from ._http import _settings
+from ._http._errors import _path_error, _server_size, _translate_http_errors
+from ._http._follow import split_userinfo as _split_userinfo
+from ._http._headers import _IDENTITY_ENCODING, peer_text
+from ._http._path import HTTPURIPath
+from ._http._status import drop_body as _drop_body
+from ._http._status import raise_for_status as _raise_for_status
+from ._http._status import read_limited as _read_limited
+from ._http._streams import _EXCLUSIVE_CREATE, _UploadStream, _response_reader
 
 _NS = {"D": "DAV:"}
 _MULTISTATUS = "{DAV:}multistatus"
@@ -126,7 +119,7 @@ def _raise_for_multistatus(resp, path) -> None:
     the collection could not be processed -- a partial failure, not a
     success."""
     failures = _multistatus_failures(
-        _read_limited(resp, http_module.MAX_LISTING_BYTES, path)
+        _read_limited(resp, _settings.MAX_LISTING_BYTES, path)
     )
     if failures == []:
         return
@@ -224,10 +217,10 @@ class DAVURIPath(HTTPURIPath):
                     _raise_for_multistatus(resp, self)
                 _raise_for_status(resp)
             except BaseException:
-                _drop_body(resp, http_module.MAX_LISTING_BYTES)
+                _drop_body(resp, _settings.MAX_LISTING_BYTES)
                 raise
         if not keep:
-            _drop_body(resp, http_module.MAX_LISTING_BYTES)
+            _drop_body(resp, _settings.MAX_LISTING_BYTES)
         return resp
 
     def _propfind(self, depth="0"):
@@ -242,7 +235,7 @@ class DAVURIPath(HTTPURIPath):
             data=_PROPFIND_BODY,
             keep=True,
         )
-        body = _read_limited(resp, http_module.MAX_LISTING_BYTES, self)
+        body = _read_limited(resp, _settings.MAX_LISTING_BYTES, self)
         try:
             root = _ET.fromstring(body)
         except _ET.ParseError:

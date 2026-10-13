@@ -36,9 +36,9 @@ CONTRACT_MODULES = ("__init__.py", "_registry.py")
 # helper classes, or of a stdlib named tuple. Each is a name the scan finds
 # in a core module too; a pair that no longer matches anything fails.
 NOT_THE_CORES = {
-    ("schemes/dav.py", "_path"): "the path a stream is for",
-    ("schemes/http.py", "_path"): "the path a stream is for",
-    ("schemes/dav.py", "_replace"): "a stdlib named tuple's method",
+    ("schemes/_dav.py", "_path"): "the path a stream is for",
+    ("schemes/_http/_streams.py", "_path"): "the path a stream is for",
+    ("schemes/_dav.py", "_replace"): "a stdlib named tuple's method",
     ("schemes/_gitrepo.py", "_replace"): "a `Source` named tuple's method",
 }
 

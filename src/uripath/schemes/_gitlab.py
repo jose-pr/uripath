@@ -6,19 +6,17 @@ import urllib.parse as _urlparse
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from .http import _server_size
-from ._gitrepo import (  # noqa: F401  (re-exported)
-    InsecureTransportWarning,
-    RepoBackend,
-    _RepoApiPath,
-    _drop_body,
+from ._gitrepo import (
+    _RepoAPIPath,
     _raise_for_status,
     _reply_limit,
     _translate_repo_errors,
 )
+from ._http._errors import _server_size
+from ._http._status import drop_body as _drop_body
 
 
-class GitLabURIPath(_RepoApiPath):
+class GitLabURIPath(_RepoAPIPath):
     """`gitlab:` scheme: read-only access to a GitLab project's repository
     tree via the REST API v4 (project identified as URL-encoded
     `owner/repo`). A project in a subgroup is addressed with GitLab's own

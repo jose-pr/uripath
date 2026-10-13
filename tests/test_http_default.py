@@ -14,7 +14,7 @@ import uripath
 from http_fakes import FakeTransport, reply
 from uripath import URIPath
 from uripath.schemes._http import _select
-from uripath.schemes.http import HTTPBackend, HTTPTransport
+from uripath.schemes import HTTPBackend, HTTPTransport
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 VARIABLE = "URIPATH_HTTP_TRANSPORT"

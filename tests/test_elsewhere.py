@@ -20,8 +20,8 @@ import pytest
 import uripath
 from uripath import URIPath
 from uripath.schemes import _elsewhere
-from uripath.schemes.gitlab import RepoBackend
-from uripath.schemes.http import HTTPBackend, HTTPURIPath
+from uripath.schemes import RepoBackend
+from uripath.schemes import HTTPBackend, HTTPURIPath
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 

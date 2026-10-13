@@ -1,9 +1,7 @@
 # `ftp:` and `ftps:`
 
-::: uripath.schemes.ftp
-    options:
-      members:
-        - DEFAULT_TIMEOUT
-        - BaseFTPURIBackend
-        - FTPURIBackend
-        - FTPURIPath
+::: uripath.schemes.FTPURIPath
+
+::: uripath.schemes.FTPURIBackend
+
+::: uripath.schemes.BaseFTPURIBackend

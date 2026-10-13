@@ -1,8 +1,8 @@
 # `file:` and `data:`
 
-::: uripath.schemes.file
+::: uripath.schemes.FileURIPath
 
-::: uripath.schemes.data
+::: uripath.schemes.DataURIPath
     options:
       show_if_no_docstring: true
       filters: ["!^_"]

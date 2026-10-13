@@ -277,7 +277,7 @@ def test_http_write_stream_marks_closed_on_upload_failure():
     # A failed close() must not leave the stream open -- otherwise a
     # later close() (context-manager __exit__, or GC via
     # IOBase.__del__) silently retries the PUT.
-    from uripath.schemes.http import HTTPWriteStream
+    from uripath.schemes import HTTPWriteStream
 
     transport = FakeTransport(default=reply(500))
     p = URIPath("http://example.com/f.txt").with_transport(transport)
@@ -486,7 +486,7 @@ def test_http_append_patch_mode_rejection():
 
 def test_http_append_write_stream_marks_closed_on_failure():
     """Append stream must mark itself closed even on failed close()."""
-    from uripath.schemes.http import HTTPAppendStream
+    from uripath.schemes import HTTPAppendStream
 
     # The GET for the initial content in rewrite mode finds no file; the PUT
     # that closes the stream fails.
@@ -508,7 +508,7 @@ def test_http_append_write_stream_marks_closed_on_failure():
 
 def test_http_append_default_is_rewrite():
     """Default append_mode should be 'rewrite'."""
-    from uripath.schemes.http import HTTPBackend
+    from uripath.schemes import HTTPBackend
 
     assert HTTPBackend(FakeTransport()).append_mode == "rewrite"
 
@@ -540,7 +540,7 @@ def test_approximate_listing_size_is_not_a_stat_hint(site):
 
 
 def test_listing_parser_marks_human_readable_sizes_approximate():
-    from uripath.schemes.http import _DirectoryListingParser
+    from uripath.schemes._http._listing import _DirectoryListingParser
 
     parser = _DirectoryListingParser()
     parser.feed(

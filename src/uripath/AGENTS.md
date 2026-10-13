@@ -14,9 +14,9 @@ listed, with its rationale, at <https://jose-pr.github.io/uripath/divergences/>.
 
 Names are imported from the module named in the heading of the section that
 documents them; the root `uripath` exports `URI`, `URIPath` and `URILike`. A
-module or name that starts with an underscore is private: where this file names
-one (`uripath.schemes._gitrepo`, `uripath.schemes.archive._base`) it names the
-public names to use from it, and nothing else there is contract. The schemes
+module or name that starts with an underscore is private and nothing there is
+contract; every scheme lives in a private module and is exported by
+`uripath.schemes`. The schemes
 need no client library: they run on the standard library and on `pathlib_next`.
 `sftp:`, `s3:`, `gs:` and `az:` and the `requests` HTTP transport are provided by
 other distributions ("Provided by other distributions").
@@ -445,7 +445,7 @@ re-exports `FileURIPath`, `DataURIPath`, `HTTPURIPath`, `DAVURIPath`, `FTPURIPat
 `GitLabURIPath`, `GitURIPath`, `ZipURIPath` and `TarURIPath` lazily. Backends are passed
 as `URIPath(uri, backend=...)` or `path.with_backend(...)`.
 
-### `FileURIPath` — `file:` (`uripath.schemes.file`)
+### `FileURIPath` — `file:` (`uripath.schemes`)
 
 ```python
 class FileURIPath(URIPath):
@@ -467,7 +467,7 @@ root is its own parent. A `FileURIPath` argument holding a drive
 Elsewhere a backslash is a filename character and the root of a host is the
 end of the chain, and every other scheme splits on `/` only.
 
-### `DataURIPath` — `data:` (`uripath.schemes.data`)
+### `DataURIPath` — `data:` (`uripath.schemes`)
 
 ```python
 class DataURIPath(URIPath):
@@ -481,7 +481,7 @@ what follows it are payload (`data:,a?b` reads `a?b`), while a `#` starts the
 fragment. Read-only single file: `open("r")` only,
 `stat().st_size` is the decoded size, listing → `NotADirectoryError`.
 
-### `HTTPURIPath` — `http:`, `https:` (`uripath.schemes.http`)
+### `HTTPURIPath` — `http:`, `https:` (`uripath.schemes`)
 
 ```python
 class HTTPURIPath(URIPath):
@@ -509,7 +509,6 @@ class HTTPBackend:
 class HTTPWriteStream(BytesIO): ...
 class HTTPAppendStream(BytesIO): ...
 
-DEFAULT_TIMEOUT = (10, 60)
 MAX_LISTING_BYTES = 8388608
 ```
 
@@ -649,7 +648,7 @@ class HTTPResponse:
   (a write's, a DELETE's, an error's) is read up to that many bytes and
   dropped, so its connection can be reused when the body was short. The
   content of a file (`open("r")`, a git file) is not limited.
-- Timeout: `DEFAULT_TIMEOUT = (10, 60)` (connect, read) unless given;
+- Timeout: `(10, 60)` seconds (connect, read) unless given;
   `timeout=None` waits forever.
 - Redirects: `GET`/`HEAD`/`OPTIONS` follow up to 30 (a `303` becomes a
   `GET`); a redirect whose `Location` is missing or that a request cannot be
@@ -691,7 +690,7 @@ class HTTPResponse:
   as empty). Cannot always tell a file from an index page. The body is read
   like `open()` reads a file: a cut-short, stalled or undecodable one is
   `OSError(EIO)`/`TimeoutError` naming the path, never a partial list, and
-  one over `schemes.http.MAX_LISTING_BYTES` (8 MiB after decoding; assign a
+  one over `uripath.schemes.MAX_LISTING_BYTES` (8 MiB after decoding; assign a
   larger number to allow more) is `OSError(EFBIG)`. A name that is not
   UTF-8 (`caf%E9`) keeps its bytes (`surrogateescape`) and is requested as
   listed.
@@ -722,7 +721,7 @@ class HTTPResponse:
   member) is shown with control, line-separator and bidirectional characters
   escaped (`\x1b` for ESC) and cut to 120 characters (200 for a URL).
 
-### `DAVURIPath` — `dav:`, `davs:` (`uripath.schemes.dav`)
+### `DAVURIPath` — `dav:`, `davs:` (`uripath.schemes`)
 
 ```python
 class DAVURIPath(HTTPURIPath):
@@ -749,12 +748,9 @@ and no fragment. 423 → `PermissionError`. `PROPFIND`, `PUT`, `MKCOL`, `DELETE`
 and `MOVE` follow the `HTTPURIPath` redirect rule above (a listing is scoped to
 the URL that answered it). No `chmod()`.
 
-### `FTPURIPath` — `ftp:`, `ftps:` (`uripath.schemes.ftp`)
+### `FTPURIPath` — `ftp:`, `ftps:` (`uripath.schemes`)
 
 ```python
-DEFAULT_TIMEOUT = 30.0
-IDLE_PROBE_SECONDS = 1.0
-
 class FTPURIBackend(BaseFTPURIBackend):
     timeout
     ssl_context
@@ -781,8 +777,7 @@ class BaseFTPURIBackend:
 - Paths without `backend=` share one default `FTPURIBackend()`. Connections
   are cached per (backend, source, tls, thread) (LRU of 128, closed on
   eviction, and closed when their thread ends). A connection that carried
-  a command within the last `schemes.ftp.IDLE_PROBE_SECONDS` (1 second, the
-  `pathlib_next.ftp` constant) is used as it is; one idle for longer, or not
+  a command within the last `pathlib_next.ftp.IDLE_PROBE_SECONDS` (1 second) is used as it is; one idle for longer, or not
   yet used, is probed with `NOOP` and replaced when dead.
 - `FTPURIPath` is a `URIPath` over `pathlib_next.ftp.FTPPath`: the listing,
   stat, reads, writes, `rename()`, `chmod()` and `_utime()` are those
@@ -793,7 +788,7 @@ class BaseFTPURIBackend:
   sent in every command that takes a path, never an empty argument (which a
   server reads as its working directory).
 
-### `GitHubURIPath` — `github://[TOKEN@]host/owner/repo/path?ref=REF` (`uripath.schemes.github`, `uripath.schemes._gitrepo`)
+### `GitHubURIPath` — `github://[TOKEN@]host/owner/repo/path?ref=REF` (`uripath.schemes`)
 
 ```python
 class GitHubURIPath(URIPath):
@@ -818,15 +813,13 @@ write method raise `NotImplementedError`.
 
 - Properties: `owner`, `repo`, `repo_path`, `ref` (`None` = default
   branch); `?ref=` is carried to every child.
-- `RepoBackend` (`schemes.github`; `BaseRepoBackend` is in `schemes._gitrepo`): `Authorization: Bearer <token>`, timeout default
+- `RepoBackend` (`BaseRepoBackend` is its base): `Authorization: Bearer <token>`, timeout default
   `(10, 60)`, `cache` dict; `api_base` overrides the API root;
   `BaseRepoBackend.request(method, url, headers=None, params=None, **kwargs)`
   is the override point and returns an `HTTPResponse`.
   A request that carries `Authorization` (the token, or one given in
   `headers=`) to a plain `http://` URL on a host other than loopback is
-  still sent, with an `InsecureTransportWarning` (a `UserWarning`,
-  importable from `schemes._gitrepo`, `schemes.github` and
-  `schemes.gitlab`).
+  still sent, with an `InsecureTransportWarning` (a `UserWarning`).
   Without `backend=`, the token is the userinfo password
   (`x-access-token:TOKEN@`) or else the bare user (`TOKEN@`).
 - `str()`, `repr()`, `as_posix()` and `as_uri(sanitize=True)` drop the whole
@@ -861,7 +854,7 @@ write method raise `NotImplementedError`.
   HTML still reads, with the header). That rule has not been checked
   against the live service.
 
-### `GitLabURIPath` — `gitlab://[TOKEN@]host[:port]/owner/repo/path` (`uripath.schemes.gitlab`)
+### `GitLabURIPath` — `gitlab://[TOKEN@]host[:port]/owner/repo/path` (`uripath.schemes`)
 
 ```python
 class GitLabURIPath(URIPath):
@@ -882,7 +875,7 @@ endpoint reading `X-Gitlab-Size` (a reply without it, or a refused `HEAD`, is
 followed by a `GET` of the file's metadata); `st_mtime` is `0`. Replies of the wrong shape are
 `OSError(EIO)` as for `GitHubURIPath`.
 
-### `GitURIPath` — `git:` (`uripath.schemes.git`)
+### `GitURIPath` — `git:` (`uripath.schemes`)
 
 ```python
 class GitURIPath(URIPath): ...
@@ -895,18 +888,15 @@ class GitLabGitURIPath(GitLabURIPath): ...
 `ValueError`. `git+github:` (`GitHubGitURIPath`) and `git+gitlab:`
 (`GitLabGitURIPath`) pin the provider for any host.
 
-### Archives — `zip:`, `tar:`, `archive:` (`uripath.schemes.archive`, `uripath.schemes.archive._base`)
+### Archives — `zip:`, `tar:`, `archive:` (`uripath.schemes`)
 
 ```python
 MEMBER_SPOOL_BYTES = 16777216
-MAX_LINKS = 40
 
 class ArchiveURIPath(URIPath):
     def refresh(self) -> None: ...
     def batch(self) -> ContextManager[None]: ...
     def readlink(self) -> LinkTarget: ...
-class LinkTarget(PurePosixPath):
-    path: str
 class ZipURIPath(ArchiveURIPath): ...
 class TarURIPath(ArchiveURIPath): ...
 ArchiveZipURIPath = ZipURIPath
@@ -944,7 +934,7 @@ with the scheme it was written with.
   member names, the archive root, links, cost, writes, `batch()`, the removal
   and the damage errors are those described under "Archives
   (`pathlib_next.archive`)", with an `OSError` naming the URI.
-  `schemes.archive._base.MEMBER_SPOOL_BYTES` is the same setting as
+  `uripath.schemes.MEMBER_SPOOL_BYTES` is the same setting as
   `pathlib_next.archive.MEMBER_SPOOL_BYTES`.
 
 ## Provided by other distributions
@@ -974,7 +964,7 @@ For the `requests` transport, `HTTPURIPath.with_session()`, a
 
 ## Exceptions
 
-### Warnings (`uripath.schemes.github`)
+### Warnings (`uripath.schemes._gitrepo`)
 
 ```python
 class InsecureTransportWarning(UserWarning): ...  # also in schemes.gitlab

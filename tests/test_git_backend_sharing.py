@@ -7,7 +7,7 @@ pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
 from uripath import URIPath
 from uripath.schemes._gitrepo import RepoBackend
-from uripath.schemes.gitlab import GitLabURIPath
+from uripath.schemes import GitLabURIPath
 
 
 class _CountingRepoBackend(RepoBackend):

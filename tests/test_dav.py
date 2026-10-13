@@ -5,7 +5,7 @@ test_contract.py::TestDavContract).
 import pytest
 
 from uripath import URIPath
-from uripath.schemes.dav import DAVURIPath
+from uripath.schemes import DAVURIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 

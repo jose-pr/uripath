@@ -14,8 +14,9 @@ import pytest
 
 from http_fakes import on_current_transport
 from uripath import URIPath
-from uripath.schemes.dav import DAVURIPath, _DAVWriteStream
-from uripath.schemes.http import HTTPAppendStream, HTTPURIPath, HTTPWriteStream
+from uripath.schemes import DAVURIPath
+from uripath.schemes._dav import _DAVWriteStream
+from uripath.schemes import HTTPAppendStream, HTTPURIPath, HTTPWriteStream
 
 # (connect, read) seconds: a reply is waited for generously, except when a
 # test makes the server stall, which needs a read timeout short enough to hit.

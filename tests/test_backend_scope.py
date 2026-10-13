@@ -20,7 +20,7 @@ from pathlib_next.path._relation import _same_file
 from uripath import URI, URIPath
 
 from http_fakes import on_current_transport
-from uripath.schemes.http import HTTPURIPath
+from uripath.schemes import HTTPURIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 

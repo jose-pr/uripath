@@ -20,7 +20,7 @@ from pathlib_next import LocalPath
 from uripath import URIPath
 from pathlib_next.ftp import _backend as ftp_mod
 from pathlib_next.ftp._facts import facts_to_filestat
-from uripath.schemes.ftp import FTPURIBackend, FTPURIPath
+from uripath.schemes import FTPURIBackend, FTPURIPath
 
 # --- FTP loopback servers ------------------------------------------------------
 

@@ -1,18 +1,20 @@
-"""Built-in URI schemes, one submodule each.
+"""The contract of a URI scheme, the registry of schemes, and the built-in schemes.
 
-A scheme class registers itself with `URIPath` when its submodule is
-imported, and `URIPath` imports the submodule on demand the first time its
-scheme is used. The class re-exports below (`HTTPURIPath`, `FTPURIPath`, ...) are
-resolved lazily (PEP 562): importing this package, or one scheme submodule
-such as `.file`, imports no other backend, so a `file:` path never pays for
-`http.client`.
+`URIPath` is the class a scheme subclasses: defining a subclass that lists
+`__SCHEMES` registers it. A built-in scheme is a private module that
+`URIPath` imports the first time its scheme is used; the names below are
+exported from here and resolved lazily (PEP 562), so importing this package,
+or building a `file:` path, imports no other scheme and a `file:` path never
+pays for `http.client`.
 """
 
 from __future__ import annotations
 
 import importlib as _importlib
 import stat as _stat
+import sys as _sys
 import threading as _threading
+import types as _types
 import typing as _ty
 import weakref as _weakref
 import re as _re
@@ -630,30 +632,121 @@ _DEFAULT_CHILD_BUILDERS.add(URIPath._make_child_relpath)
 if _ty.TYPE_CHECKING:
     from typing import Self
 
-    from .archive import TarURIPath as TarURIPath
-    from .archive import ZipURIPath as ZipURIPath
-    from .data import DataURIPath as DataURIPath
-    from .dav import DAVURIPath as DAVURIPath
-    from .file import FileURIPath as FileURIPath
-    from .ftp import FTPURIPath as FTPURIPath
-    from .git import GitURIPath as GitURIPath
-    from .github import GitHubURIPath as GitHubURIPath
-    from .gitlab import GitLabURIPath as GitLabURIPath
-    from .http import HTTPURIPath as HTTPURIPath
+    from ._archive import ArchiveTarURIPath as ArchiveTarURIPath
+    from ._archive import ArchiveURIPath as ArchiveURIPath
+    from ._archive import ArchiveZipURIPath as ArchiveZipURIPath
+    from ._archive import TarURIPath as TarURIPath
+    from ._archive import ZipURIPath as ZipURIPath
+    from ._data import DataURIPath as DataURIPath
+    from ._dav import DAVURIPath as DAVURIPath
+    from ._file import FileURIPath as FileURIPath
+    from ._ftp import BaseFTPURIBackend as BaseFTPURIBackend
+    from ._ftp import FTPURIBackend as FTPURIBackend
+    from ._ftp import FTPURIPath as FTPURIPath
+    from ._git import GitHubGitURIPath as GitHubGitURIPath
+    from ._git import GitLabGitURIPath as GitLabGitURIPath
+    from ._git import GitURIPath as GitURIPath
+    from ._github import GitHubURIPath as GitHubURIPath
+    from ._gitlab import GitLabURIPath as GitLabURIPath
+    from ._gitrepo import BaseRepoBackend as BaseRepoBackend
+    from ._gitrepo import RepoBackend as RepoBackend
+    from ._http._backend import HTTPBackend as HTTPBackend
+    from ._http._builtin import HTTPTransport as HTTPTransport
+    from ._http._path import HTTPURIPath as HTTPURIPath
+    from ._http._response import HTTPResponse as HTTPResponse
+    from ._http._streams import HTTPAppendStream as HTTPAppendStream
+    from ._http._streams import HTTPWriteStream as HTTPWriteStream
 
-#: Re-exported class name -> the submodule that defines it.
+#: Public name -> the private submodule that defines it, loaded on first use.
 _EXPORTS = {
-    "TarURIPath": "archive",
-    "ZipURIPath": "archive",
-    "DataURIPath": "data",
-    "FileURIPath": "file",
-    "FTPURIPath": "ftp",
-    "HTTPURIPath": "http",
-    "DAVURIPath": "dav",
-    "GitHubURIPath": "github",
-    "GitLabURIPath": "gitlab",
-    "GitURIPath": "git",
+    "ArchiveTarURIPath": "_archive",
+    "ArchiveURIPath": "_archive",
+    "ArchiveZipURIPath": "_archive",
+    "TarURIPath": "_archive",
+    "ZipURIPath": "_archive",
+    "DataURIPath": "_data",
+    "DAVURIPath": "_dav",
+    "FileURIPath": "_file",
+    "BaseFTPURIBackend": "_ftp",
+    "FTPURIBackend": "_ftp",
+    "FTPURIPath": "_ftp",
+    "GitHubGitURIPath": "_git",
+    "GitLabGitURIPath": "_git",
+    "GitURIPath": "_git",
+    "GitHubURIPath": "_github",
+    "GitLabURIPath": "_gitlab",
+    "BaseRepoBackend": "_gitrepo",
+    "RepoBackend": "_gitrepo",
+    "HTTPAppendStream": "_http._streams",
+    "HTTPBackend": "_http._backend",
+    "HTTPResponse": "_http._response",
+    "HTTPTransport": "_http._builtin",
+    "HTTPURIPath": "_http._path",
+    "HTTPWriteStream": "_http._streams",
 }
+
+__all__ = [
+    "ArchiveTarURIPath",
+    "ArchiveURIPath",
+    "ArchiveZipURIPath",
+    "BaseFTPURIBackend",
+    "BaseRepoBackend",
+    "DAVURIPath",
+    "DataURIPath",
+    "DerivedBackend",
+    "FTPURIBackend",
+    "FTPURIPath",
+    "FileURIPath",
+    "GitHubGitURIPath",
+    "GitHubURIPath",
+    "GitLabGitURIPath",
+    "GitLabURIPath",
+    "GitURIPath",
+    "HTTPAppendStream",
+    "HTTPBackend",
+    "HTTPResponse",
+    "HTTPTransport",
+    "HTTPURIPath",
+    "HTTPWriteStream",
+    "MAX_LISTING_BYTES",
+    "MEMBER_SPOOL_BYTES",
+    "RepoBackend",
+    "TarURIPath",
+    "ZipURIPath",
+]
+
+
+class _Module(_types.ModuleType):
+    """The module, with the settings that are read where they take effect
+    (`MEMBER_SPOOL_BYTES` in `pathlib_next.archive`, `MAX_LISTING_BYTES` in the
+    HTTP schemes) read from and written to there."""
+
+    @property
+    def MEMBER_SPOOL_BYTES(self) -> int:
+        from pathlib_next import archive
+
+        return archive.MEMBER_SPOOL_BYTES
+
+    @MEMBER_SPOOL_BYTES.setter
+    def MEMBER_SPOOL_BYTES(self, value: int) -> None:
+        from pathlib_next import archive
+
+        archive.MEMBER_SPOOL_BYTES = value
+
+    @property
+    def MAX_LISTING_BYTES(self) -> int:
+        from ._http import _settings
+
+        return _settings.MAX_LISTING_BYTES
+
+    @MAX_LISTING_BYTES.setter
+    def MAX_LISTING_BYTES(self, value: int) -> None:
+        from ._http import _settings
+
+        _settings.MAX_LISTING_BYTES = value
+
+
+_sys.modules[__name__].__class__ = _Module
 
 
 def __getattr__(name: str):

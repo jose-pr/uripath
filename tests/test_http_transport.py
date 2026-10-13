@@ -15,7 +15,7 @@ import pytest
 
 from http_wire import Drop, Hang, Reply, Wire, refusing_port, response
 from waits import wait_until
-from uripath.schemes.http import HTTPResponse, HTTPTransport
+from uripath.schemes import HTTPResponse, HTTPTransport
 
 TIMEOUT = (5, 5)
 

@@ -22,8 +22,8 @@ pytest.importorskip("netimps")
 
 import uripath
 from uripath import URIPath
-from uripath.schemes.data import DataURIPath
-from uripath.schemes.file import FileURIPath
+from uripath.schemes import DataURIPath
+from uripath.schemes import FileURIPath
 
 # The tree this process imports, so a child tests the same code.
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
@@ -189,7 +189,7 @@ def test_reloading_a_built_in_scheme_module_keeps_the_scheme_dispatching():
     result = _run("""
         import importlib
         from uripath import URIPath
-        import uripath.schemes.data as data
+        import uripath.schemes._data as data
 
         first = data.DataURIPath
         importlib.reload(data)
@@ -261,14 +261,14 @@ def test_a_built_in_scheme_is_refused_before_its_module_is_imported():
                 __SCHEMES = ("ftp",)
         except ValueError as error:
             print("refused:", error)
-        print("imported:", "uripath.schemes.ftp" in sys.modules)
+        print("imported:", "uripath.schemes._ftp" in sys.modules)
         print("class:", URIPath.scheme_class("ftp").__module__)
         """)
     refused, imported, cls = result.stdout.splitlines()
     assert refused.startswith("refused: 'ftp' is a built-in URI scheme")
     assert "replace=True" in refused
     assert imported == "imported: False"
-    assert cls == "class: uripath.schemes.ftp"
+    assert cls == "class: uripath.schemes._ftp"
 
 
 def test_a_replaced_built_in_scheme_stays_replaced_when_its_module_is_imported():
@@ -279,7 +279,7 @@ def test_a_replaced_built_in_scheme_stays_replaced_when_its_module_is_imported()
             __SCHEMES = ("ftp",)
             __slots__ = ()
 
-        import uripath.schemes.ftp as builtin
+        import uripath.schemes._ftp as builtin
         print(URIPath.scheme_class("ftp") is Mine)
         print(type(URIPath("ftp://h/x")) is Mine)
         print(builtin.FTPURIPath is not Mine)
@@ -305,12 +305,12 @@ def test_an_entry_point_named_like_a_built_in_scheme_does_not_displace_it(plugin
         plugins,
     )
     ftp, file, imported, refused = result.stdout.splitlines()
-    assert ftp == "uripath.schemes.ftp"
-    assert file == "uripath.schemes.file"
+    assert ftp == "uripath.schemes._ftp"
+    assert file == "uripath.schemes._file"
     assert imported == "False"
     assert refused.startswith(
         "refused: URI scheme 'ftp' is already registered by "
-        "uripath.schemes.ftp.FTPURIPath"
+        "uripath.schemes._ftp.FTPURIPath"
     )
 
 

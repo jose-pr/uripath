@@ -209,7 +209,7 @@ def benchmark_walk_glob_http():
 
         try:
             # We import the HTTPURIPath scheme
-            from uripath.schemes.http import HTTPURIPath
+            from uripath.schemes import HTTPURIPath
 
             url = f"http://127.0.0.1:{port}"
 
@@ -249,7 +249,7 @@ def benchmark_walk_glob_http():
 def _benchmark_http_transports(url):
     """The same listing work and a run of small GETs on the transport
     `HTTPTransport` (the default above)."""
-    from uripath.schemes.http import HTTPURIPath, HTTPTransport
+    from uripath.schemes import HTTPTransport, HTTPURIPath
 
     transports = [("builtin", HTTPTransport)]
     for name, make in transports:
@@ -292,7 +292,7 @@ def benchmark_http_directory_parser():
     # directly against realistic synthetic HTML (during the replacement
     # work this in-house parser was verified equivalent to, and 2.9x-6.2x faster
     # than, the bs4+html5lib+htmllistparse implementation it replaced).
-    from uripath.schemes.http import _DirectoryListingParser
+    from uripath.schemes._http._listing import _DirectoryListingParser
 
     def make_apache_pre(n):
         rows = ['<a href="../">../</a>\n']

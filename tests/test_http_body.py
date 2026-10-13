@@ -10,7 +10,7 @@ import pytest
 
 from http_wire import Drop, Wire, response
 from uripath.schemes._http import _body
-from uripath.schemes.http import HTTPTransport
+from uripath.schemes import HTTPTransport
 
 TIMEOUT = (5, 5)
 PAYLOAD = b"0123456789abcdef"

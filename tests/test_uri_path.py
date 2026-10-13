@@ -2,7 +2,7 @@ import pytest
 
 from http_fakes import FakeTransport
 from uripath import Source, URI, URIPath
-from uripath.schemes.file import FileURIPath
+from uripath.schemes import FileURIPath
 from pathlib_next import FileStat
 
 
@@ -310,7 +310,7 @@ def test_join_uses_the_same_child_builder_as_a_listing():
     gives a name special meaning sees it. `gitlab:` reserves "-": built by
     hand the child used to address the repository root instead of the
     directory the listing yields."""
-    gitlab = pytest.importorskip("uripath.schemes.gitlab")
+    gitlab = pytest.importorskip("uripath.schemes._gitlab")
     repo = gitlab.GitLabURIPath("gitlab://gitlab.com/owner/repo")
     assert (repo / "-").path == repo._make_child_relpath("-").path
 

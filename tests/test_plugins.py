@@ -111,7 +111,7 @@ class TestLoadBuiltinScheme:
 
 class TestGetSchemeCls:
     def test_known_scheme_returns_subclass(self):
-        from uripath.schemes.file import FileURIPath
+        from uripath.schemes import FileURIPath
         from uripath.source import Source
 
         source = Source("file", None, None, None)
