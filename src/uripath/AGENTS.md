@@ -440,8 +440,10 @@ class HTTPBackend:
     ): ...
     def close(self): ...
 
-class HTTPWriteStream(BytesIO): ...
-class HTTPAppendStream(BytesIO): ...
+class HTTPWriteStream(BytesIO):
+    def discard(self) -> None: ...
+class HTTPAppendStream(BytesIO):
+    def discard(self) -> None: ...
 
 MAX_LISTING_BYTES = 8388608
 ```
@@ -645,7 +647,12 @@ class HTTPResponse:
   naming the path, nothing sent; a refusal raises `PermissionError` for
   401/403/405/501, `OSError(EIO)` for other statuses). An `open("a")` that
   raises (the read of the current content, or the `HEAD` of patch mode,
-  failed) has uploaded nothing.
+  failed) has uploaded nothing. A `with` block that ends in an exception (any
+  `BaseException`) sends nothing, in binary and in text mode: the stream is
+  discarded before it is closed (`discard()`, from
+  `pathlib_next.providers.DiscardOnError`), so the file keeps its content or
+  is not created. A stream closed with `close()`, or by a block that ended
+  normally, sends once.
 - `unlink()` sends `DELETE` and refuses a directory (`IsADirectoryError`,
   judged by `stat()`); `rmdir()` requires an empty directory. No `mkdir()`,
   `rename()`, `chmod()`.
@@ -725,7 +732,8 @@ class BaseFTPURIBackend:
 - `FTPURIPath` is a `URIPath` over `pathlib_next.ftp.FTPPath`: the listing,
   stat, reads, writes, `rename()`, `chmod()` and `_utime()` are those
   described under "What a path does" in the FTP section, and an `OSError`
-  names the URI. Its URI-only parts are the endpoint (the `Source` and the
+  names the URI. A `with` block over `open("w")` that raised uploads nothing.
+  Its URI-only parts are the endpoint (the `Source` and the
   scheme's `tls`) and the backend rules above.
 - An empty path (`ftp://host`) is the root, as `ftp://host/` is: `/` is
   sent in every command that takes a path, never an empty argument (which a
@@ -876,7 +884,8 @@ with the scheme it was written with.
   over `ZipPath`, `TarURIPath` over `TarPath`) on the shared handle of its outer:
   member names, the archive root, links, cost, writes, `batch()`, the removal
   and the damage errors are those described under "Archives
-  (`pathlib_next.archive`)", with an `OSError` naming the URI.
+  (`pathlib_next.archive`)", with an `OSError` naming the URI. A `with` block
+  over `open("w")` that raised adds no member and creates no archive.
   `uripath.schemes.MEMBER_SPOOL_BYTES` is the same setting as
   `pathlib_next.archive.MEMBER_SPOOL_BYTES`.
 
@@ -997,6 +1006,13 @@ Building and deriving a path:
   `gitlab:` (blobs) and `http:` (an index without exact sizes) do.
 - `_listdir()` — the names `_scandir()` lists by default; a stub.
 - `_schemes()` — the scheme names this class registers.
+
+A stream that commits when it is closed (an upload, a rewrite of an archive)
+inherits `pathlib_next.providers.DiscardOnError`, first in its bases, and defines
+`discard()`: a `with` block over the file that raised then commits nothing (the
+contract is in the `pathlib-next` header, "For path implementers"). The
+`HTTPWriteStream` and `HTTPAppendStream` of `http:` and `dav:` are such streams;
+a stream that writes through as it goes needs none.
 
 Backend state (read it only in an override that changes how a path carries a
 backend, as the archives and `git:` do):

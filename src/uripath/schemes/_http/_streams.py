@@ -4,6 +4,7 @@ import errno as _errno
 import io as _io
 import typing as _ty
 
+from pathlib_next import providers as _providers
 from . import _settings
 from ._errors import _path_error, _translate_http_errors
 from ._response import HTTPResponse
@@ -86,13 +87,14 @@ _EXCLUSIVE_CREATE = {"headers": {"If-None-Match": "*"}}
 (RFC 9110 13.1.2)."""
 
 
-class _UploadStream(_io.BytesIO):
+class _UploadStream(_providers.DiscardOnError, _io.BytesIO):
     """A write buffer whose `close()` uploads its content through `_upload()`.
 
     `_ready` is set by a subclass as the last step of its constructor. A
     stream whose constructor raised stays inert: `IOBase.__del__` still calls
     `close()` on it, and that must neither upload a half-built buffer nor
-    fail on state the constructor never reached."""
+    fail on state the constructor never reached. A `with` block that raised
+    through the stream discards it (`DiscardOnError`): nothing is sent."""
 
     _ready = False
 
@@ -102,6 +104,12 @@ class _UploadStream(_io.BytesIO):
 
     def _upload(self, data: bytes) -> None:
         raise NotImplementedError
+
+    def discard(self):
+        """Drop the buffer: `close()` sends nothing."""
+        self._ready = False
+        if not self.closed:
+            self.truncate(0)
 
     def close(self):
         if self.closed:

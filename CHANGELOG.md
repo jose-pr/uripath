@@ -150,6 +150,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   declares none). What to do: name a destination yourself when you copy a
   `data:` URI into a directory, pass `encoding=` to override the charset, and
   read the payload with `read_bytes()` instead of slicing the path.
+- A write stream whose `with` block raised is not committed. Was: leaving a
+  `with path.open("wb")` block through an exception closed the `http:` or
+  `dav:` stream like a normal exit, so the partial buffer was sent with `PUT`
+  and replaced the complete file (`write(b"tru")` then an error left
+  `good.bin` holding `tru`). Is: any exception (a `KeyboardInterrupt` too)
+  makes the block discard the stream, in binary and in text mode, and nothing
+  is sent; the file keeps its content or is not created. `close()` outside a
+  block and a block that ended normally send once, as before. The same holds
+  for `ftp:` and `zip:`, whose streams are the `pathlib-next` ones. What to do:
+  nothing, unless code relied on the partial upload; a local file still keeps
+  what a failed block wrote, as `pathlib` does.
 - A constructor raises `TypeError` for a keyword argument it does not name.
   Was: `URI("x", anything=1)` and `URIPath("https://h/x", backnd=backend)`
   were accepted and the keyword ignored, so a misspelt `backend=` meant "use

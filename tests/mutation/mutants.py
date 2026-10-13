@@ -767,6 +767,29 @@ mutant(
     "read_text() decodes a data: payload with the locale instead of its declared charset",
 )
 
+# --- a write block that raised ------------------------------------------------
+
+_WRITES = "tests/test_http_writes.py"
+mutant(
+    "upload-stream-sends-after-a-failed-block",
+    "schemes/_http/_streams.py",
+    "        self._ready = False\n        if not self.closed:\n            self.truncate(0)\n",
+    "        pass\n",
+    (
+        f"{_WRITES}::test_a_failed_write_block_sends_no_put_and_keeps_the_file",
+        f"{_WRITES}::test_a_failed_write_block_does_not_create_the_file",
+    ),
+    "a producer that fails half way replaces a complete remote file with the partial one",
+)
+mutant(
+    "upload-stream-without-the-discard-mixin",
+    "schemes/_http/_streams.py",
+    "class _UploadStream(_providers.DiscardOnError, _io.BytesIO):\n",
+    "class _UploadStream(_io.BytesIO):\n",
+    f"{_WRITES}::test_a_failed_write_block_sends_no_put_and_keeps_the_file",
+    "the stream is closed, and so uploaded, by the block that raised through it",
+)
+
 # --- constructor keywords -----------------------------------------------------
 
 mutant(

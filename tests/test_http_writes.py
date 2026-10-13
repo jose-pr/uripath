@@ -650,3 +650,110 @@ def test_stat_still_reports_size_zero_for_a_head_reply_without_content_length(wi
     wire.files["/log.txt"] = b"0123456789"
     wire.on("HEAD", "/log.txt", _NO_LENGTH)
     assert _path(wire, "http", "/log.txt").stat().st_size == 0
+
+
+# --- a write block that raised sends nothing ---
+
+
+class _Boom(Exception):
+    pass
+
+
+@pytest.mark.parametrize("scheme", ["http", "dav"])
+@pytest.mark.parametrize("mode, data", [("wb", b"tru"), ("w", "tru")])
+def test_a_failed_write_block_sends_no_put_and_keeps_the_file(wire, scheme, mode, data):
+    wire.files["/good.bin"] = b"GOOD"
+    with pytest.raises(_Boom):
+        with _path(wire, scheme, "/good.bin").open(mode) as stream:
+            stream.write(data)
+            raise _Boom
+    gc.collect()
+    assert wire.sent("PUT", "PATCH", "POST") == []
+    assert wire.files["/good.bin"] == b"GOOD"
+
+
+@pytest.mark.parametrize("scheme", ["http", "dav"])
+@pytest.mark.parametrize("mode", ["wb", "w", "xb", "x"])
+def test_a_failed_write_block_does_not_create_the_file(wire, scheme, mode):
+    with pytest.raises(_Boom):
+        with _path(wire, scheme, "/new.bin").open(mode) as stream:
+            stream.write(b"tru" if "b" in mode else "tru")
+            raise _Boom
+    gc.collect()
+    assert wire.sent("PUT", "PATCH", "POST") == []
+    assert "/new.bin" not in wire.files
+
+
+@pytest.mark.parametrize("mode, data", [("ab", b"two\n"), ("a", "two\n")])
+def test_a_failed_append_block_sends_nothing_in_rewrite_mode(wire, mode, data):
+    wire.files["/log.txt"] = b"one\n"
+    with pytest.raises(_Boom):
+        with _path(wire, "http", "/log.txt").open(mode) as stream:
+            stream.write(data)
+            raise _Boom
+    gc.collect()
+    assert wire.sent("PUT", "PATCH", "POST") == []
+    assert wire.files["/log.txt"] == b"one\n"
+
+
+@pytest.mark.parametrize("mode, data", [("ab", b"two\n"), ("a", "two\n")])
+def test_a_failed_append_block_sends_nothing_in_patch_mode(wire, mode, data):
+    wire.files["/log.txt"] = b"one\n"
+    path = _path(wire, "http", "/log.txt", append_mode="patch")
+    with pytest.raises(_Boom):
+        with path.open(mode) as stream:
+            stream.write(data)
+            raise _Boom
+    gc.collect()
+    assert wire.sent("PUT", "PATCH", "POST") == []
+    assert wire.files["/log.txt"] == b"one\n"
+
+
+@pytest.mark.parametrize("error", [KeyboardInterrupt, SystemExit])
+def test_any_exception_leaving_the_block_sends_nothing(wire, error):
+    with pytest.raises(error):
+        with _path(wire, "http", "/new.bin").open("wb") as stream:
+            stream.write(b"tru")
+            raise error
+    assert wire.sent("PUT") == []
+
+
+def test_a_failed_block_with_a_custom_write_method_sends_nothing(wire):
+    path = _path(wire, "http", "/form", write_method="POST")
+    with pytest.raises(_Boom):
+        with path.open("wb") as stream:
+            stream.write(b"tru")
+            raise _Boom
+    assert wire.sent("POST", "PUT") == []
+
+
+@pytest.mark.parametrize("scheme", ["http", "dav"])
+@pytest.mark.parametrize("mode, data", [("wb", b"whole"), ("w", "whole")])
+def test_a_block_that_ended_normally_sends_one_put(wire, scheme, mode, data):
+    with _path(wire, scheme, "/ok.bin").open(mode) as stream:
+        stream.write(data)
+    assert [r.body for r in wire.sent("PUT")] == [b"whole"]
+    assert wire.files["/ok.bin"] == b"whole"
+
+
+@pytest.mark.parametrize("scheme", ["http", "dav"])
+@pytest.mark.parametrize("mode, data", [("wb", b"whole"), ("w", "whole")])
+def test_a_stream_closed_without_a_block_sends_one_put(wire, scheme, mode, data):
+    stream = _path(wire, scheme, "/closed.bin").open(mode)
+    stream.write(data)
+    assert wire.sent("PUT") == []
+    stream.close()
+    stream.close()
+    assert [r.body for r in wire.sent("PUT")] == [b"whole"]
+
+
+def test_a_failed_block_leaves_a_stream_that_is_closed_and_inert(wire):
+    stream = _path(wire, "http", "/new.bin").open("wb")
+    with pytest.raises(_Boom):
+        with stream:
+            stream.write(b"tru")
+            raise _Boom
+    assert stream.closed
+    stream.close()
+    gc.collect()
+    assert wire.sent("PUT") == []
