@@ -5,24 +5,28 @@ commands, CI and release. It is not the API reference and it does not ship.
 
 | Header | Covers |
 | --- | --- |
-| [`src/uripath/AGENTS.md`](src/uripath/AGENTS.md) | The public API: `URI`, `URIPath`, `Source`, `Query` and every built-in scheme, with signatures and gotchas. It ships in the wheel, so it stays self-contained (no repo-relative links) and changes in the same commit as any public API change. |
+| [`src/uripath/AGENTS.md`](src/uripath/AGENTS.md) | The public API: `URI`, `URIPath`, `Source`, `Query`, every built-in scheme, the exceptions and the command, with signatures and gotchas. It ships in the wheel, so it stays self-contained (no repo-relative links) and changes in the same commit as any public API change. |
 
 [`docs/divergences.md`](docs/divergences.md) records every deliberate difference
-from `pathlib.Path`. `pathlib.Path` parity is the contract; a behavioral
-divergence that is not recorded there is a bug.
+from `pathlib.Path` that this package owns; the ones of the classes in
+`pathlib-next` are on that project's site. `pathlib.Path` parity is the
+contract; a behavioral divergence that is not recorded is a bug.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
 | `src/uripath/` | The package (`src/` layout). `py.typed` and the API header ship with it. |
-| `src/uripath/_uri.py`, `source/`, `query.py`, `exceptions.py` | `URI`, `Source` (a package of private modules), `Query` and the errors; the root `__init__.py` only exports. |
+| `src/uripath/__init__.py`, `_uri.py`, `source/`, `query.py`, `exceptions.py` | The root only exports. `URI` (one large class), `Source` (a package of private modules), `Query` and the errors. |
 | `src/uripath/schemes/` | The contract (`_path.py`: `URIPath`), the registry (`_registry.py`: the built-in table and the entry points) and one private module or package per scheme (`_file.py`, `_http/`, ...); `__init__.py` exports their names lazily. Registered through the `uripath.schemes` entry points in `pyproject.toml`. |
 | `src/uripath/schemes/_elsewhere.py` | The schemes and the HTTP transport that other distributions provide, and the `ImportError` naming what to install. |
-| `tests/` | The pytest suite. `tests/conftest.py` holds the loopback servers. |
-| `benchmarks/` | `bench.py`; see [`benchmarks/README.md`](benchmarks/README.md). Not shipped. |
+| `src/uripath/cli/`, `__main__.py` | The `uripath` command on `duho`, one module per subcommand; `import uripath` never imports it. |
+| `src/uripath/_pathtext.py`, `_transfer.py`, `_rfc3986.py` | `as_path()`, `copy_stream()` and the RFC 3986 split and percent-coding on `urllib.parse`. |
+| `tests/` | The pytest suite. `tests/conftest.py` holds the loopback servers; `tests/mutation/` is the mutation list; `tests/probes/` are child processes that tests run. |
+| `benchmarks/` | `bench.py` and committed JSON results; see [`benchmarks/README.md`](benchmarks/README.md). Not shipped. |
 | `examples/` | Runnable scripts. Networked ones skip (exit 0) unless their environment variables are set. |
 | `docs/`, `mkdocs.yml` | MkDocs site: hand-written pages plus a `mkdocstrings` API reference. |
+| `.github/workflows/` | `test.yml`, `release.yml`, `docs.yml`. |
 | `CHANGELOG.md` | Keep a Changelog. Released sections are frozen records. |
 
 ## Environment
@@ -39,15 +43,20 @@ python -m venv .venv/3.14-posix-x86_64
 .venv/3.14-posix-x86_64/bin/python -m pip install -e ".[dev]"
 ```
 
-On Windows the interpreter is `.venv\<name>\Scripts\python.exe`.
+On Windows the interpreter is `.venv\<name>\Scripts\python.exe`. `dev` holds the
+`cli` extra, every test server and the oracles of the property tests.
 
-`pathlib-next` is a dependency. To test against an unreleased core, install it
-editable from its checkout first (`pip install -e ../pathlib-next`). Its version
-may then sit below the range `pyproject.toml` declares, so install this package
-with `--no-deps` and its remaining dependencies by name.
+`pathlib-next` is a dependency. While the release this package asks for is not
+on PyPI, install the core editable from its checkout first (`pip install -e
+../pathlib-next`); its version then sits below the range `pyproject.toml`
+declares, so install this package with `--no-deps` and the rest by name (the
+`dependencies` and the `dev` extra of `pyproject.toml`). Install this package
+last: `pathlib-next` 0.9 installs a `uripath` script of its own, and the later
+install owns the name.
 
 A missing test server does not fail the suite: its tests are skipped instead, so
-check `pytest -rs` before trusting a green run.
+check `pytest -rs` before trusting a green run. A venv holding only this package
+and `pytest` runs the tests that need nothing else (`test.yml` has a job for it).
 
 ## Checks
 
@@ -56,8 +65,9 @@ python -m pytest -q -rs                              # full suite (pythonpath=sr
 python -m pytest -q --cov=uripath --cov-report=term-missing
 python -m black src/ tests/ benchmarks/ examples/    # formatting; --check to verify
 mkdocs build --strict                                # docs must build with no warnings
-python -m build                                      # sdist + wheel into dist/
+python -m build && python -m twine check dist/*      # sdist + wheel into dist/
 python tests/mutation/run.py --jobs 4                # every guard's tests must fail on a broken copy
+python -m pytest -q -rs tests/test_public_surface.py -k "mypy_accepts or pyright_accepts"
 ```
 
 - **The mutation list** (`tests/mutation/`) applies one single-line change to a
@@ -73,60 +83,106 @@ python tests/mutation/run.py --jobs 4                # every guard's tests must 
 - A test asserts what the server received, not just that no exception was
   raised, and never asserts how fast something happened or how far an
   operation got.
+- **Typing**: the two typing tests run `mypy` and `pyright` (or `basedpyright`)
+  on a consumer script and skip where neither is installed; the `typing` job
+  installs them.
+- **The documents are tested**: the README, the header and the API pages must
+  name every public name, the examples run (`tests/test_documented_examples.py`)
+  and the header's stubs are compared with the code (`tests/test_shipped_header.py`).
+
+### Benchmarks
+
+`python benchmarks/bench.py --help` lists the options. `--save` writes a JSON
+result per (version, interpreter, platform) into `benchmarks/results/`; the
+schema and the reproduce command are in
+[`benchmarks/README.md`](benchmarks/README.md). A local run is a sanity check;
+performance claims in the changelog or release notes come from CI runs
+(`test.yml` with `benchmark` set).
 
 ### CI
 
 Workflows live in `.github/workflows/`:
 
-- `test.yml` runs on `workflow_dispatch` (inputs: `ref`, and `pathlib_next_ref`
-  to install `pathlib-next` from a git ref of `jose-pr/pathlib-next` instead of
-  the release) or on a pushed `ci-*` tag, never on ordinary pushes. To test a
+- `test.yml` runs on `workflow_dispatch` (inputs: `ref`, `pathlib_next_ref`,
+  `benchmark`) or on a pushed `ci-*` tag, never on ordinary pushes. To test a
   commit without the dashboard, push a uniquely named throwaway tag
   (`ci-<topic>-<timestamp>`), follow the run to completion, then delete the tag
-  locally and on the remote. Its `floors` job installs every dependency at the
-  lower bound `pyproject.toml` declares, on Python 3.9. Change a range in
+  locally and on the remote. Jobs: `test` (Ubuntu on 3.9 to 3.14, Windows and
+  macOS on 3.9 and 3.14), `bare` (the package and `pytest` only, no extra),
+  `floors` (every dependency at the lower bound `pyproject.toml` declares, on
+  3.9), `typing`, and `benchmark` (manual runs only). Change a range in
   `pyproject.toml` only, and name the API that needs a raised floor in a comment
   beside it.
-- `release.yml` runs on a `v*` tag: test and `floors` gates, build (the tag must
-  name the version built, `twine check`), an installed-wheel smoke test, a strict
-  docs build, then the GitHub release whose notes come from that version's
-  `CHANGELOG.md` section. For a final tag only (no `-` in it) it then publishes
-  to PyPI through Trusted Publishing and dispatches `docs.yml` at the tag.
+- `release.yml` runs on a `v*` tag: test, `floors` and `typing` gates, build
+  (the tag must name the version built, `twine check`), an installed-wheel smoke
+  test with and without the `cli` extra, a strict docs build, then the GitHub
+  release whose notes come from that version's `CHANGELOG.md` section. For a
+  final tag only (no `-` in it) it then publishes to PyPI through Trusted
+  Publishing and dispatches `docs.yml` at the tag.
 - `docs.yml` owns every GitHub Pages deploy: on a push to `main` that touches the
   docs sources and on `workflow_dispatch`, which `release.yml` fires for a final
   tag.
+- **Which `pathlib-next` the jobs install.** Every job that installs the package
+  first installs `pathlib-next` from `git+https://github.com/jose-pr/pathlib-next@<ref>`
+  when a ref is given: the `pathlib_next_ref` input of a manual run of
+  `test.yml` or `docs.yml`, else the repository variable `PATHLIB_NEXT_REF` (the
+  only source for a `ci-*` tag and for `release.yml`). With neither, pip takes
+  the release range from PyPI. The ref must hold a version inside that range.
+  Set the variable while the release is not on PyPI (`gh variable set
+  PATHLIB_NEXT_REF --body <branch-or-sha>`), delete it afterwards (`gh variable
+  delete PATHLIB_NEXT_REF`). `release.yml` refuses a final tag while it is set.
 
 ## Conventions
 
 - **Formatting is black**, pinned to `target-version = ["py39"]` so it never
-  emits syntax the floor cannot parse. No linter or type checker is enforced.
+  emits syntax the floor cannot parse. No linter is enforced; the typing tests
+  are the type check.
 - **Every file is LF** (`.gitattributes` sets `* text=auto eol=lf`). On Windows,
   black writes CRLF: convert the files back to LF after formatting and check
   `git diff --stat` for whitespace-only churn.
 - **3.9 compatibility**: any module using `X | Y` in a runtime-evaluated
   annotation needs `from __future__ import annotations`.
+- **Comments** say what the code cannot, in one to three lines, about the code
+  as it is: no history, and nothing that refers outside this repository.
 - **`*.local.*` files** are per-machine overrides: gitignored and excluded from
   both build targets. Keep hostnames and credentials in those, never in tracked
   files.
 - Logical commits in `type: description` form (`feat:`, `fix:`, `docs:`,
   `chore:`); keep code with its tests, and docs, config and CI in separate
-  commits. No agent attribution in commit messages.
+  commits. No agent attribution in commit messages: no `Co-Authored-By:` naming
+  a model or assistant, no `*-Session:` trailers, no session URLs, no
+  "generated with" footers.
 
 ## Releasing
 
 1. Move the `[Unreleased]` entries under a new `## [x.y.z] - <date>` heading and
-   add its link definition at the bottom of `CHANGELOG.md`.
+   replace the `[Unreleased]` link definition at the bottom of `CHANGELOG.md`
+   with one for the new heading and one for `[Unreleased]` (a comparison from
+   the new tag).
 2. Bump `version` in `pyproject.toml` in the same commit (PEP 440 syntax there;
    SemVer in tags and the changelog).
 3. Before 1.0, bump the minor only when the documented API breaks. New methods,
    new optional arguments and fixes are patch releases.
+   A fix that corrects behaviour (to `pathlib` parity, to what the
+   documentation intends, or to remove a way to lose data) is a patch even
+   where an earlier header described the old behaviour; when a caller can
+   notice it, its changelog entry goes under `Changed` and says what to do.
 4. Run the full suite on the floor and latest interpreters, `mkdocs build
-   --strict`, `python -m build`, and the maintainer's leak check (a scan for
-   private references and agent-attribution commit trailers). Judge it by exit
-   code.
+   --strict`, `python -m build`, `twine check`, and the maintainer's leak check
+   (a scan for private references and agent-attribution commit trailers). Judge
+   it by exit code.
 5. Push `main`, then the `v*` tag. Publishing is irreversible, so the tag is
    pushed only with the maintainer's explicit consent for that specific
-   release.
+   release. The release the dependency ranges ask of `pathlib-next` and `netimps`
+   must be on PyPI first, and `PATHLIB_NEXT_REF` deleted.
+
+Once per repository, before the first release: register PyPI Trusted Publishing
+for the project `uripath` (workflow `release.yml`, environment `pypi`); set
+Pages to build from GitHub Actions and allow `v*` tags in the `github-pages`
+environment (`gh api -X POST repos/jose-pr/uripath/pages -f build_type=workflow`,
+`gh api -X POST repos/jose-pr/uripath/environments/github-pages/deployment-branch-policies
+-f name='v*' -f type=tag`); and let workflows write (Settings, Actions, General,
+Workflow permissions).
 
 Changelog entries say what changed and what a user must do about it. They do
 not describe how the work was done.
