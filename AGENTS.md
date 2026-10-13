@@ -20,6 +20,8 @@ contract; a behavioral divergence that is not recorded is a bug.
 | `src/uripath/__init__.py`, `_uri.py`, `source/`, `query.py`, `exceptions.py` | The root only exports. `URI` (one large class), `Source` (a package of private modules), `Query` and the errors. |
 | `src/uripath/schemes/` | The contract (`_path.py`: `URIPath`), the registry (`_registry.py`: the built-in table and the entry points) and one private module or package per scheme (`_file.py`, `_http/`, ...); `__init__.py` exports their names lazily. Registered through the `uripath.schemes` entry points in `pyproject.toml`. |
 | `src/uripath/schemes/_elsewhere.py` | The schemes and the HTTP transport that other distributions provide, and the `ImportError` naming what to install. |
+| `src/uripath/transports.py` | The HTTP transports that exist (`names()`, `get()`, read from the `uripath.http_transports` entry-point group, `builtin` declared in `pyproject.toml`) and `prepare_request()`, the checks a transport makes before it sends. |
+| `src/uripath/testing/` | `python -m uripath.testing --http-transports NAME` runs the transport suite over another transport. The test modules and helpers it names (`MODULES`, `HELPERS`) are the files of `tests/`; `pyproject.toml` copies them into the wheel under `uripath/testing/suite` (`tests/test_testing_module.py` keeps the two lists equal). |
 | `src/uripath/cli/`, `__main__.py` | The `uripath` command on `duho`, one module per subcommand; `import uripath` never imports it. |
 | `src/uripath/_pathtext.py`, `_transfer.py`, `_rfc3986.py` | `as_path()`, `copy_stream()` and the RFC 3986 split and percent-coding on `urllib.parse`. |
 | `tests/` | The pytest suite. `tests/conftest.py` holds the loopback servers; `tests/mutation/` is the mutation list; `tests/probes/` are child processes that tests run. |
@@ -67,6 +69,7 @@ python -m black src/ tests/ benchmarks/ examples/    # formatting; --check to ve
 mkdocs build --strict                                # docs must build with no warnings
 python -m build && python -m twine check dist/*      # sdist + wheel into dist/
 python tests/mutation/run.py --jobs 4                # every guard's tests must fail on a broken copy
+python -m uripath.testing -q                         # the transport suite as a distribution runs it
 python -m pytest -q -rs tests/test_public_surface.py -k "mypy_accepts or pyright_accepts"
 ```
 
