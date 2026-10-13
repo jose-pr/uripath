@@ -3,7 +3,7 @@
     python tests/mutation/run.py [--list] [--jobs N] [--no-control] [ID ...]
 
 Each mutant is one textual replacement in a guard of the library. It is
-applied to a temporary copy of `src/pathlib_next` (nothing under `src/` is
+applied to a temporary copy of `src/uripath` (nothing under `src/` is
 ever written), the tests it names run against that copy with the copy first
 on the import path, and a pytest plugin refuses the run if the checkout was
 imported instead. A mutant is
@@ -38,7 +38,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-PACKAGE = REPO / "src" / "pathlib_next"
+PACKAGE = REPO / "src" / "uripath"
 
 sys.path.insert(0, str(HERE))
 from mutants import MUTANTS, Mutant  # noqa: E402
@@ -46,10 +46,10 @@ from mutants import MUTANTS, Mutant  # noqa: E402
 
 def copy_package(destination: Path) -> Path:
     """A copy of the package under `destination`; returns the directory that
-    holds `pathlib_next`."""
+    holds `uripath`."""
     shutil.copytree(
         PACKAGE,
-        destination / "pathlib_next",
+        destination / "uripath",
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
     return destination
@@ -58,7 +58,7 @@ def copy_package(destination: Path) -> Path:
 def apply(mutant: Mutant, root: Path) -> str | None:
     """Apply `mutant` to the copy under `root`; the reason it cannot be, or
     None."""
-    target = root / "pathlib_next" / mutant.file
+    target = root / "uripath" / mutant.file
     if not target.is_file():
         return f"{mutant.file} does not exist"
     text = target.read_bytes().decode("utf-8")
