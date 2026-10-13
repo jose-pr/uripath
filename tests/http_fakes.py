@@ -41,25 +41,26 @@ def is_client_error(error):
 
 
 def make_transport(kind, **arguments):
-    """A real transport: `"builtin"`."""
-    from uripath.schemes import HTTPTransport
+    """A real transport of the kind `uripath.transports.get()` names."""
+    from uripath import transports
 
-    assert kind == "builtin", kind
-    return HTTPTransport(**arguments)
+    return transports.get(kind)(**arguments)
 
 
 def spy_on_sends(monkeypatch, project=lambda method, url, **kwargs: (method, url)):
     """A list that gains `project(method, url, **keywords)` for every request
-    the real transport sends; the requests still go to the server."""
-    from uripath.schemes import HTTPTransport
+    the real transport of the kind under test sends; the requests still go to
+    the server."""
+    from uripath import transports
 
+    transport_class = transports.get(current_kind())
     log = []
 
-    def spy(self, method, url, *args, _original=HTTPTransport.send, **kwargs):
+    def spy(self, method, url, *args, _original=transport_class.send, **kwargs):
         log.append(project(method, url, **kwargs))
         return _original(self, method, url, *args, **kwargs)
 
-    monkeypatch.setattr(HTTPTransport, "send", spy)
+    monkeypatch.setattr(transport_class, "send", spy)
     return log
 
 

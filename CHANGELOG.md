@@ -42,6 +42,12 @@ do about it.
   `send()`, for a transport that another distribution provides, and
   `HTTPResponse.buffered()` reads the rest of a body into memory and closes the
   connection, which is what `send(stream=False)` returns.
+- `python -m uripath.testing --http-transports NAME` runs the tests that this
+  package runs over its own HTTP transport (`http:`, `dav:`, `github:` and
+  `gitlab:` over loopback servers, and the transport contract at the byte
+  level) over the transport that an installed distribution declares under
+  `NAME`. The test modules ship in the wheel, in `uripath/testing/suite`;
+  `uripath.testing.suite_directory()` returns their directory.
 - `uripath.exceptions`: `URIPathError`, the base of what this package raises
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).

@@ -73,6 +73,13 @@ def serve_http():
 
 def pytest_addoption(parser):
     parser.addoption(
+        "--http-transports",
+        default="builtin",
+        help="the HTTP transports the transport suite runs against, by the "
+        "names of uripath.transports.names(), separated by commas "
+        "(for example builtin,requests)",
+    )
+    parser.addoption(
         "--leak-census",
         nargs="?",
         const="report",
@@ -209,14 +216,22 @@ def mem_root(mem_backend):
     return MemPath("/", backend=mem_backend)
 
 
-TRANSPORT_KINDS = ["builtin"]
+def pytest_generate_tests(metafunc):
+    if "http_transport_kind" in metafunc.fixturenames:
+        kinds = [
+            name.strip()
+            for name in metafunc.config.getoption("--http-transports").split(",")
+            if name.strip()
+        ]
+        metafunc.parametrize("http_transport_kind", kinds, indirect=True)
 
 
-@pytest.fixture(params=TRANSPORT_KINDS)
+@pytest.fixture
 def http_transport_kind(request, monkeypatch):
-    """Runs the test once per HTTP transport: the default transport of every
-    backend the test builds is that kind (`URIPATH_HTTP_TRANSPORT`), and
-    `http_fakes.make_transport(kind)` builds one of it."""
+    """Runs the test once per HTTP transport (`--http-transports`): the
+    default transport of every backend the test builds is that kind
+    (`URIPATH_HTTP_TRANSPORT`), and `http_fakes.make_transport(kind)` builds
+    one of it."""
     monkeypatch.setenv("URIPATH_HTTP_TRANSPORT", request.param)
     return request.param
 

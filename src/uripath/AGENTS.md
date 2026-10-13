@@ -1176,6 +1176,41 @@ transport contract" above: `send()` and `close()`.
   timeout that is not a positive number, `None` or a pair of them; and
   `TypeError` for a `str` body. No message quotes the URL or a header value.
 
+### Running the transport suite (`uripath.testing`)
+
+```python
+# uripath.testing
+def suite_directory() -> pathlib.Path: ...
+def run(arguments=None) -> int: ...
+```
+
+A distribution that provides a transport holds it to the promises of the
+built-in one by running the tests `uripath` runs over its own, with the
+distribution and `pytest` installed:
+
+```
+python -m uripath.testing --http-transports requests -q
+```
+
+Everything after `python -m uripath.testing` goes to pytest. `--http-transports`
+takes names that `names()` lists, separated by commas (default `builtin`):
+each test that depends on the transport runs once per name, with
+`URIPATH_HTTP_TRANSPORT` set to it, so the backends the test builds use `get(name)()`
+and the same tests also send through `with_session()` where they do. The tests
+are `http:`, `dav:`, `github:` and `gitlab:` over loopback servers, the
+`Path` contract of each, redirects, credentials, replies cut short or too large, and
+the transport contract against servers scripted at the byte level (what the
+server received is what is asserted). The modules also hold tests that do not
+depend on the transport; they pass whatever the name. Every connection stays on the loopback
+interface, and a test that tries another host fails.
+
+- `run(arguments=None)` runs the suite with pytest and returns the exit status;
+  it raises `ImportError` without pytest.
+- `suite_directory()` is the directory that holds the test modules,
+  `MODULES` (their file names) and `HELPERS` (the files they import):
+  `uripath/testing/suite` in an installed package, `tests/` in a source
+  checkout; `FileNotFoundError` when neither is there.
+
 ## Provided by other distributions
 
 `uripath` knows these schemes and this transport by name and does not contain
