@@ -60,12 +60,6 @@ def _mem_source():
     return source
 
 
-
-
-
-
-
-
 def test_deep_tree_is_never_truncated_silently(caplog):
     # The traversal is recursive, so a tree deeper than the interpreter's
     # recursion limit fails with RecursionError. Tolerated, that must at
@@ -83,10 +77,6 @@ def test_deep_tree_is_never_truncated_silently(caplog):
 
     if not (leaf / "leaf.txt").exists():
         assert RecursionError in [r.exc_info[0] for r in _warnings(caplog)]
-
-
-
-
 
 
 # --- sync-type-change-deletes-tree-without-remove-missing -------------------
@@ -108,23 +98,7 @@ def _csvs(target):
     return sorted(p.name for p in (target / "reports").iterdir())
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # --- sync-hook-contract-start-event -------------------------------------------
-
-
-
-
 
 
 # --- sync-windows-dir-symlink-broken ------------------------------------------
@@ -142,19 +116,7 @@ def _dir_link_source(tmp_path):
     return source
 
 
-
-
-
-
-
-
 # --- sync-identical-symlink-recreated -------------------------------------------
 
 
-
-
-
-
 # --- sync-pathandstat-default-lstat ----------------------------------------------
-
-

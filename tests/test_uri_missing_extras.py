@@ -64,6 +64,7 @@ _HTTP_URLS = [
     "git+gitlab://gitlab.com/o/r/dir/f.txt",
 ]
 
+
 @pytest.mark.parametrize("url", _HTTP_URLS)
 def test_a_path_with_the_client_libraries_hidden_does_pure_path_work(url):
     result = _run(
@@ -109,7 +110,3 @@ def test_schemes_that_need_no_extra_work_with_every_client_blocked():
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "ok"
-
-
-
-

@@ -36,8 +36,6 @@ def _run_python(code: str) -> str:
     return result.stdout
 
 
-
-
 def test_import_does_not_load_netimps_or_unrelated_backends():
     _uri()
     out = _run_python("""
@@ -55,12 +53,10 @@ def test_import_does_not_load_netimps_or_unrelated_backends():
 
 def test_import_optional_submodules_guarded():
     # Every scheme with an optional dependency is resolved lazily by
-    # uri/schemes/__init__.py; importing the package must not require
+    # schemes/__init__.py; importing the package must not require
     # requests/paramiko to be installed.
     _uri()
     import uripath.schemes  # noqa: F401
-
-
 
 
 def test_readme_http_path_construct_only():
@@ -76,8 +72,6 @@ def test_example_uri_child_join():
     authkeys = rootless / "root/.ssh/authorized_keys"
     keys = authkeys.as_uri()
     assert keys == "sftp://root@sftpexample/root/.ssh/authorized_keys"
-
-
 
 
 def test_example_query():

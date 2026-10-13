@@ -49,12 +49,6 @@ def _collect():
 # --- sync-missing-root-source-wipes-target ---------------------------------
 
 
-
-
-
-
-
-
 def test_missing_root_source_cli_keeps_target(tmp_path):
     target = tmp_path / "backup"
     _write(target / "file.txt", "precious")
@@ -66,8 +60,6 @@ def test_missing_root_source_cli_keeps_target(tmp_path):
     assert code == 1
     assert "FileNotFoundError" in stderr.getvalue()
     assert (target / "file.txt").read_text() == "precious"
-
-
 
 
 # --- sync-child-name-escapes-destination -----------------------------------
@@ -100,18 +92,6 @@ def _assert_nothing_escaped(tmp_path, mirror):
     assert sorted(p.name for p in tmp_path.iterdir()) == ["mirror", "sibling"]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # --- sync-unknown-stat-treated-as-missing ----------------------------------
 
 
@@ -123,32 +103,10 @@ class _NoStatMemPath(MemPath):
             yield name, None
 
 
-
-
 # --- sync-target-symlinks-escape-tree (mechanism a) ------------------------
 
 
-
-
-
-
-
-
-
-
 # --- sync-overlapping-source-target ----------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # --- wave 5 (G6): remaining PathSyncer soundness findings ------------------
@@ -171,12 +129,6 @@ def _events():
 
 
 # sync-symlink-preserve-deletes-before-failing
-
-
-
-
-
-
 
 
 # sync-copy-not-atomic
@@ -216,14 +168,6 @@ def _flaky_source():
     return source
 
 
-
-
-
-
-
-
-
-
 # sync-dry-run-crashes
 
 
@@ -238,15 +182,7 @@ def _mutations(events):
     return [(e, s, t) for e, s, t, _ in events if e in mutating]
 
 
-
-
-
-
-
-
 # sync-removedmissing-event-reports-parent
-
-
 
 
 # sync-error-policy-duplicated-and-misattributed
@@ -259,14 +195,6 @@ def _nested_trees(tmp_path):
     target = tmp_path / "dst"
     _write(target / "l1" / "l2" / "f.txt", "target")
     return source, pathlib_next.LocalPath(target)
-
-
-
-
-
-
-
-
 
 
 # sync-special-files-treated-as-directories
@@ -284,10 +212,6 @@ class _FifoMemPath(MemPath):
     def _scandir(self):
         for name, _ in super()._scandir():
             yield name, None
-
-
-
-
 
 
 # --- a listed entry is never "missing" ---------------------------------------
@@ -308,14 +232,6 @@ def _dangling_layout(tmp_path):
     return src, dst
 
 
-
-
-
-
-
-
-
-
 class _ScanMemPath(MemPath):
     """Lists like a stdlib scandir: entries with a `stat()` method."""
 
@@ -331,16 +247,12 @@ class _ScanMemPath(MemPath):
             yield Entry(name, self / name)
 
 
-
-
 # --- the error policy receives the public entry type ------------------------
 
 
 class _StatDenied(MemPath):
     def stat(self, *, follow_symlinks=True):
         raise PermissionError(errno.EACCES, "denied", str(self))
-
-
 
 
 # --- a binding inside the target is replaced, never listed or written through
@@ -353,12 +265,6 @@ def _junction(target, link):
     _winapi.CreateJunction(str(target), str(link))
 
 
-
-
-
-
-
-
 @pytest.fixture
 def mount_named_mounted(monkeypatch):
     """`is_mount()` answers True for a directory called `mounted`; creating a
@@ -369,14 +275,6 @@ def mount_named_mounted(monkeypatch):
         return self.name == "mounted" or real_is_mount(self)
 
     monkeypatch.setattr(pathlib_next.LocalPath, "is_mount", fake_is_mount)
-
-
-
-
-
-
-
-
 
 
 def _mutations_below(events, directory):
@@ -394,20 +292,6 @@ def _mount_trees(tmp_path):
     dst = tmp_path / "dst"
     _write(dst / "mounted" / "theirs.txt", "theirs")
     return pathlib_next.LocalPath(src), pathlib_next.LocalPath(dst), dst
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # --- the temporary sibling: replace fallback, name length, leftovers -------
@@ -468,14 +352,6 @@ def _leftovers(directory):
     return sorted(name for name in directory if _is_leftover(name))
 
 
-
-
-
-
-
-
-
-
 class _FailingRenameLocal(pathlib_next.LocalPath):
     """A local path whose rename of a temporary file fails."""
 
@@ -483,10 +359,6 @@ class _FailingRenameLocal(pathlib_next.LocalPath):
         if _is_leftover(self.name):
             raise ConnectionResetError(errno.ECONNRESET, "connection reset")
         return super().rename(target)
-
-
-
-
 
 
 # the temporary name fits where the name does
@@ -509,12 +381,6 @@ def _limited(max_bytes=255):
     return Limited
 
 
-
-
-
-
-
-
 # leftovers of a killed run
 
 
@@ -530,12 +396,6 @@ def _put(directory, name, text="partial", age=0.0):
 
 STALE = ".big.bin.aaaaaaaaaaaa.pathlib-next-tmp"
 FRESH = ".big.bin.bbbbbbbbbbbb.pathlib-next-tmp"
-
-
-
-
-
-
 
 
 @pytest.fixture
@@ -555,16 +415,6 @@ def leftover_layout():
     return source, target, backend
 
 
-
-
-
-
-
-
-
-
-
-
 # --- a dry run refuses what the real run refuses ------------------------------
 
 
@@ -574,10 +424,6 @@ def _link_source(tmp_path):
     _symlink("a.txt", source / "lnk")
     _write(source / "z.txt", "zzz")
     return pathlib_next.LocalPath(source)
-
-
-
-
 
 
 # --- overlap is decided by where a path is, not how it is spelled ------------
@@ -591,5 +437,3 @@ def _mem_tree():
     # `/x/../r` is another spelling of `/r` only while `/x` is a directory.
     MemPath("/x", backend=backend).mkdir()
     return backend, root
-
-

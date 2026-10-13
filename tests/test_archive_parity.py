@@ -369,11 +369,7 @@ def test_make_archive_from_any_path_directory(tmp_path, fmt, kind):
     assert _tree(dest) == _EXPECTED_TREE
 
 
-
-
 # --- memutils-archive-zip64 ---
-
-
 
 
 # --- memutils-archive-zip-nonseekable ---
@@ -402,10 +398,4 @@ class _NonSeekableArchive:
         return io.BufferedReader(_Raw())
 
 
-
-
 # --- memutils-archive-tar-links-dropped ---
-
-
-
-

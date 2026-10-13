@@ -171,12 +171,6 @@ MATCH_CASE_TABLE = [
 ]
 
 
-
-
-
-
-
-
 # Recorded from CPython 3.14's PurePath.full_match; asserted on every version
 # (on 3.13+ this checks stdlib itself, below that the shim).
 FULL_MATCH_TABLE = [
@@ -225,10 +219,6 @@ FULL_MATCH_TABLE = [
 ]
 
 
-
-
-
-
 # --- parents / parent keep the root ----------------------------------------
 
 
@@ -245,8 +235,6 @@ def test_generic_parents_match_pure_posix_path(cls, path):
     assert [spell(p) for p in ours.parents] == [spell(p) for p in theirs.parents]
     assert len(ours.parents) == len(theirs.parents)
     assert spell(ours.parent) == spell(theirs.parent)
-
-
 
 
 # --- MemPath.relative_to ----------------------------------------------------
@@ -277,22 +265,6 @@ def _answer(call):
         return str(call()) or "."
     except ValueError:
         return ValueError
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def test_uri_parents_reach_the_authority_root_once():
@@ -334,8 +306,6 @@ def test_uri_with_name_rejects_traversal_and_separators(path, name):
         Uri(path).with_name(name)
 
 
-
-
 @pytest.mark.parametrize("cls", GENERIC)
 @pytest.mark.parametrize("name", ["", ".", "x/y"])
 def test_generic_with_name_rejects_what_pathlib_rejects(cls, name):
@@ -371,8 +341,6 @@ def test_with_name_accepts_dotdot_like_pathlib(path):
     assert MemPath("/srv/up.txt").with_name("..").as_posix() == "/srv/.."
 
 
-
-
 # --- MemPath normalization -----------------------------------------------
 
 MEM_PATHS = [
@@ -389,18 +357,6 @@ MEM_PATHS = [
     "a/../b",
     "///a",
 ]
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # --- relative_to / is_relative_to with authority roots ----------------------
@@ -619,16 +575,12 @@ def test_double_slash_root_is_not_modelled_by_the_generic_classes():
     assert Uri("//a/b").source.host == "a"
 
 
-
-
 # --- has_glob_pattern(): the anchor is not a pattern ----------------------
 
 #: A Windows extended-length path carries a literal "?" in its anchor. A
 #: caller asking "pattern or plain path?" got True for every one of them.
 _EXTENDED = r"\\?\C:\data\conf"
 _EXTENDED_UNC = r"\\?\UNC\server\share\x"
-
-
 
 
 @pytest.mark.parametrize(

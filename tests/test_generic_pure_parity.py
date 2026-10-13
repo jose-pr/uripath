@@ -78,8 +78,6 @@ def test_full_match_follows_the_root_as_a_component(cls, path, pattern, expected
     assert cls(path).full_match(pattern) is expected
 
 
-
-
 def _generated_paths():
     names = ["a", "b", "c.txt"]
     for depth in range(0, 4):
@@ -103,16 +101,6 @@ def _generated_patterns():
     yield from ["./a", "a/./b", ".", "a//b"]
 
 
-
-
-
-
-
-
-
-
-
-
 # --- with_stem() and is_absolute() ---------------------------------------
 
 
@@ -134,12 +122,6 @@ def test_with_stem_refuses_what_the_running_pathlib_refuses(cls, name, stem):
     else:
         assert generic is not ValueError
         assert generic.as_posix().endswith(stdlib.as_posix().rpartition("/")[2])
-
-
-
-
-
-
 
 
 # --- the 3.12 pass of match() --------------------------------------------
@@ -201,9 +183,3 @@ def as_python_312(monkeypatch):
     monkeypatch.setattr(
         path_module, "_sys", types.SimpleNamespace(version_info=(3, 12, 7))
     )
-
-
-
-
-
-

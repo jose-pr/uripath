@@ -226,8 +226,6 @@ def test_zip_overwrite_keeps_member_compression_and_mode(rich_zip):
     assert after["junk.txt"][1:3] == before["junk.txt"][1:3]
 
 
-
-
 @requires_posix_modes
 def test_zip_rewrite_keeps_archive_file_mode(zip_archive):
     os.chmod(zip_archive, 0o644)
@@ -605,8 +603,6 @@ _UNSAFE_UNPACK_NAMES = [
 ]
 
 
-
-
 # --- ftparchive-zip-append-not-crash-safe ---
 
 
@@ -820,10 +816,6 @@ def test_member_index_cache_sees_a_write_through_another_path_object(tmp_path):
 # --- unpack_archive(): a backslash is a separator only for Windows --------
 
 
-
-
-
-
 # --- unpack_archive(): names only Windows rewrites ------------------------
 
 _REWRITTEN_MEMBERS = [
@@ -842,12 +834,6 @@ def _unpack_recording(archive, dest):
         warnings.simplefilter("always")
         unpack_archive(LocalPath(archive), dest)
     return [str(w.message) for w in caught if issubclass(w.category, UserWarning)]
-
-
-
-
-
-
 
 
 def test_a_member_name_with_a_nul_is_refused_and_the_archive_is_unchanged(tmp_path):

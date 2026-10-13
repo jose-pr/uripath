@@ -30,10 +30,6 @@ def tree():
 # --- info --------------------------------------------------------------------
 
 
-
-
-
-
 class Counting(MemPath):
     """A `MemPath` that counts its stats, and can report a link."""
 
@@ -62,29 +58,7 @@ def counting():
     return root
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- _copy_from: what a path is given by pathlib 3.14's Path.copy() ------------------
-
-
-
-
-
-
 
 
 STDLIB_HOOKS = (
@@ -104,16 +78,6 @@ def _stdlib_copy_hooks_exist():
 
 
 stdlib_copy = pytest.mark.skipif(not _stdlib_copy_hooks_exist(), reason=STDLIB_HOOKS)
-
-
-
-
-
-
-
-
-
-
 
 
 @stdlib_copy

@@ -54,8 +54,6 @@ def _source(cls=MemPath):
 # --- a tar member is as long as what was read -------------------------------
 
 
-
-
 @pytest.mark.parametrize("claimed", [0, len(PAYLOAD) + 5000])
 def test_a_zip_member_holds_what_was_read_whatever_stat_says(claimed):
     _SizedWrong.claimed = claimed
@@ -118,8 +116,6 @@ def _tree():
     return root
 
 
-
-
 def test_a_zip_lists_each_directory_before_what_is_in_it():
     target = MemPath("/out.zip")
     make_archive(_tree(), "zip", target)
@@ -130,8 +126,6 @@ def test_a_zip_lists_each_directory_before_what_is_in_it():
     assert set(names) == {"empty/", "sub/", "sub/deeper/", "sub/run.sh"}
     assert names.index("sub/") < names.index("sub/run.sh")
     assert names.index("sub/") < names.index("sub/deeper/")
-
-
 
 
 # --- times and permission bits ----------------------------------------------
@@ -148,8 +142,6 @@ def stamped(tmp_path):
     for path in (src / "dir" / "f.txt", src / "top.txt", src / "dir"):
         os.utime(path, (STAMP, STAMP))
     return src
-
-
 
 
 def test_zip_members_carry_the_source_times(stamped):
@@ -181,8 +173,6 @@ def test_a_source_that_reports_no_time_gets_the_default(fmt):
             assert archive.getinfo("data.bin").date_time == (1980, 1, 1, 0, 0, 0)
     else:
         assert _read_tar(target.read_bytes())["data.bin"][0].mtime == 0
-
-
 
 
 # --- links that lead nowhere ------------------------------------------------
@@ -224,23 +214,3 @@ def _unpack(members):
         child.name: child.read_bytes() for child in dest.iterdir() if child.is_file()
     }
     return names, skipped
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

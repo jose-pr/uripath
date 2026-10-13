@@ -14,7 +14,6 @@ from server_loops import stop_server
 from hermetic import NetworkAccessBlocked  # noqa: F401  (re-exported for tests)
 from pathlib_next.mempath import MemPath, MemPathBackend
 
-
 try:
     from hypothesis import settings as _hypothesis_settings
 except ImportError:  # hypothesis is a dev extra

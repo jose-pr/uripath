@@ -731,14 +731,6 @@ def _memory_source():
     return source
 
 
-
-
-
-
-
-
-
-
 # --- the member list of a batch ----------------------------------------------------
 
 
@@ -751,8 +743,6 @@ def _fields(snapshot):
         set(snapshot.implicit),
         {name: list(children) for name, children in snapshot.children.items()},
     )
-
-
 
 
 def test_copying_a_tree_into_a_zip_derives_the_member_list_a_bounded_number_of_times(

@@ -38,12 +38,6 @@ class _RecordingMemPath(MemPath):
         return handle
 
 
-
-
-
-
-
-
 # --- synthesized OSErrors carry errno and filename ---------------------------
 
 
@@ -53,19 +47,7 @@ def _raised(call):
     return info.value
 
 
-
-
-
-
-
-
 # --- copy(progress=) on an empty file ---------------------------------------
-
-
-
-
-
-
 
 
 # --- samefile() keeps the backend / host of a str argument ------------------
@@ -85,8 +67,6 @@ class _IdentityMemPath(MemPath):
         )
 
 
-
-
 def test_uripath_samefile_str_keeps_the_host(monkeypatch):
     seen = []
 
@@ -101,14 +81,6 @@ def test_uripath_samefile_str_keeps_the_host(monkeypatch):
 
 
 # --- MemPath file handles behave like real files ----------------------------
-
-
-
-
-
-
-
-
 
 
 def _race(action, trials=200):
@@ -142,38 +114,16 @@ def _race(action, trials=200):
     return both
 
 
-
-
-
-
-
-
 # --- FileStat.from_stat with None fields ------------------------------------
-
-
-
-
 
 
 # --- checksums do not claim a security use ----------------------------------
 
 
-
-
 # --- is_dir()/is_file() accept follow_symlinks= (3.13 parity) ---------------
 
 
-
-
-
-
-
-
-
-
 # --- pure-path gaps: str / path, 3.14 trailing-dot suffixes -----------------
-
-
 
 
 def test_str_rtruediv_uri_is_a_decoded_path():

@@ -249,15 +249,7 @@ def test_is_relative_to_negative_str_and_object_agree_with_stdlib(cls, path, oth
     assert cls(path).is_relative_to(other) is expected
 
 
-
-
-
-
-
-
 # --- ordering --------------------------------------------------------------
-
-
 
 
 @pytest.mark.parametrize("cls", [MemPath, Uri])
@@ -284,8 +276,6 @@ def test_ordering_is_unavailable_between_unrelated_types():
     assert MemPath.__lt__(memory, PosixPathname("/a")) is NotImplemented
 
 
-
-
 def test_uris_sort_by_their_text_so_the_host_counts():
     uris = [Uri("http://b/a"), Uri("http://a/z"), Uri("http://a/b?q=1")]
     assert [u.as_uri() for u in sorted(uris)] == [
@@ -293,5 +283,3 @@ def test_uris_sort_by_their_text_so_the_host_counts():
         "http://a/z",
         "http://b/a",
     ]
-
-

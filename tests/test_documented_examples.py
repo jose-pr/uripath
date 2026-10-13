@@ -147,8 +147,7 @@ def test_the_command_line_examples_run(source, tmp_path):
             continue
         assert words[0] == "uripath", line
         result = subprocess.run(
-            [sys.executable, "-W", "error", "-m", "uripath._oldcli"]
-            + words[1:],
+            [sys.executable, "-W", "error", "-m", "uripath._oldcli"] + words[1:],
             cwd=tmp_path,
             env=env,
             capture_output=True,

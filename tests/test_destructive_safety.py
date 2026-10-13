@@ -25,12 +25,6 @@ LocalPath = pathlib_next.LocalPath
 # --- copy -----------------------------------------------------------------
 
 
-
-
-
-
-
-
 @requires_uri_extra
 def test_copy_http_404_source_leaves_local_target_intact(http_server, tmp_path):
     from uripath import UriPath
@@ -42,27 +36,7 @@ def test_copy_http_404_source_leaves_local_target_intact(http_server, tmp_path):
     assert target.read_text() == "GOOD CACHE"
 
 
-
-
-
-
-
-
-
-
 # --- move -----------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # --- move and copy: one file under several names -------------------------
@@ -102,20 +76,6 @@ def _symlink_or_skip(link, target, directory=False):
         os.symlink(target, link, target_is_directory=directory)
     except (OSError, NotImplementedError) as error:
         pytest.skip(f"symlink unavailable: {error}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def _as_another_class(kind, path):
@@ -169,24 +129,6 @@ def _hard_link_or_skip(existing, new):
         pytest.skip(f"hard link unavailable: {error}")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- rm through links -----------------------------------------------------
 
 
@@ -207,10 +149,6 @@ def _victim(tmp_path):
     victim.mkdir()
     (victim / "keep.txt").write_text("V")
     return victim
-
-
-
-
 
 
 def test_file_uri_rm_recursive_does_not_descend_into_junction(tmp_path):
@@ -266,21 +204,7 @@ def test_file_uri_scandir_reports_symlink_not_directory(tmp_path):
 # --- untrusted child names ------------------------------------------------
 
 
-
-
-
-
-
-
-
-
 # --- a binding is not a symlink -------------------------------------------
-
-
-
-
-
-
 
 
 # --- rm(follow_symlinks=, follow_binds=) ----------------------------------
@@ -318,22 +242,6 @@ def _tolerate(errors):
     return handler
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def _tree_with_one_link(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
@@ -341,12 +249,6 @@ def _tree_with_one_link(tmp_path):
     link = tmp_path / "link"
     _symlink_or_skip(link, outside, directory=True)
     return LocalPath(link), outside
-
-
-
-
-
-
 
 
 # --- names only Windows rewrites ------------------------------------------
@@ -399,7 +301,3 @@ def test_sync_never_merges_names_windows_rewrites(windows_flavoured):
     assert sorted(child.name for child in target.iterdir()) == ["ok.txt", "report"]
     assert (target / "report").read_text() == "data:report"
     assert len(_refused(errors)) == 2
-
-
-
-

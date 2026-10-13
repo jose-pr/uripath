@@ -22,10 +22,6 @@ from pathlib_next.sync._compare import _quick_check_in_sync
 # --- FileStat ------------------------------------------------------------
 
 
-
-
-
-
 # --- a path class whose listing knows the type only -----------------------------
 
 
@@ -212,8 +208,6 @@ class UnsizedMem(MemPath):
         return FileStat(is_dir=False, size_known=False)
 
 
-
-
 # --- a sync never takes a placeholder for a size ---------------------------------
 
 
@@ -226,8 +220,6 @@ class RemoteMem(MemPath):
 
 def entry(stat):
     return PathAndStat.from_stat(MemPath("/x"), stat)
-
-
 
 
 def test_sync_asks_for_the_size_of_a_source_the_listing_gave_no_size(store):

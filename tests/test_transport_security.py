@@ -634,8 +634,6 @@ def test_ftps_custom_ssl_context_verifies_against_its_ca(ftps_server):
     assert server.data_session_reused == [True]
 
 
-
-
 def test_ftps_data_connection_reuses_tls_session(ftps_server):
     server, _certfile = ftps_server
     p = FtpPath(

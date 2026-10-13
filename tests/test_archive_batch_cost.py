@@ -344,10 +344,6 @@ def test_a_run_of_mixed_changes_in_a_batch_is_the_run_one_at_a_time(
 # --- the member list itself --------------------------------------------------------------------
 
 
-
-
-
-
 # --- what the rules of the last commit still say inside a batch ----------------------------------
 
 

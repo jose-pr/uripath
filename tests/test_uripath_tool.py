@@ -553,7 +553,6 @@ def test_every_flag_and_positional_has_help_text():
                 assert action.help, f"{name}: {action.dest} has no help text"
 
 
-
 # --- a dry run fails where the real run fails ---
 
 

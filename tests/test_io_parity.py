@@ -30,14 +30,6 @@ def _chmod_calls(path):
     return path.backend.get("__chmod_calls__", [])
 
 
-
-
-
-
-
-
-
-
 class _FlakyStatMemPath(MemPath):
     """stat() fails once with the given error, then behaves normally."""
 
@@ -46,12 +38,6 @@ class _FlakyStatMemPath(MemPath):
         if pending is not None:
             raise pending
         return super().stat(follow_symlinks=follow_symlinks)
-
-
-
-
-
-
 
 
 # --- FileUri.touch delegates to pathlib ------------------------------------
@@ -112,30 +98,8 @@ def test_fileuri_touch_exist_ok_false_raises(tmp_path):
 # --- FileStat.mode_known ---------------------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # --- copy(preserve_metadata=True) ------------------------------------------
 
 
 def _writable(path):
     return os.access(path, os.W_OK)
-
-
-
-
-
-
-
-
-
-

@@ -248,8 +248,6 @@ def test_generic_parents_and_parent_match_pure_posix_path(rooted, segs):
 _mem_piece = st.sampled_from(["", ".", "a", "b", "cd"])
 
 
-
-
 # --- uritools oracle: one-pass parse/compose fast paths ---
 # `Uri._parse_uri`/`Uri._format_parsed_parts` bypass uritools' get*()
 # accessors and uricompose() for speed (one-pass authority/path extraction,
@@ -603,12 +601,6 @@ def test_a_joined_child_survives_its_own_uri_text(name):
     child = Uri("sftp://host/dir") / name
     assert Uri(child.as_uri()) == child
     assert Uri(str(child)) == child
-
-
-
-
-
-
 
 
 _pairs = st.lists(

@@ -217,14 +217,6 @@ def test_glob_does_not_recurse_into_directory_symlinks(
 # --- pattern validation ------------------------------------------------------
 
 
-
-
-
-
-
-
-
-
 def test_recurse_symlinks_adds_nothing_where_the_tree_has_no_links(impl):
     assert _ours(impl, "glob", "*.py", recurse_symlinks=False) == {"b.py"}
     for method, pattern in (("glob", "**"), ("glob", "**/*.py"), ("rglob", "*")):
@@ -239,8 +231,6 @@ def test_uripath_question_mark_is_a_wildcard(tree):
     base = UriPath(tree.as_uri())
     assert {p.name for p in base.glob("a?.txt")} == {"a1.txt", "a2.txt"}
     assert {p.name for p in base.glob("*/n?sted/*.py")} == {"d.py"}
-
-
 
 
 # --- full_match ----------------------------------------------------------------
@@ -265,10 +255,6 @@ _FULL_MATCH_CASES = [
 ]
 
 
-
-
-
-
 # --- glob(None): expand the pattern this path carries ---------------------
 
 
@@ -284,21 +270,7 @@ def test_glob_none_expands_the_pattern_the_path_carries(tree, cls):
     assert got
 
 
-
-
-
-
 # --- native=: follow the interpreter, or one rule everywhere --------------
-
-
-
-
-
-
-
-
-
-
 
 
 # --- on_error: an unreadable directory can be seen ------------------------
@@ -323,19 +295,7 @@ def unreadable_tree(tmp_path, monkeypatch):
     return tmp_path
 
 
-
-
-
-
-
-
 # --- bound_loops: a directory is walked once per "**" ---------------------
-
-
-
-
-
-
 
 
 def _junction(link, target):
@@ -347,7 +307,3 @@ def _junction(link, target):
         check=True,
         capture_output=True,
     )
-
-
-
-

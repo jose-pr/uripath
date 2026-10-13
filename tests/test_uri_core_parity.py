@@ -210,27 +210,7 @@ def _symlink_or_skip(link, target, target_is_directory=False):
         pytest.skip(f"symlink unavailable: {error}")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- open(): mode validation like open() -------------------------------------
-
-
-
-
-
-
 
 
 def test_data_uri_payload_is_opaque_and_decoded_once():
@@ -240,5 +220,3 @@ def test_data_uri_payload_is_opaque_and_decoded_once():
     binary = UriPath("data:application/octet-stream,%FF%FE")
     assert binary.read_bytes() == b"\xff\xfe"
     assert str(binary) == "data:application/octet-stream,%FF%FE"
-
-

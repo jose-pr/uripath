@@ -138,9 +138,7 @@ def _imported_module(relpath: str, node: ast.ImportFrom) -> str:
     package = ["uripath", *relpath.split("/")[:-1]]
     if node.level:
         package = package[: len(package) - (node.level - 1)]
-        return ".".join(
-            [*package, *(node.module.split(".") if node.module else [])]
-        )
+        return ".".join([*package, *(node.module.split(".") if node.module else [])])
     return node.module or ""
 
 

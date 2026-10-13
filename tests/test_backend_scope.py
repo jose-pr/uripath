@@ -328,8 +328,6 @@ _PURE_OPERATIONS = [
 ]
 
 
-
-
 # --- a derived backend is recorded on the path ------------------------------
 
 

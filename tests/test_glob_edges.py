@@ -100,10 +100,6 @@ def _compare(tree, impl_base, method, pattern, **kwargs):
 # --- the anchor of an extended-length path is a prefix, not a wildcard ------
 
 
-
-
-
-
 # --- an explicit case_sensitive changes the case rule and nothing else ------
 
 _CASE_PATTERNS = [
@@ -121,10 +117,6 @@ _CASE_PATTERNS = [
     (" ", False),
     ("nul", False),
 ]
-
-
-
-
 
 
 # --- bound_loops needs a real identity --------------------------------------
@@ -154,10 +146,6 @@ def _identified(dev, ino):
     return Identified
 
 
-
-
-
-
 # --- a literal component is checked as the running pathlib checks it --------
 
 _LITERAL_PATTERNS = [
@@ -175,19 +163,7 @@ _LITERAL_PATTERNS = [
 ]
 
 
-
-
-
-
-
-
 # --- rglob(".") is every entry below, as pathlib's is -----------------------
-
-
-
-
-
-
 
 
 # --- the last literal is tested as the running pathlib tests it -------------
@@ -205,8 +181,6 @@ def links(tree):
     return tree
 
 
-
-
 # --- an unlistable base is reported, whatever the first component is --------
 
 
@@ -214,12 +188,6 @@ def _reported(base, method, pattern):
     seen = []
     list(getattr(base, method)(pattern, on_error=seen.append))
     return [type(error) for error in seen]
-
-
-
-
-
-
 
 
 # --- a recursive glob lists each directory once -----------------------------
@@ -252,24 +220,10 @@ def _listed_tree(cls):
     return root
 
 
-
-
-
-
-
-
 # --- two "**" reach a path along several splits; it is yielded once ---------
 
 
-
-
 # --- a carried pattern is validated when it is carried ----------------------
-
-
-
-
-
-
 
 
 # --- the audit events pathlib raises ----------------------------------------
@@ -303,8 +257,6 @@ print(json.dumps(out))
 """
 
 
-
-
 # --- a literal on a case-insensitive listing (3.12 selects it from the listing)
 
 
@@ -329,16 +281,6 @@ def _folding_tree():
 
 def _found(root, pattern, **kwargs):
     return sorted(_relative(p, root) for p in root.glob(pattern, **kwargs))
-
-
-
-
-
-
-
-
-
-
 
 
 # --- recurse_symlinks=True: "**" descends through symlinks to directories ---
@@ -412,8 +354,6 @@ def test_not_recursing_through_symlinks_stays_out_of_them(linked, linked_impl):
     }
 
 
-
-
 @pytest.fixture
 def looped(tmp_path):
     top = tmp_path / "looped"
@@ -429,10 +369,6 @@ def looped(tmp_path):
 # What a bounded walk may produce at most: a test that fails on a regression
 # instead of hanging on it.
 _LOOP_BOUND = 5000
-
-
-
-
 
 
 class _Ring(MemPath):
@@ -457,7 +393,3 @@ class _Ring(MemPath):
             return
         yield from super()._scandir()
         yield "loop", FileStat(stat.S_IFLNK | 0o777)
-
-
-
-
