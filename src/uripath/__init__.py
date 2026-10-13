@@ -1138,6 +1138,12 @@ def _rebuild_path(cls, uri, options, backend, schemesmap):
 
 URI._slot_names = _slot_names(URI)
 
+#: The `_make_child_relpath` implementations that only write a child's path:
+#: a class with any other builds a joined key one child at a time
+#: (`URI._join_children`). The module that defines a class with such a builder
+#: adds it.
+_DEFAULT_CHILD_BUILDERS = {URI._make_child_relpath}
+
 
 def _looks_like_uri(value: str, schemesmap=None) -> bool:
     """Whether a destination string is URI syntax rather than a path.
@@ -1681,9 +1687,4 @@ class URIPath(URI, Path):
             yield self._make_child_relpath(name, stat_hint=stat)
 
 
-#: The `_make_child_relpath` implementations that only write a child's path:
-#: a class with any other builds a joined key one child at a time
-#: (`URI._join_children`).
-_DEFAULT_CHILD_BUILDERS = frozenset(
-    {URI._make_child_relpath, URIPath._make_child_relpath}
-)
+_DEFAULT_CHILD_BUILDERS.add(URIPath._make_child_relpath)
