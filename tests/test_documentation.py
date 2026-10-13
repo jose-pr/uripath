@@ -25,6 +25,7 @@ PUBLIC_MODULES = [
     "uripath.schemes",
     "uripath.source",
     "uripath.transports",
+    "uripath.testing",
     "uripath.cli",
 ]
 HISTORY = re.compile(
