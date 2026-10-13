@@ -39,7 +39,10 @@ dependencies = [
 uripath = "uripath._oldcli:main"
 
 [project.optional-dependencies]
+# The command line. 0.7.3 added duho.running_mode(), which the commands use.
+cli = ['duho>=0.7.3,<0.8']
 dev = [
+    'uripath[cli]',
     'build',
     'twine',
     'hatchling',
