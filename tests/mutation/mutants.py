@@ -741,7 +741,7 @@ mutant(
 mutant(
     "uri-equals-text-as-written",
     "_uri.py",
-    "                uri = URI(other).as_uri()\n",
+    "                uri = URI(other)._identity()\n",
     "                uri = other\n",
     f"{_FILE_TEXT}::test_a_uri_equals_the_text_that_names_it",
     "a URI is false against the canonical text of its own file",
