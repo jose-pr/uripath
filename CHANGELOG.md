@@ -7,13 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+The first release of `uripath`: the URI layer of `pathlib-next` 0.9.14
+(`pathlib_next.uri` and the `uripath` command) as a distribution of its own. It
+needs Python 3.9 or newer, `pathlib-next>=0.10.0,<0.11` and
+`netimps>=0.4.0,<0.5`, and nothing else; its one extra, `cli`, adds the command
+(`duho>=0.7.3,<0.8`). Every scheme it implements runs on the standard library.
+Under *Changed*, the migration from `pathlib_next.uri` comes in this order: the
+table of names, the table of extras, then every change of behaviour with what to
+do about it.
+
 ### Added
 
-- `uripath`, the URI layer of `pathlib-next` as its own distribution: `URI`,
-  `URIPath`, `Source` and `Query`, the schemes `file:`, `data:`, `ftp:`, `ftps:`,
-  `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:`, `davs:`, `github:`,
-  `gitlab:` and `git:`, and the `uripath` command. It depends on `pathlib-next`
-  and `netimps`.
+- `URI`, `URIPath`, `Source` and `Query`, the schemes `file:`, `data:`, `ftp:`,
+  `ftps:`, `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:`, `davs:`,
+  `github:`, `gitlab:` and `git:`, and the `uripath` command, with
+  `uripath.__version__` (read from the installed metadata).
 - `sftp:`, `s3:`, `gs:` and `az:` are known scheme names that this distribution
   does not implement. A path of one joins, compares and prints without the
   distribution that provides it; the first operation that needs the server
@@ -23,7 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   lists the four, and `URIPath.scheme_class()` raises the same error for them.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
-- `uripath.__version__`, read from the installed metadata.
+- `uripath.exceptions`: `URIPathError`, the base of what this package raises
+  on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
+  `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).
+  `InsecureTransportWarning` is there too.
+- `uripath.source.fold_host(host)` returns the form of a host that comparisons
+  and caches key on.
+- `DataURIPath.charset` is the charset a `data:` URI declares.
 - `FTPURIBackend` and `BaseFTPURIBackend` have `close()` and are context
   managers: `close()` closes the control connection every thread holds to the
   servers of that backend, may be called twice, and a later use connects
@@ -35,8 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `ftp://h/x` and `data:,abc` are URIs), and `uripath.copy_stream(source,
   target)` copies the bytes of a path or a binary stream into another in chunks,
   with `exclusive=True` for an exclusive create. The `uripath` command is built
-  on them. `copy_stream` raises `uripath.exceptions.OutputClosedError`, also a
-  `BrokenPipeError`, when the reader of a target stream went away.
+  on them. `copy_stream` raises `OutputClosedError` when the reader of a target
+  stream went away.
 - `python -m uripath` runs the command, and `uripath --version` prints the
   version. The command describes itself to an agent (`AGENT_HELP=1 uripath
   --help` prints one JSON document) and can be served as tools
@@ -46,16 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Import from `uripath` where the code imported from `pathlib_next.uri`.
-  `pathlib_next.uri` and `pathlib_next.tools.uripath` are not in this
-  distribution. The classes spell their acronyms in capitals, and the class of a
-  scheme is named `<Scheme>URIPath`, so `<Scheme>Path` stays the class that needs
-  no URI. A scheme's module is private: every public name of a scheme is
-  exported by `uripath.schemes`. There is no alias for an old name or path:
-  change the import. Everything that moved or was renamed is in this table.
+- Import from `uripath` where the code imported from `pathlib_next.uri`. There
+  is no alias for an old name or path: change the import. The classes spell
+  their acronyms in capitals, and the class of a scheme is named
+  `<Scheme>URIPath`, so `<Scheme>Path` stays the class that needs no URI. A
+  scheme's module is private: every public name of a scheme is exported by
+  `uripath.schemes`. Everything that was renamed or moved:
 
-  | Was (in `pathlib_next.uri`) | Is (in `uripath`) |
+  | Was (in `pathlib_next.uri`, `pathlib_next` 0.9.14) | Is |
   | --- | --- |
+  | the package `pathlib_next.uri` | `uripath` |
+  | `Path`, `Pathname`, `FileStat` imported from `pathlib_next.uri` | the same names in `pathlib_next` |
   | `Uri`, `UriPath`, `UriLike` | `uripath.URI`, `URIPath`, `URILike` |
   | `source.Source` | `uripath.Source`, also `uripath.source.Source` |
   | `source.compose_uri`, `compose_host`, `percent_encode`, `is_drive`, `SAFE_PATH`, `ERRORS` | the same names in `uripath.source` |
@@ -66,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   | `Source.from_str(text, strict)` | `Source.parse(text, *, strict=True)`, and `Source.try_parse(text, default=None, *, strict=True)` |
   | `Source.as_str(sanitize=True)` | `str(source)` |
   | `Source.as_str(sanitize=False)` | `Source.reveal()` |
+  | the modules `schemes.file`, `data`, `dav`, `ftp`, `http`, `github`, `gitlab`, `archive`, `git` | private; each public name is `uripath.schemes.<Name>` |
   | `schemes.file.FileUri`, `schemes.data.DataUri` | `uripath.schemes.FileURIPath`, `DataURIPath` |
   | `schemes.archive.ZipUri`, `TarUri`, `ArchiveUri` | `uripath.schemes.ZipURIPath`, `TarURIPath`, `ArchiveURIPath` |
   | `schemes.archive.ArchiveZipUri`, `ArchiveTarUri` | `uripath.schemes.ArchiveZipURIPath`, `ArchiveTarURIPath` |
@@ -83,10 +99,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   | `schemes.gitlab.GitLabPath` | `uripath.schemes.GitLabURIPath` |
   | `schemes.git.GitPath`, `GitHubGitPath`, `GitLabGitPath` | `uripath.schemes.GitURIPath`, `GitHubGitURIPath`, `GitLabGitURIPath` |
   | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `uripath.exceptions.InsecureTransportWarning` |
+  | `schemes.sftp`, `schemes.s3`, `schemes.gs`, `schemes.az` and the classes in them | the distributions `uripath-sftp` and `uripath-objstore`, which name their own classes |
+  | `schemes.http.RequestsTransport` | the distribution `uripath-http-requests` |
+  | `pathlib_next.tools.uripath`: `main(argv, *, stdin, stdout, stderr)`, `build_parser()` | `uripath.cli.main(argv=None)`; no parser to build |
+  | `PATHLIB_NEXT_HTTP_TRANSPORT` | `URIPATH_HTTP_TRANSPORT` |
+  | `PATHLIB_NEXT_SFTP_BACKEND` | `URIPATH_SFTP_BACKEND`, read by `uripath-sftp` |
+  | the entry-point group `pathlib_next.schemes` | `uripath.schemes` |
+  | the script `uripath = pathlib_next.tools.uripath:main` | `uripath = uripath.cli:main`, which needs the `cli` extra; `python -m uripath` runs it too |
 
   The `ftp:` backends are not `pathlib_next.ftp.FTPBackend` and `BaseFTPBackend`:
   those belong to one host, while `FTPURIBackend` connects to whichever server a
   path names.
+
+- What to install where `pathlib-next` had an extra. `pathlib-next` 0.10 has no
+  `uri`, `http`, `sftp`, `sftp-async`, `s3`, `gs` or `az` extra.
+
+  | Was | Install now |
+  | --- | --- |
+  | `pathlib-next[uri]` | `uripath` |
+  | `pathlib-next[http]` | `uripath`; add `uripath-http-requests` only for a `requests.Session` or `URIPATH_HTTP_TRANSPORT=requests` |
+  | `pathlib-next[sftp]` | `uripath-sftp[paramiko]` |
+  | `pathlib-next[sftp-async]` | `uripath-sftp[asyncssh]` |
+  | `pathlib-next[s3]`, `[gs]`, `[az]` | `uripath-objstore[s3]`, `[gs]`, `[az]` |
+  | the `uripath` command (part of `pathlib-next[uri]`) | `uripath[cli]` |
+
+  `uritools` is no longer installed with the URI layer; `netimps` is a required
+  dependency.
+
 - `Query` is an immutable value and no longer a subclass of `str`. Was: a `str`
   that also took pairs, so `len(query)`, `query[0]`, `"x" in query`,
   `query.split("&")` and `query == "a=1"` worked as on a string while iterating
@@ -111,20 +150,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   *, strict=True)` (the default instead of the error, and still a `TypeError`
   for what is not text), `str(source)` (the canonical text, without the
   password) and `source.reveal()` (the text with the password, named as an
-  action because it carries the secret). `strict` is keyword-only. There is no
-  alias: replace the call. `Source` is still a named tuple, so positional
+  action because it carries the secret). `strict` is keyword-only. What to do:
+  replace the call. `Source` is still a named tuple, so positional
   construction and unpacking are unchanged.
 - A join keeps the query and the fragment of the path it starts from. Was:
   `Uri("unk://h/d?sig=abc#frag") / "f"` and `joinpath("f")` gave
   `unk://h/d/f`, and so did the children `iterdir()`, `glob()` and `walk()`
   yield, while `parent`, `with_name()`, `with_stem()`, `with_suffix()` and
-  `relative_to()` kept both (`pathlib_next.uri` 0.9.6 and earlier kept them in
-  a join too), so `p.parent / p.name == p` was false for a path with a query.
-  Is: every derivation that changes only the path keeps both, and a token in
-  the query follows the children (`unk://h/d/f?sig=abc#frag`). The children of
-  an `http:` or `dav:` listing are the exception: they are the `href`s of the
-  reply resolved against the directory, so they carry neither, and
-  `?sort=name`, which shapes an index, does not reach the files it lists
+  `relative_to()` kept both, so `p.parent / p.name == p` was false for a path
+  with a query. Is: every derivation that changes only the path keeps both, and
+  a token in the query follows the children (`unk://h/d/f?sig=abc#frag`). The
+  children of an `http:` or `dav:` listing are the exception: they are the
+  `href`s of the reply resolved against the directory, so they carry neither,
+  and `?sort=name`, which shapes an index, does not reach the files it lists
   (`directory / "f.txt"` keeps it). A `str` destination of `rename()`,
   `copy()` and `move()` is another resource and takes neither. What to do:
   nothing, unless a caller relied on the join dropping them; call
@@ -188,8 +226,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   tuples, exactly; `compose_host()` and `compose_uri()` keep the case of a
   name; an internationalized name is still written in IDNA form. What to do:
   compare hosts with `uripath.source.same_authority()` or
-  `uripath.source.fold_host()` (new) instead of `source.host == "name"`, and
-  key anything you keep per server on `fold_host(source.host)`.
+  `uripath.source.fold_host()` instead of `source.host == "name"`, and key
+  anything you keep per server on `fold_host(source.host)`.
 - A constructor raises `TypeError` for a keyword argument it does not name.
   Was: `URI("x", anything=1)` and `URIPath("https://h/x", backnd=backend)`
   were accepted and the keyword ignored, so a misspelt `backend=` meant "use
@@ -206,35 +244,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   provider, a `zip:` URI without the scheme of its archive. It is a subclass of
   `ValueError`, so `except ValueError` still catches it. `URIPath.scheme_class()`
   of a scheme nobody registered raises `UnsupportedSchemeError`, also a
-  `ValueError`. Both derive from `URIPathError`, which `uripath` exports with
-  them; a caller's bad argument stays a plain `ValueError` or `TypeError`.
-- The environment variable that chooses the default HTTP transport is
-  `URIPATH_HTTP_TRANSPORT`. `PATHLIB_NEXT_HTTP_TRANSPORT` is not read: set the
-  new one.
+  `ValueError`. Both derive from `URIPathError`; a caller's bad argument stays a
+  plain `ValueError` or `TypeError`. What to do: nothing; catch `URIPathError`
+  to catch what the package raises on its own.
+- `PATHLIB_NEXT_HTTP_TRANSPORT` is not read, so a process that set it to
+  `requests` now builds the built-in transport. What to do: set
+  `URIPATH_HTTP_TRANSPORT` (`builtin` or `requests`).
 - Requests of `http:`, `dav:`, `github:` and `gitlab:` send
   `User-Agent: uripath/<version>` instead of `User-Agent: pathlib-next`; the
   version is `uripath.__version__`. A backend's `headers=` still replaces it.
-- The entry-point group for third-party schemes is `uripath.schemes`. A plugin
-  registered under `pathlib_next.schemes` is not found: register it under the
-  new group.
+- A plugin registered in the `pathlib_next.schemes` entry-point group is not
+  found. What to do: register it in `uripath.schemes`.
 - The `requests` HTTP transport is provided by `uripath-http-requests`.
   `HTTPURIPath.with_session()`, `RepoBackend(session=...)`, `RepoBackend(**requests_args)`
-  and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming it;
-  install it to use them. A proxy URL the built-in transport cannot use
-  (`socks5:`, `https:`) names it in its error too.
-- The only extra is `cli`, which holds the `uripath` command. `netimps` is a
-  required dependency, so `pip install uripath` is all that `pathlib-next[uri]`
-  was; the `http`, `sftp`, `sftp-async`, `s3`, `gs` and `az` extras are the
-  distributions named above.
+  and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
+  distribution without it, and a proxy URL the built-in transport cannot use
+  (`socks5:`, `https:`) names it in its error too. What to do: install
+  `uripath-http-requests` where one of them is used.
 - `uritools` is not a dependency. The RFC 3986 split of a URI and its
   percent-encoding and -decoding are done on `urllib.parse`, with the results
-  `uritools` gave for the same text (the tests compare the two over generated
-  URIs, components and encodings): the same safe sets, invalid escapes left as
+  `uritools` gave for the same text: the same safe sets, invalid escapes left as
   they are, non-ASCII text kept, a lone surrogate or an escape that is not UTF-8
-  carried through `surrogateescape`, an empty authority told from none. Code
-  that imports `uritools` itself installs it.
+  carried through `surrogateescape`, an empty authority told from none.
   `import uripath` loads neither `uritools` nor `netimps`; `netimps` is
-  imported where it is used.
+  imported where it is used. What to do: code that imports `uritools` itself
+  installs it.
 - The `uripath` command is rebuilt on `duho` and needs the `cli` extra:
   `pip install "uripath[cli]"`. Was: part of the base install. Without the
   extra the command (and `python -m uripath`) prints which extra to install on
@@ -246,7 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     process's standard streams. Was: `main(argv, *, stdin=, stdout=, stderr=)`
     with injectable streams, and `build_parser()` returning an `argparse`
     parser. Neither exists any more; build a command with `duho.parse` to test
-    one. The module `uripath._oldcli` (`pathlib_next.tools.uripath`) is gone.
+    one.
   - Usage, `--help` and the wording of a usage error are `duho`'s, not
     `argparse`'s; a wrong invocation still exits with status 2.
   - Every command takes `-v`, `-q` and `--loglevel`, which set the level of the
@@ -260,3 +294,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - `--` ends the options and accepts no argument after it. Was: `argparse`
     took what followed as positional arguments, so `uripath rm -- -name`
     removed `-name`; write `uripath rm ./-name`.
+
+[Unreleased]: https://github.com/jose-pr/uripath/commits/main
