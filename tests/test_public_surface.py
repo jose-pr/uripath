@@ -22,6 +22,8 @@ HEADER = PACKAGE / "AGENTS.md"
 DOCUMENTED = {
     "uripath": {
         "__version__",
+        "as_path",
+        "copy_stream",
         "Query",
         "QueryLike",
         "Source",
@@ -34,6 +36,7 @@ DOCUMENTED = {
     },
     "uripath.exceptions": {
         "InsecureTransportWarning",
+        "OutputClosedError",
         "URIPathError",
         "URISyntaxError",
         "UnsupportedSchemeError",

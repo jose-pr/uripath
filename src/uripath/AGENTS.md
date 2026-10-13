@@ -8,8 +8,9 @@ self-contained. Development documentation lives with the source at
 
 Names are imported from the module named in the heading of the section that
 documents them. The root `uripath` exports `URI`, `URIPath`, `URILike`,
-`Source`, `Query`, `QueryLike`, the errors `URIPathError`, `URISyntaxError` and
-`UnsupportedSchemeError`, and `__version__`; the other public modules are
+`Source`, `Query`, `QueryLike`, the functions `as_path` and `copy_stream`, the
+errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and
+`__version__`; the other public modules are
 `uripath.source`, `uripath.query`, `uripath.exceptions` and `uripath.schemes`
 (the contract a scheme implements, the registry, and the names every scheme
 exports). A module or name that starts with an underscore is private and
@@ -281,6 +282,41 @@ class does.
   connection. A one-letter scheme is read as a drive, so `C:/Temp/x` is a
   decoded path: the Windows path of that name on a `file:` path, a relative
   sibling (`http://h/d/C:/Temp/x`) on any other scheme.
+
+### `as_path` and `copy_stream` (`uripath`)
+
+```python
+def as_path(text: str) -> LocalPath | URIPath: ...
+def copy_stream(
+    source: str | os.PathLike | Path | BinaryIO,
+    target: str | os.PathLike | Path | BinaryIO,
+    *,
+    exclusive: bool = False,
+    chunk_size: int = 1048576,
+) -> None: ...
+```
+
+`as_path(text)` reads text the way the `uripath` command reads an argument.
+It is a `URIPath` when it starts with an RFC 3986 scheme and either holds
+`://` or the scheme is one a class registers (`data:`, `zip:`, `file:`,
+`sftp:`, ...); anything else is a `LocalPath`, so `C:/data` (a one-letter
+scheme is a drive), `12:30.txt`, `notes:draft` and `./a:b` stay local. A
+scheme another distribution provides gives a `URIPath` whose first I/O raises
+the `ImportError` that names what to install. `TypeError` for what is not a
+`str`. It reads and connects to nothing.
+
+`copy_stream(source, target)` copies bytes, `chunk_size` at a time, without
+holding the object in memory. Each end is a binary stream (anything with
+`read()` or `write()`), a path object, or text for `as_path()`; no text is
+special, so `"-"` names a file called `-`. A path is opened and closed
+inside the call; a stream stays open and is the caller's, and a target
+stream is flushed at the end. `exclusive=True` opens a target path with an
+exclusive create and raises `FileExistsError` for an existing one (no
+check-then-write race); it means nothing for a target stream. A target
+stream whose reader went away (a pipe whose other end closed; Windows reports
+`OSError(EINVAL)`) raises `OutputClosedError`, which is also a
+`BrokenPipeError`; the same error from a path's own connection is not
+translated.
 
 ## Sources (`uripath.source`)
 
@@ -1103,6 +1139,7 @@ For the `requests` transport, `HTTPURIPath.with_session()`, a
 class URIPathError(Exception): ...
 class URISyntaxError(URIPathError, ValueError): ...
 class UnsupportedSchemeError(URIPathError, ValueError): ...
+class OutputClosedError(URIPathError, BrokenPipeError): ...
 class InsecureTransportWarning(UserWarning): ...
 ```
 
@@ -1116,6 +1153,8 @@ exports it and the two below.
   fault and never the text, which can carry a password.
 - `UnsupportedSchemeError` — `URIPath.scheme_class(name)` for a scheme nobody
   registered; the message lists the registered ones.
+- `OutputClosedError` — `copy_stream()` found that the reader of its target
+  stream went away; only `uripath.exceptions` exports it.
 - `InsecureTransportWarning` — a `RepoBackend` is about to send an
   `Authorization` header over plain `http://` to a host that is not this
   machine (see `GitHubURIPath`).

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 __all__ = [
     "InsecureTransportWarning",
+    "OutputClosedError",
     "URIPathError",
     "URISyntaxError",
     "UnsupportedSchemeError",
@@ -29,6 +30,13 @@ class URISyntaxError(URIPathError, ValueError):
 class UnsupportedSchemeError(URIPathError, ValueError):
     """A scheme that no class registered. The message lists the registered
     ones."""
+
+
+class OutputClosedError(URIPathError, BrokenPipeError):
+    """The reader of a stream that `copy_stream()` was writing went away: a
+    pipe whose other end closed (`uripath read big | head`). It is raised for
+    a stream passed as the target, never for a failure on a path's own
+    connection."""
 
 
 class InsecureTransportWarning(UserWarning):

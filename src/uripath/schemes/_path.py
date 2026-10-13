@@ -30,7 +30,7 @@ if _ty.TYPE_CHECKING:
 
 
 #: An RFC 3986 scheme followed by its colon, used to tell a URI destination
-#: from a path one (see `_looks_like_uri`).
+#: from a path one (see `_looks_like_uri`, which `as_path()` also applies).
 _URI_SCHEME_RE = _re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*:")
 
 
@@ -85,8 +85,8 @@ def _looks_like_uri(value: str, schemesmap=None) -> bool:
     Needs an RFC 3986 scheme prefix; without `://` the scheme must also be
     one a class registers, so an ordinary relative name whose first segment
     happens to carry a colon (`notes:draft`, `Fedora-42:latest.tar`) stays a
-    path. A one-letter scheme is a Windows drive (`C:/Temp`). Same rule
-    the `uripath` command applies to its arguments.
+    path. A one-letter scheme is a Windows drive (`C:/Temp`). `as_path()`
+    applies the same rule to a path given as text.
     `schemesmap` is the allow-list the scheme is looked up in, if any.
     """
     match = _URI_SCHEME_RE.match(value)
@@ -459,7 +459,7 @@ class URIPath(URI, Path):
         instead of building a sourceless path plus a second connection.
 
         A single-letter scheme is a Windows drive, not a scheme: `C:/Temp/x`
-        is a path (the same rule the `uripath` CLI applies).
+        is a path (the same rule as `as_path()`).
         """
         if _looks_like_uri(target, self._schemes_in_use):
             destination = type(self)(
