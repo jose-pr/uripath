@@ -16,7 +16,8 @@ divergence that is not recorded there is a bug.
 | Path | Contents |
 | --- | --- |
 | `src/uripath/` | The package (`src/` layout). `py.typed` and the API header ship with it. |
-| `src/uripath/schemes/` | One module or package per URI scheme, registered through the `uripath.schemes` entry points in `pyproject.toml` and the built-in table in `uripath/__init__.py`. |
+| `src/uripath/_uri.py`, `source/`, `query.py`, `exceptions.py` | `URI`, `Source` (a package of private modules), `Query` and the errors; the root `__init__.py` only exports. |
+| `src/uripath/schemes/` | The contract (`_path.py`: `URIPath`), the registry (`_registry.py`: the built-in table and the entry points) and one private module or package per scheme (`_file.py`, `_http/`, ...); `__init__.py` exports their names lazily. Registered through the `uripath.schemes` entry points in `pyproject.toml`. |
 | `src/uripath/schemes/_elsewhere.py` | The schemes and the HTTP transport that other distributions provide, and the `ImportError` naming what to install. |
 | `tests/` | The pytest suite. `tests/conftest.py` holds the loopback servers. |
 | `benchmarks/` | `bench.py`; see [`benchmarks/README.md`](benchmarks/README.md). Not shipped. |
@@ -73,23 +74,7 @@ python tests/mutation/run.py --jobs 4                # every guard's tests must 
   raised, and never asserts how fast something happened or how far an
   operation got.
 
-## Conventions
-
-- **Formatting is black**, pinned to `target-version = ["py39"]` so it never
-  emits syntax the floor cannot parse. No linter or type checker is enforced.
-- **Every file is LF** (`.gitattributes` sets `* text=auto eol=lf`). On Windows,
-  black writes CRLF: convert the files back to LF after formatting and check
-  `git diff --stat` for whitespace-only churn.
-- **3.9 compatibility**: any module using `X | Y` in a runtime-evaluated
-  annotation needs `from __future__ import annotations`.
-- **`*.local.*` files** are per-machine overrides: gitignored and excluded from
-  both build targets. Keep hostnames and credentials in those, never in tracked
-  files.
-- Logical commits in `type: description` form (`feat:`, `fix:`, `docs:`,
-  `chore:`); keep code with its tests, and docs, config and CI in separate
-  commits. No agent attribution in commit messages.
-
-## CI
+### CI
 
 Workflows live in `.github/workflows/`:
 
@@ -110,6 +95,22 @@ Workflows live in `.github/workflows/`:
 - `docs.yml` owns every GitHub Pages deploy: on a push to `main` that touches the
   docs sources and on `workflow_dispatch`, which `release.yml` fires for a final
   tag.
+
+## Conventions
+
+- **Formatting is black**, pinned to `target-version = ["py39"]` so it never
+  emits syntax the floor cannot parse. No linter or type checker is enforced.
+- **Every file is LF** (`.gitattributes` sets `* text=auto eol=lf`). On Windows,
+  black writes CRLF: convert the files back to LF after formatting and check
+  `git diff --stat` for whitespace-only churn.
+- **3.9 compatibility**: any module using `X | Y` in a runtime-evaluated
+  annotation needs `from __future__ import annotations`.
+- **`*.local.*` files** are per-machine overrides: gitignored and excluded from
+  both build targets. Keep hostnames and credentials in those, never in tracked
+  files.
+- Logical commits in `type: description` form (`feat:`, `fix:`, `docs:`,
+  `chore:`); keep code with its tests, and docs, config and CI in separate
+  commits. No agent attribution in commit messages.
 
 ## Releasing
 
