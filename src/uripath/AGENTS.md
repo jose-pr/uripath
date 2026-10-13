@@ -11,9 +11,10 @@ documents them. The root `uripath` exports `URI`, `URIPath`, `URILike`,
 `Source`, `Query`, `QueryLike`, the functions `as_path` and `copy_stream`, the
 errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and
 `__version__`; the other public modules are
-`uripath.source`, `uripath.query`, `uripath.exceptions` and `uripath.schemes`
+`uripath.source`, `uripath.query`, `uripath.exceptions`, `uripath.schemes`
 (the contract a scheme implements, the registry, and the names every scheme
-exports). A module or name that starts with an underscore is private and
+exports) and `uripath.transports` (the HTTP transports that exist, and what a
+new one starts from). A module or name that starts with an underscore is private and
 nothing there is contract: every scheme lives in a private module.
 
 `pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11` and
@@ -613,14 +614,17 @@ class HTTPResponse:
 - **Choosing the transport.** `path.with_transport(transport, headers=None,
   timeout=(10, 60), write_method="PUT", append_mode="rewrite")` installs a
   backend over any transport (the caller closes it). `path.with_session(
-  session, ...)` is the same over a `requests.Session`; that transport is
-  provided by `uripath-http-requests`, and without it the call raises
-  `ImportError` naming it. Without either, a path's backend builds the
+  session, write_method="PUT", append_mode="rewrite", **requests_args)` is the
+  same over a `requests.Session` (`None` makes a new one): `headers` and
+  `timeout` in `requests_args` are the backend's, the rest go to the `requests`
+  transport, which `uripath-http-requests` provides ("For transport
+  implementers"). Without that distribution the call raises `ImportError`
+  naming it. Without either, a path's backend builds the
   built-in transport on first use (`HTTPBackend.close()` or leaving its
   `with` block closes a transport the backend built); the environment variable
-  `URIPATH_HTTP_TRANSPORT` (`builtin` or `requests`) names that default
-  for the process. `HTTPBackend(transport=None, *, headers=None, timeout,
-  write_method, append_mode)` is the backend a path holds.
+  `URIPATH_HTTP_TRANSPORT` (`builtin`, or the name of an installed transport)
+  names that default for the process. `HTTPBackend(transport=None, *,
+  headers=None, timeout, write_method, append_mode)` is the backend a path holds.
 - **What the backend does for every transport.** It follows redirects, adds
   credentials and default headers (`User-Agent: uripath/<version>`, `Accept: */*`),
   applies the default timeout, and maps a status to a pathlib exception.
@@ -1108,6 +1112,38 @@ Composing text:
   (`"surrogateescape"`: a byte that is not UTF-8 survives the round trip).
 - `is_drive(segment)` — whether a segment is a Windows drive (`"C:"`).
 
+## For transport implementers (`uripath.transports`)
+
+```python
+# uripath.transports
+GROUP = "uripath.http_transports"
+def names() -> tuple[str, ...]: ...
+def get(name: str) -> type: ...
+```
+
+A distribution provides an HTTP transport by declaring an entry point in the
+group `uripath.http_transports`: the name is the transport's (`requests`) and
+the value names a class that is built with no arguments (`pyproject.toml`:
+`[project.entry-points."uripath.http_transports"]`, `requests =
+"uripath_http_requests:RequestsTransport"`). The class implements "The
+transport contract" above: `send()` and `close()`.
+
+- `names()` — the transport names, sorted: `builtin`, every entry of the group
+  of an installed distribution, and `requests` whether or not its distribution
+  is installed. Nothing is imported to list them.
+- `get(name)` — the class called `name`; the name is case-sensitive.
+  `builtin` is always `uripath.schemes.HTTPTransport`: an entry called
+  `builtin` in the group is ignored. A transport that another distribution
+  provides and that is not installed raises `ImportError` naming it; any other
+  name is a `ValueError` listing `names()`; an entry that does not load a class
+  is a `TypeError`.
+- Who calls it: `URIPATH_HTTP_TRANSPORT=<name>` builds `get(name)()` for a
+  backend that was given no transport; `path.with_session(session,
+  **requests_args)` and `RepoBackend(session=session, **requests_args)` build
+  `get("requests")(session, **requests_args)`. A distribution that provides
+  `requests` therefore takes `session=None` and the keyword arguments of
+  `requests.Session.request()`.
+
 ## Provided by other distributions
 
 `uripath` knows these schemes and this transport by name and does not contain
@@ -1126,12 +1162,17 @@ the server (`stat()`, `exists()`, `open()`, `iterdir()`, a write, `rename()`,
 the install command and never the URI (it can carry a password). So does
 `URIPath.scheme_class(name)`. The installed distribution registers its own
 class for the name, through an entry point of the group `uripath.schemes`, and
-that class is used.
+that class is used; its constructor takes the keywords that its `_OPTIONS`
+names. An entry point never takes a built-in scheme over: `file`, `http` and
+the other names `URIPath.schemes()` lists as built in keep their classes, and
+a class that names one without `replace=True` is a `ValueError` where it is
+defined.
 
 For the `requests` transport, `HTTPURIPath.with_session()`, a
 `RepoBackend(session=...)` or `RepoBackend(**requests_args)` and
-`URIPATH_HTTP_TRANSPORT=requests` raise `ImportError` naming
-`uripath-http-requests`.
+`URIPATH_HTTP_TRANSPORT=requests` use the class that the installed
+`uripath-http-requests` declares in the group `uripath.http_transports`, and
+raise `ImportError` naming it when it is not installed.
 
 ## Exceptions
 
@@ -1227,12 +1268,13 @@ option is off unless it is passed.
 
 ### `URIPATH_HTTP_TRANSPORT` (URI layer)
 
-`builtin` (the default when unset) or `requests`: the transport that `http(s):`,
-`dav(s):`, `github:`, `gitlab:` and `git:` build for a backend that was not
-given one (`HTTPTransport`, or the `requests` transport of
-`uripath-http-requests`; without that distribution `requests` raises
-`ImportError` naming it). The value is case-sensitive, and an empty or
-unrecognised one raises `ValueError` naming the choices. It is read when a
+`builtin` (the default when unset), or the name of a transport an installed
+distribution declares (`requests`, from `uripath-http-requests`): the
+transport that `http(s):`, `dav(s):`, `github:`, `gitlab:` and `git:` build for
+a backend that was not given one. `requests` without that distribution raises
+`ImportError` naming it. The value is case-sensitive, and an empty or
+unrecognised one raises `ValueError` naming the choices (`transports.names()`).
+It is read when a
 backend first needs its transport, once per backend, so a change reaches
 backends built afterwards. `with_transport()` and `with_session()` do not read
 it.

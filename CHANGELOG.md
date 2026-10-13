@@ -31,6 +31,12 @@ do about it.
   lists the four, and `URIPath.scheme_class()` raises the same error for them.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
+- `uripath.transports`: `names()` lists the HTTP transports without importing
+  them and `get(name)` returns the class of one. A distribution provides a
+  transport by declaring an entry point in the `uripath.http_transports` group
+  (`uripath-http-requests` declares `requests`); `builtin` is always the
+  built-in `HTTPTransport`, and an entry of that name is ignored.
+  `URIPATH_HTTP_TRANSPORT` accepts any name `names()` lists.
 - `uripath.exceptions`: `URIPathError`, the base of what this package raises
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).
@@ -260,7 +266,8 @@ do about it.
   and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
   distribution without it, and a proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too. What to do: install
-  `uripath-http-requests` where one of them is used.
+  `uripath-http-requests` where one of them is used; with it installed they
+  send through its transport and nothing else is configured.
 - `uritools` is not a dependency. The RFC 3986 split of a URI and its
   percent-encoding and -decoding are done on `urllib.parse`, with the results
   `uritools` gave for the same text: the same safe sets, invalid escapes left as

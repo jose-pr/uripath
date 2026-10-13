@@ -9,31 +9,33 @@ import typing as _ty
 from ._builtin import HTTPTransport
 
 TRANSPORT_ENV = "URIPATH_HTTP_TRANSPORT"
-"""Names the transport a backend builds for itself: `builtin`, or `requests`
-(provided by `uripath-http-requests`). Read when that transport is first
-needed; unset means `DEFAULT_TRANSPORT`."""
+"""Names the transport a backend builds for itself: `builtin`, or the name of
+one that an installed distribution declares in the `uripath.http_transports`
+group (`requests`, from `uripath-http-requests`). Read when that transport is
+first needed; unset means `DEFAULT_TRANSPORT`."""
 
 DEFAULT_TRANSPORT = "builtin"
 
-CHOICES = ("builtin", "requests")
-
 
 def default_transport():
-    """A new transport of the kind `URIPATH_HTTP_TRANSPORT` names. A value
-    that is empty, differently cased or unknown is `ValueError`; `requests` is
-    `ImportError` naming the distribution that provides it."""
+    """A new transport of the kind `URIPATH_HTTP_TRANSPORT` names. A value that
+    is empty, differently cased or unknown is `ValueError` naming the choices;
+    one that another distribution provides and that is not installed is
+    `ImportError` naming it."""
     value = _os.environ.get(TRANSPORT_ENV)
     kind = DEFAULT_TRANSPORT if value is None else value
     if kind == "builtin":
         return HTTPTransport()
-    if kind == "requests":
-        from .. import _elsewhere
+    from ... import transports
 
-        raise _elsewhere.requests_transport_missing()
-    raise ValueError(
-        f"{TRANSPORT_ENV}={kind!r} is not an HTTP transport "
-        f"(expected one of {', '.join(map(repr, CHOICES))})"
-    )
+    try:
+        transport_class = transports.get(kind)
+    except ValueError:
+        raise ValueError(
+            f"{TRANSPORT_ENV}={kind!r} is not an HTTP transport "
+            f"(expected one of {', '.join(map(repr, transports.names()))})"
+        ) from None
+    return transport_class()
 
 
 class TransportOwner:

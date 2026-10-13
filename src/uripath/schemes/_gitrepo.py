@@ -14,7 +14,6 @@ from ..exceptions import InsecureTransportWarning
 from ..source import Source
 from ._path import URIPath
 from ..source import compose_host, fold_host
-from . import _elsewhere
 from ._http import HTTPResponse, TransportOwner
 from ._http import _follow
 from ._http._headers import check_headers as _check_headers
@@ -179,7 +178,11 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         **requests_args,
     ):
         if session is not None or requests_args:
-            raise _elsewhere.requests_transport_missing()
+            if transport is not None:
+                raise TypeError("give a transport, or a session and its arguments")
+            from .. import transports
+
+            transport = transports.get("requests")(session, **requests_args)
         super().__init__(transport)
         self.token = token or None
         self.api_base = api_base.rstrip("/") if api_base else None

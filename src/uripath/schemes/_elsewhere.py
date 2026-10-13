@@ -37,13 +37,17 @@ SCHEMES = {
     ),
 }
 
-#: The HTTP transport `URIPATH_HTTP_TRANSPORT=requests` and `with_session()`
-#: ask for: (distribution, import name, what to run).
-REQUESTS_TRANSPORT = (
-    "uripath-http-requests",
-    "uripath_http_requests",
-    "pip install uripath-http-requests",
-)
+#: HTTP transport -> (the distribution that provides it, its import name, what
+#: to run to get it). A name listed here is known without the distribution; an
+#: installed distribution declares its own entry in the
+#: `uripath.http_transports` group.
+TRANSPORTS = {
+    "requests": (
+        "uripath-http-requests",
+        "uripath_http_requests",
+        "pip install uripath-http-requests",
+    ),
+}
 
 
 def not_installed(scheme: str) -> ImportError:
@@ -56,11 +60,11 @@ def not_installed(scheme: str) -> ImportError:
     )
 
 
-def requests_transport_missing() -> ImportError:
-    """The `ImportError` for the `requests` HTTP transport."""
-    distribution, package, install = REQUESTS_TRANSPORT
+def transport_not_installed(name: str) -> ImportError:
+    """The `ImportError` for an HTTP transport another distribution provides."""
+    distribution, package, install = TRANSPORTS[name]
     return ImportError(
-        f"the 'requests' HTTP transport is provided by the {distribution} "
+        f"the {name!r} HTTP transport is provided by the {distribution} "
         f"distribution: {install}",
         name=package,
     )

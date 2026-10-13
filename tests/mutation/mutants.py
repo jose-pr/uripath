@@ -311,12 +311,36 @@ mutant(
     "scheme_class('sftp') returns the stand-in instead of raising ImportError",
 )
 mutant(
-    "with-session-builds-a-backend-without-the-requests-distribution",
+    "transport-provided-elsewhere-that-is-not-installed-does-not-raise",
+    "transports.py",
+    "    if isinstance(name, str) and name in _elsewhere.TRANSPORTS:\n",
+    "    if False:\n",
+    "tests/test_transports.py::test_a_transport_provided_elsewhere_that_is_not_installed_names_the_distribution",
+    "get('requests') answers with a ValueError instead of naming uripath-http-requests",
+)
+mutant(
+    "transport-entry-point-replaces-the-built-in-transport",
+    "transports.py",
+    "    if name == _BUILTIN:\n",
+    "    if False:\n",
+    "tests/test_transports.py::test_an_entry_point_cannot_replace_the_built_in_transport",
+    "a distribution that declares an entry called builtin replaces the built-in transport",
+)
+mutant(
+    "with-session-ignores-the-installed-transport",
     "schemes/_http/_path.py",
-    "        raise _elsewhere.requests_transport_missing()\n",
-    "        return self\n",
-    "tests/test_elsewhere.py::test_with_session_names_the_distribution_that_provides_the_transport",
-    "with_session() answers as if a requests transport were installed",
+    '            transports.get("requests")(session, **requests_args),\n',
+    "            None,\n",
+    "tests/test_transports.py::test_with_session_sends_through_the_installed_transport",
+    "with_session() sends with the built-in transport and drops the session",
+)
+mutant(
+    "repository-backend-ignores-the-session",
+    "schemes/_gitrepo.py",
+    '            transport = transports.get("requests")(session, **requests_args)\n',
+    "            transport = None\n",
+    "tests/test_transports.py::test_a_repository_backend_builds_the_installed_transport_from_a_session",
+    "RepoBackend(session=...) sends with the built-in transport and drops the session",
 )
 mutant(
     "scheme-registry-same-qualified-name-in-another-module-is-the-same-class",

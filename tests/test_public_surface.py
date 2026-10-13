@@ -54,6 +54,7 @@ DOCUMENTED = {
         "same_authority",
     },
     "uripath.query": {"Query", "QueryLike"},
+    "uripath.transports": {"GROUP", "get", "names"},
     "uripath.cli": {"main"},
     "uripath.schemes": {
         "ArchiveTarURIPath",
@@ -122,6 +123,7 @@ def test_every_public_module_declares_all_and_the_others_are_private():
         "uripath.query",
         "uripath.schemes",
         "uripath.source",
+        "uripath.transports",
     ]
     has_duho = importlib.util.find_spec("duho") is not None
     for name in ["uripath", *public]:

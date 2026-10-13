@@ -1,10 +1,11 @@
-"""Schemes and an HTTP transport that other distributions provide.
+"""Schemes that other distributions provide.
 
-`sftp:`, `s3:`, `gs:` and `az:` and the `requests` transport are not part of
-this package. Their names are known: a path of such a scheme builds, joins,
-compares and prints, and the first operation that needs the server raises an
-`ImportError` naming the distribution to install. An installed distribution
-registers its own class and takes the name.
+`sftp:`, `s3:`, `gs:` and `az:` are not part of this package. Their names are
+known: a path of such a scheme builds, joins, compares and prints, and the
+first operation that needs the server raises an `ImportError` naming the
+distribution to install. An installed distribution registers its own class and
+takes the name. The `requests` HTTP transport is the same case for
+`test_transports.py`.
 """
 
 from __future__ import annotations
@@ -20,8 +21,6 @@ import pytest
 import uripath
 from uripath import URIPath
 from uripath.schemes import _elsewhere
-from uripath.schemes import RepoBackend
-from uripath.schemes import HTTPBackend, HTTPURIPath
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 
@@ -48,11 +47,6 @@ CASES = {
         'pip install "uripath-objstore[az]"',
     ),
 }
-
-REQUESTS_MESSAGE = (
-    "the 'requests' HTTP transport is provided by the uripath-http-requests "
-    "distribution: pip install uripath-http-requests"
-)
 
 #: Each is one public operation that needs the server.
 OPERATIONS = {
@@ -168,35 +162,3 @@ def test_an_installed_distribution_takes_the_scheme(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == ["Provided", "Provided", "ProvidedElsewhere"]
-
-
-# --- the requests transport -------------------------------------------------
-
-
-def test_with_session_names_the_distribution_that_provides_the_transport():
-    with pytest.raises(ImportError) as raised:
-        HTTPURIPath("http://h/x").with_session(object(), write_method="POST")
-    assert str(raised.value) == REQUESTS_MESSAGE
-    assert raised.value.name == "uripath_http_requests"
-
-
-@pytest.mark.parametrize("arguments", [{"session": object()}, {"verify": False}])
-def test_a_repository_backend_given_a_session_names_the_distribution(arguments):
-    with pytest.raises(ImportError) as raised:
-        RepoBackend(**arguments)
-    assert str(raised.value) == REQUESTS_MESSAGE
-
-
-def test_the_requests_transport_asked_for_by_the_environment_names_the_distribution(
-    monkeypatch,
-):
-    monkeypatch.setenv("URIPATH_HTTP_TRANSPORT", "requests")
-    with HTTPBackend() as backend:
-        with pytest.raises(ImportError) as raised:
-            backend.transport
-    assert str(raised.value) == REQUESTS_MESSAGE
-    # the choice is reported where a request is sent, not where a path is built
-    path = URIPath("http://127.0.0.1:1/x")
-    assert path.name == "x"
-    with pytest.raises(ImportError, match="uripath-http-requests"):
-        path.stat()

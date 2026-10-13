@@ -8,7 +8,7 @@ import urllib.parse as _urlparse
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from .. import _elsewhere, _httpdate
+from .. import _httpdate
 from .._path import URIPath
 from . import _follow, _settings
 from ._backend import HTTPBackend, _DerivedHTTPBackend
@@ -345,7 +345,20 @@ class HTTPURIPath(URIPath):
         append_mode: str = "rewrite",
         **requests_args,
     ):
-        """This path with a backend that sends through a `requests.Session`.
-        That transport is provided by the `uripath-http-requests`
-        distribution: without it this raises `ImportError` naming it."""
-        raise _elsewhere.requests_transport_missing()
+        """This path with a backend that sends through a `requests.Session`
+        (`session=None` makes a new one). `headers` and `timeout` in
+        `requests_args` are the backend's; the others (`auth`, `verify`,
+        `proxies`, `cert`, ...) go to the `requests` transport of
+        `uripath-http-requests`, which must be installed: without it this raises
+        `ImportError` naming it. The caller closes the transport."""
+        from ... import transports
+
+        headers = requests_args.pop("headers", None)
+        timeout = requests_args.pop("timeout", _settings.DEFAULT_TIMEOUT)
+        return self.with_transport(
+            transports.get("requests")(session, **requests_args),
+            headers=headers,
+            timeout=timeout,
+            write_method=write_method,
+            append_mode=append_mode,
+        )

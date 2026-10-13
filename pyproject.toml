@@ -81,6 +81,11 @@ git = "uripath.schemes:GitURIPath"
 "git+github" = "uripath.schemes:GitHubGitURIPath"
 "git+gitlab" = "uripath.schemes:GitLabGitURIPath"
 
+# The HTTP transports. `builtin` is this package's; a distribution declares its
+# own entry (`requests` is `uripath-http-requests`), a class built with no arguments.
+[project.entry-points."uripath.http_transports"]
+builtin = "uripath.schemes:HTTPTransport"
+
 [project.urls]
 Homepage = "https://github.com/jose-pr/uripath/"
 Documentation = "https://jose-pr.github.io/uripath/"
