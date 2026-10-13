@@ -354,8 +354,8 @@ mutant(
 mutant(
     "prepare-request-keeps-the-fragment",
     "transports.py",
-    '        method, url.split("#", 1)[0], sent, body, timeout, decode\n',
-    "        method, url, sent, body, timeout, decode\n",
+    '    return PreparedRequest(method, url.split("#", 1)[0], sent, body, timeout, decode)\n',
+    "    return PreparedRequest(method, url, sent, body, timeout, decode)\n",
     "tests/test_prepare_request.py::test_the_method_is_upper_case_and_the_fragment_is_dropped",
     "a transport built on prepare_request() sends the fragment of a URL",
 )
