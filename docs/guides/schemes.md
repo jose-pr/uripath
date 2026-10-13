@@ -164,7 +164,10 @@ host="h", user="u", tls=True)` is the same tree without a `ftp://` string.
 - **`ftps:` verifies the server certificate and host name** before logging in
   and reuses the TLS session on data connections. For a private CA pass
   `FTPURIBackend(ssl_context=ssl.create_default_context(cafile=...))`;
-  `FTPURIBackend(verify=False)` turns verification off.
+  `FTPURIBackend(verify=False)` turns verification off, and logs a warning on
+  the `uripath` logger each time one is built.
+- A backend is a context manager: `with FTPURIBackend() as backend:` closes the
+  connections of every thread when the block ends, as `backend.close()` does.
 - Paths built without `backend=` share one default backend, with one cached
   connection per server and thread, closed when the thread ends. A connection
   idle for more than `IDLE_PROBE_SECONDS` (1 second) is probed with `NOOP`
