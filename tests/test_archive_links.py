@@ -20,7 +20,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from pathlib_next import LocalPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next.archive import MAX_LINKS
 from pathlib_next.sync import PathSyncer
 
@@ -100,7 +100,7 @@ def _archive(tmp_path, fmt, entries=TREE, name="links"):
 
 
 def _root(path, fmt):
-    return UriPath(f"{fmt}:{path.as_uri()}!/")
+    return URIPath(f"{fmt}:{path.as_uri()}!/")
 
 
 @pytest.fixture(params=FORMATS)
@@ -294,7 +294,7 @@ def test_a_tar_hard_link_reads_as_the_file_and_is_no_symlink(tmp_path):
         info.type = tarfile.LNKTYPE
         info.linkname = "file.txt"
         archive.addfile(info)
-    hard = UriPath(f"tar:{path.as_uri()}!/hard")
+    hard = URIPath(f"tar:{path.as_uri()}!/hard")
     assert not hard.is_symlink()
     assert hard.is_file()
     assert hard.stat().st_size == 5
@@ -342,7 +342,7 @@ def test_a_zip_entry_with_a_link_mode_but_made_elsewhere_is_a_file(tmp_path):
         info.create_system = 0
         info.external_attr = (stat.S_IFLNK | 0o777) << 16
         archive.writestr(info, b"target")
-    member = UriPath(f"zip:{path.as_uri()}!/not-a-link")
+    member = URIPath(f"zip:{path.as_uri()}!/not-a-link")
     assert not member.is_symlink()
     assert member.read_bytes() == b"target"
 

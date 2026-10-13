@@ -1,8 +1,8 @@
 """Built-in URI schemes, one submodule each.
 
-A scheme class registers itself with `UriPath` when its submodule is
-imported, and `UriPath` imports the submodule on demand the first time its
-scheme is used. The class re-exports below (`HttpPath`, `FtpPath`, ...) are
+A scheme class registers itself with `URIPath` when its submodule is
+imported, and `URIPath` imports the submodule on demand the first time its
+scheme is used. The class re-exports below (`HTTPURIPath`, `FTPURIPath`, ...) are
 resolved lazily (PEP 562): importing this package, or one scheme submodule
 such as `.file`, imports no other backend, so a `file:` path never pays for
 `http.client`.
@@ -14,29 +14,29 @@ import importlib as _importlib
 import typing as _ty
 
 if _ty.TYPE_CHECKING:
-    from .archive import TarUri as TarUri
-    from .archive import ZipUri as ZipUri
-    from .data import DataUri as DataUri
-    from .dav import DavPath as DavPath
-    from .file import FileUri as FileUri
-    from .ftp import FtpPath as FtpPath
-    from .git import GitPath as GitPath
-    from .github import GitHubPath as GitHubPath
-    from .gitlab import GitLabPath as GitLabPath
-    from .http import HttpPath as HttpPath
+    from .archive import TarURIPath as TarURIPath
+    from .archive import ZipURIPath as ZipURIPath
+    from .data import DataURIPath as DataURIPath
+    from .dav import DAVURIPath as DAVURIPath
+    from .file import FileURIPath as FileURIPath
+    from .ftp import FTPURIPath as FTPURIPath
+    from .git import GitURIPath as GitURIPath
+    from .github import GitHubURIPath as GitHubURIPath
+    from .gitlab import GitLabURIPath as GitLabURIPath
+    from .http import HTTPURIPath as HTTPURIPath
 
 #: Re-exported class name -> the submodule that defines it.
 _EXPORTS = {
-    "TarUri": "archive",
-    "ZipUri": "archive",
-    "DataUri": "data",
-    "FileUri": "file",
-    "FtpPath": "ftp",
-    "HttpPath": "http",
-    "DavPath": "dav",
-    "GitHubPath": "github",
-    "GitLabPath": "gitlab",
-    "GitPath": "git",
+    "TarURIPath": "archive",
+    "ZipURIPath": "archive",
+    "DataURIPath": "data",
+    "FileURIPath": "file",
+    "FTPURIPath": "ftp",
+    "HTTPURIPath": "http",
+    "DAVURIPath": "dav",
+    "GitHubURIPath": "github",
+    "GitLabURIPath": "gitlab",
+    "GitURIPath": "git",
 }
 
 

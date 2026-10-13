@@ -12,7 +12,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from pathlib_next.ftp import _backend as ftp_mod
-from uripath.schemes.ftp import FtpBackend, FtpPath
+from uripath.schemes.ftp import FTPURIBackend, FTPURIPath
 
 from ftp_loopback import LoopbackFtp
 from waits import wait_until
@@ -35,10 +35,10 @@ def make():
     def start(**options):
         server = LoopbackFtp(**options)
         servers.append(server)
-        backend = FtpBackend(timeout=5)
+        backend = FTPURIBackend(timeout=5)
 
         def path(text):
-            return FtpPath(f"{server.url}{text}", backend=backend)
+            return FTPURIPath(f"{server.url}{text}", backend=backend)
 
         return server, path
 

@@ -1,7 +1,7 @@
 # uripath
 
-**One `pathlib`-style API for URIs.** `UriPath("https://...")`, `UriPath("zip:...")`
-and `UriPath("ftp://...")` return the class registered for the scheme, and each
+**One `pathlib`-style API for URIs.** `URIPath("https://...")`, `URIPath("zip:...")`
+and `URIPath("ftp://...")` return the class registered for the scheme, and each
 has the method names, signatures and exception types of `pathlib.Path`: write
 code once and it works against a local file, an archive member, an FTP or
 WebDAV server, a web directory or a GitHub or GitLab repository. `uripath`
@@ -31,17 +31,17 @@ distributions:
 
 ## Tour
 
-**URIs**: `UriPath` returns the class registered for the scheme:
+**URIs**: `URIPath` returns the class registered for the scheme:
 
 ```python
-from uripath import UriPath
+from uripath import URIPath
 
-report = UriPath("file:data/report.txt")
+report = URIPath("file:data/report.txt")
 report.parent.mkdir(parents=True, exist_ok=True)
 report.write_text("hello")
 print(type(report).__name__, report.read_text())
 
-inline = UriPath("data:text/plain;base64,aGVsbG8=")
+inline = URIPath("data:text/plain;base64,aGVsbG8=")
 print(type(inline).__name__, inline.read_text())
 ```
 
@@ -50,12 +50,12 @@ URI:
 
 ```python
 import zipfile
-from uripath import UriPath
+from uripath import URIPath
 
 with zipfile.ZipFile("backup.zip", "w") as archive:
     archive.writestr("etc/config.ini", "[main]\n")
 
-member = UriPath("zip:file:backup.zip!/etc/config.ini")
+member = URIPath("zip:file:backup.zip!/etc/config.ini")
 print(member.read_text())
 ```
 
@@ -63,12 +63,12 @@ print(member.read_text())
 
 <!-- example: skip: reads from remote hosts -->
 ```python
-from uripath import UriPath
+from uripath import URIPath
 
-for child in UriPath("https://example.com/data/").iterdir():
+for child in URIPath("https://example.com/data/").iterdir():
     print(child.name, child.stat().st_size)
 
-print(UriPath("ftp://user@host/pub/README").read_text())
+print(URIPath("ftp://user@host/pub/README").read_text())
 ```
 
 `exists()`, `is_dir()`, `iterdir()`, `glob()`, `walk()`,
@@ -82,7 +82,7 @@ per-scheme capabilities are in [Schemes](guides/schemes.md).
 - **[Schemes](guides/schemes.md)**: capability matrix and per-scheme notes
   (timeouts, authentication, security defaults).
 - **[CLI](guides/cli.md)**: the `uripath` command.
-- **[Extending](guides/extending.md)**: add a scheme by subclassing `UriPath`,
+- **[Extending](guides/extending.md)**: add a scheme by subclassing `URIPath`,
   and verify it with the bundled contracts.
 - **[Divergences from pathlib](divergences.md)**: every deliberate behavioral
   difference from `pathlib.Path`.

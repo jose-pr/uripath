@@ -1,4 +1,4 @@
-"""Copying and pickling a `UriPath`: a path is its URI. A pickle holds that and
+"""Copying and pickling a `URIPath`: a path is its URI. A pickle holds that and
 nothing else by default, `copy.copy`/`copy.deepcopy` share the backend object
 instead of duplicating a connection, and neither changes what `==`, `hash`,
 `_same_filesystem()` and `_node_key()` answer."""
@@ -15,7 +15,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from http_fakes import FakeTransport
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 from uripath.source import Source
 
 SECRET = b"S3CR3T-dummy"
@@ -75,7 +75,7 @@ def _roundtrip(path, protocol=pickle.HIGHEST_PROTOCOL):
     ],
 )
 def test_a_path_pickles_as_the_same_value(url, protocol):
-    path = UriPath(url)
+    path = URIPath(url)
     again = _roundtrip(path, protocol)
     assert type(again) is type(path)
     assert again == path
@@ -85,29 +85,29 @@ def test_a_path_pickles_as_the_same_value(url, protocol):
 
 
 def test_a_path_that_was_used_pickles_the_same_as_one_that_was_not():
-    fresh = UriPath("ftp://h/pub/x")
-    used = UriPath("ftp://h/pub/x")
+    fresh = URIPath("ftp://h/pub/x")
+    used = URIPath("ftp://h/pub/x")
     used.backend
     assert pickle.dumps(used) == pickle.dumps(fresh)
 
 
 def test_a_path_with_userinfo_pickles_with_it_and_no_more():
-    path = UriPath("sftp://user:S3CR3T-dummy@h/x")
+    path = URIPath("sftp://user:S3CR3T-dummy@h/x")
     data = pickle.dumps(path)
     assert SECRET in data  # the URI text itself carries it
     assert _roundtrip(path).source.parsed_userinfo() == ("user", "S3CR3T-dummy")
-    assert SECRET not in pickle.dumps(UriPath("sftp://user@h/x"))
+    assert SECRET not in pickle.dumps(URIPath("sftp://user@h/x"))
 
 
 def test_an_escaped_colon_in_the_user_name_survives_a_pickle():
-    path = UriPath("sftp://us%3Aer:pw@h/x")
+    path = URIPath("sftp://us%3Aer:pw@h/x")
     assert _roundtrip(path).source.parsed_userinfo() == ("us:er", "pw")
     assert _roundtrip(path.source).parsed_userinfo() == ("us:er", "pw")
 
 
 def test_a_supplied_backend_is_not_in_the_pickle():
     backend = _Backend()
-    path = UriPath("sftp://h/x", backend=backend)
+    path = URIPath("sftp://h/x", backend=backend)
     data = pickle.dumps(path)
     assert SECRET not in data
     again = pickle.loads(data)
@@ -116,14 +116,14 @@ def test_a_supplied_backend_is_not_in_the_pickle():
 
 
 def test_a_backend_that_declares_itself_picklable_goes_along():
-    path = UriPath("sftp://h/x", backend=_PicklableBackend("mine"))
+    path = URIPath("sftp://h/x", backend=_PicklableBackend("mine"))
     again = _roundtrip(path)
     assert again == path
     assert again._supplied_backend() == _PicklableBackend("mine")
 
 
 def test_a_derived_backend_is_not_pickled_and_is_built_again():
-    path = UriPath("http://h/x")
+    path = URIPath("http://h/x")
     backend = path.backend
     again = _roundtrip(path)
     assert again._backend is None
@@ -132,17 +132,17 @@ def test_a_derived_backend_is_not_pickled_and_is_built_again():
 
 
 def test_a_pickle_keeps_the_allow_list_of_schemes():
-    from uripath.schemes import DataUri
+    from uripath.schemes import DataURIPath
 
-    path = UriPath("data:,abc", schemesmap={"data": DataUri})
+    path = URIPath("data:,abc", schemesmap={"data": DataURIPath})
     again = _roundtrip(path)
-    assert again._schemes_in_use == {"data": DataUri}
-    assert type(again / UriPath("file:///x")) is UriPath
+    assert again._schemes_in_use == {"data": DataURIPath}
+    assert type(again / URIPath("file:///x")) is URIPath
 
 
 def test_the_stat_hint_and_the_file_object_cache_are_not_pickled(tmp_path):
     (tmp_path / "f.txt").write_text("x")
-    (child,) = UriPath(tmp_path.as_uri()).iterdir()
+    (child,) = URIPath(tmp_path.as_uri()).iterdir()
     assert child._stat_hint is not None
     child.filepath
     again = _roundtrip(child)
@@ -155,20 +155,20 @@ def test_the_stat_hint_and_the_file_object_cache_are_not_pickled(tmp_path):
 
 
 def test_an_http_path_pickles_without_its_session_headers():
-    path = UriPath("http://h/x").with_transport(
+    path = URIPath("http://h/x").with_transport(
         FakeTransport(), headers={"Authorization": "Bearer S3CR3T-dummy"}
     )
     assert path._supplied_backend() is not None
     data = pickle.dumps(path)
     assert SECRET not in data
-    assert _roundtrip(path) == UriPath("http://h/x")
+    assert _roundtrip(path) == URIPath("http://h/x")
 
 
 def test_a_zip_path_pickles_before_and_after_it_was_used(tmp_path):
     archive = tmp_path / "a.zip"
     with zipfile.ZipFile(archive, "w") as handle:
         handle.writestr("m.txt", "member")
-    member = UriPath(f"zip:{archive.as_uri()}!/m.txt")
+    member = URIPath(f"zip:{archive.as_uri()}!/m.txt")
     before = _roundtrip(member)
     assert member.read_text() == "member"
     after = _roundtrip(member)
@@ -184,7 +184,7 @@ def test_a_zip_path_pickles_before_and_after_it_was_used(tmp_path):
 @pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
 def test_a_copy_shares_a_supplied_backend_and_never_duplicates_it(copier):
     backend = _Backend()
-    path = UriPath("sftp://h/x", backend=backend)
+    path = URIPath("sftp://h/x", backend=backend)
     again = copier(path)
     assert again is not path
     assert again == path
@@ -196,12 +196,12 @@ def test_a_copy_shares_a_supplied_backend_and_never_duplicates_it(copier):
 
 @pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
 def test_a_copy_of_a_path_with_a_derived_backend_still_reads_as_derived(copier):
-    path = UriPath("ftp://h/x")
+    path = URIPath("ftp://h/x")
     backend = path.backend
     again = copier(path)
     assert again._backend is backend
     assert again._supplied_backend() is None
-    other = UriPath("ftp://h/x")
+    other = URIPath("ftp://h/x")
     other.backend
     assert path._same_filesystem(other)
     assert again._same_filesystem(other)
@@ -210,7 +210,7 @@ def test_a_copy_of_a_path_with_a_derived_backend_still_reads_as_derived(copier):
 @pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
 def test_a_copy_does_not_carry_the_stat_hint(copier, tmp_path):
     (tmp_path / "f.txt").write_text("x")
-    (child,) = UriPath(tmp_path.as_uri()).iterdir()
+    (child,) = URIPath(tmp_path.as_uri()).iterdir()
     assert child._stat_hint is not None
     assert copier(child)._stat_hint is None
 
@@ -222,10 +222,10 @@ def test_a_dataclass_holding_paths_can_be_turned_into_a_dict(tmp_path):
 
     @dataclasses.dataclass
     class Config:
-        archive_member: UriPath
-        remote: UriPath
+        archive_member: URIPath
+        remote: URIPath
 
-    config = Config(UriPath(f"zip:{archive.as_uri()}!/m.txt"), UriPath("ftp://h/x"))
+    config = Config(URIPath(f"zip:{archive.as_uri()}!/m.txt"), URIPath("ftp://h/x"))
     config.archive_member.read_text()
     config.remote.backend
     converted = dataclasses.asdict(config)
@@ -236,7 +236,7 @@ def test_a_dataclass_holding_paths_can_be_turned_into_a_dict(tmp_path):
 
 
 def test_a_copy_of_a_plain_uri_is_a_value_too():
-    uri = Uri("http://u:pw@h/a?x=1#f")
+    uri = URI("http://u:pw@h/a?x=1#f")
     assert copy.deepcopy(uri) == uri
     assert _roundtrip(uri) == uri
     assert _roundtrip(uri).source == uri.source
@@ -258,7 +258,7 @@ _IDENTITY_URLS = [
 @pytest.mark.parametrize("url", _IDENTITY_URLS)
 @pytest.mark.parametrize("how", ["pickle", "deepcopy", "copy"])
 def test_equality_hash_and_filesystem_answers_survive(url, how):
-    first, second = UriPath(url), UriPath(url)
+    first, second = URIPath(url), URIPath(url)
     for path in (first, second):
         path.backend
     expected = (
@@ -284,8 +284,8 @@ def test_equality_hash_and_filesystem_answers_survive(url, how):
 
 def test_two_distinct_supplied_backends_stay_distinct_through_a_copy():
     one, two = _Backend(), _Backend()
-    a = UriPath("sftp://h/x", backend=one)
-    b = UriPath("sftp://h/x", backend=two)
+    a = URIPath("sftp://h/x", backend=one)
+    b = URIPath("sftp://h/x", backend=two)
     assert not a._same_filesystem(b)
     assert not copy.copy(a)._same_filesystem(copy.deepcopy(b))
     assert copy.copy(a)._same_filesystem(a)

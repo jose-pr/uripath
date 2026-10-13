@@ -8,16 +8,16 @@ Both run on the standard library, through a transport that can be replaced
       members:
         - DEFAULT_TIMEOUT
         - MAX_LISTING_BYTES
-        - HttpBackend
+        - HTTPBackend
         - HTTPResponse
         - HTTPTransport
-        - HttpPath
-        - HttpWriteStream
-        - HttpAppendStream
+        - HTTPURIPath
+        - HTTPWriteStream
+        - HTTPAppendStream
       show_if_no_docstring: true
       filters: ["!^_"]
 
 ::: uripath.schemes.dav
     options:
       members:
-        - DavPath
+        - DAVURIPath

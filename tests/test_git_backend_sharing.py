@@ -5,9 +5,9 @@ import pytest
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes._gitrepo import RepoBackend
-from uripath.schemes.gitlab import GitLabPath
+from uripath.schemes.gitlab import GitLabURIPath
 
 
 class _CountingRepoBackend(RepoBackend):
@@ -18,7 +18,7 @@ class _CountingRepoBackend(RepoBackend):
         return super().request(method, url, **kwargs)
 
 
-class GitLabLoopbackG12Path(GitLabPath):
+class GitLabLoopbackG12Path(GitLabURIPath):
     """`gitlab:` whose derived backend talks to `api_base` instead."""
 
     __SCHEMES = ("gitlab-loopback",)
@@ -38,7 +38,7 @@ def test_the_children_of_a_gitlab_root_look_the_default_branch_up_once(
     base, owner, repo = gitlab_api_server
     GitLabLoopbackG12Path.api_base = base + "/api/v4"
     GitLabLoopbackG12Path.calls = calls = []
-    root = UriPath(f"gitlab-loopback://x/{owner}/{repo}")
+    root = URIPath(f"gitlab-loopback://x/{owner}/{repo}")
     assert (root / "a.txt").read_bytes() == b"a"
     assert (root / "b.py").read_bytes() == b"b"
     assert (root / "sub" / "c.py").read_bytes() == b"c"

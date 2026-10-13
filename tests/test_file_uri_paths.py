@@ -10,8 +10,8 @@ import os
 import pytest
 
 from pathlib_next import LocalPath
-from uripath import Uri, UriPath
-from uripath.schemes.file import FileUri
+from uripath import URI, URIPath
+from uripath.schemes.file import FileURIPath
 
 WINDOWS = os.name == "nt"
 BACKSLASH = chr(92)
@@ -65,11 +65,11 @@ def test_parents_equal_the_repeated_parent(shape):
     uri, applies = _SHAPES[shape]
     if not applies:
         pytest.skip("a drive letter is an ordinary name off Windows")
-    _same_chain(UriPath(uri))
+    _same_chain(URIPath(uri))
 
 
 def test_parents_of_a_posix_path_end_at_the_root():
-    path = UriPath("file:///usr/lib/x")
+    path = URIPath("file:///usr/lib/x")
     assert [p.as_uri() for p in path.parents] == [
         "file:/usr/lib",
         "file:/usr",
@@ -79,11 +79,11 @@ def test_parents_of_a_posix_path_end_at_the_root():
 
 @windows_only
 def test_parents_of_a_drive_path_end_at_the_drive_root():
-    path = UriPath(LocalPath("C:/Windows/System32/drivers"))
+    path = URIPath(LocalPath("C:/Windows/System32/drivers"))
     parents = [p.as_uri() for p in path.parents]
     assert parents == ["file:/C:/Windows/System32", "file:/C:/Windows", "file:/C:/"]
     assert parents == [
-        UriPath(p).as_uri() for p in LocalPath("C:/Windows/System32/drivers").parents
+        URIPath(p).as_uri() for p in LocalPath("C:/Windows/System32/drivers").parents
     ]
     assert [str(p.filepath) for p in path.parents] == [
         str(p) for p in LocalPath("C:/Windows/System32/drivers").parents
@@ -95,7 +95,7 @@ def test_parents_of_a_drive_path_end_at_the_drive_root():
 
 @windows_only
 def test_no_ancestor_of_a_drive_path_is_relative_to_the_working_directory():
-    path = UriPath("file:///C:/Windows/System32/drivers")
+    path = URIPath("file:///C:/Windows/System32/drivers")
     for ancestor in path.parents:
         assert ancestor.is_absolute()
         assert str(ancestor.filepath).startswith("C:\\")
@@ -106,7 +106,7 @@ def test_no_ancestor_of_a_drive_path_is_relative_to_the_working_directory():
 
 @windows_only
 def test_parents_of_a_drive_path_under_a_host_end_at_the_drive_root():
-    path = UriPath("file://localhost/C:/Windows/System32")
+    path = URIPath("file://localhost/C:/Windows/System32")
     assert [p.as_uri() for p in path.parents] == [
         "file://localhost/C:/Windows",
         "file://localhost/C:/",
@@ -115,7 +115,7 @@ def test_parents_of_a_drive_path_under_a_host_end_at_the_drive_root():
 
 @windows_only
 def test_the_parent_of_a_bare_drive_is_the_drive():
-    drive = UriPath("file:///C:")
+    drive = URIPath("file:///C:")
     assert drive.parent == drive
     assert list(drive.parents) == []
 
@@ -125,7 +125,7 @@ def test_the_parent_of_a_bare_drive_is_the_drive():
 
 @windows_only
 def test_a_windows_path_string_joins_with_backslash_separators(tmp_path):
-    base = FileUri(tmp_path.as_uri())
+    base = FileURIPath(tmp_path.as_uri())
     joined = base / ("sub" + BACKSLASH + "x")
     assert joined.name == "x"
     assert joined.parent == base / "sub"
@@ -136,17 +136,17 @@ def test_a_windows_path_string_joins_with_backslash_separators(tmp_path):
 
 @windows_only
 def test_a_windows_absolute_path_string_restarts_the_join(tmp_path):
-    base = FileUri(tmp_path.as_uri())
+    base = FileURIPath(tmp_path.as_uri())
     drive_path = "C:" + BACKSLASH + "Temp" + BACKSLASH + "x"
     assert (base / drive_path).path == "C:/Temp/x"
-    assert (base / drive_path) == UriPath(LocalPath("C:/Temp/x"))
+    assert (base / drive_path) == URIPath(LocalPath("C:/Temp/x"))
     assert (base / (BACKSLASH + "abs")).path == "/abs"
     assert (base / ("D:" + BACKSLASH)).path == "D:/"
 
 
 @windows_only
 def test_str_of_a_local_path_is_a_destination_for_copy_move_and_rename(tmp_path):
-    source = FileUri((tmp_path / "a.txt").as_uri())
+    source = FileURIPath((tmp_path / "a.txt").as_uri())
     source.write_text("payload")
 
     copied = tmp_path / "copied.txt"
@@ -159,25 +159,25 @@ def test_str_of_a_local_path_is_a_destination_for_copy_move_and_rename(tmp_path)
     assert not (tmp_path / "a.txt").exists()
 
     renamed = tmp_path / "renamed.txt"
-    FileUri(moved.as_uri()).rename(str(renamed))
+    FileURIPath(moved.as_uri()).rename(str(renamed))
     assert renamed.read_text() == "payload"
     assert not moved.exists()
 
     deep = tmp_path / "sub" / "deep.txt"
     deep.parent.mkdir()
-    FileUri(renamed.as_uri()).rename(str(deep))
+    FileURIPath(renamed.as_uri()).rename(str(deep))
     assert deep.read_text() == "payload"
 
 
 @posix_only
 def test_a_backslash_is_an_ordinary_filename_character_off_windows(tmp_path):
-    base = FileUri(tmp_path.as_uri())
+    base = FileURIPath(tmp_path.as_uri())
     joined = base / ("a" + BACKSLASH + "b")
     assert joined.name == "a" + BACKSLASH + "b"
     assert joined.parent == base
     assert (base / (BACKSLASH + "abs")).parent == base
 
-    source = FileUri((tmp_path / "src.txt").as_uri())
+    source = FileURIPath((tmp_path / "src.txt").as_uri())
     source.write_text("payload")
     source.copy("we" + BACKSLASH + "ird.txt")
     assert (tmp_path / ("we" + BACKSLASH + "ird.txt")).read_text() == "payload"
@@ -186,11 +186,11 @@ def test_a_backslash_is_an_ordinary_filename_character_off_windows(tmp_path):
 
 
 def test_another_scheme_splits_a_key_on_slashes_only():
-    base = UriPath("sftp://host/mnt/dir/")
+    base = URIPath("sftp://host/mnt/dir/")
     joined = base / ("a" + BACKSLASH + "b")
     assert joined.name == "a" + BACKSLASH + "b"
     assert joined.parent.path == "/mnt/dir"
-    source = UriPath("sftp://host/mnt/dir/f.txt")
+    source = URIPath("sftp://host/mnt/dir/f.txt")
     for target in ("C:" + BACKSLASH + "Temp" + BACKSLASH + "x", "a" + BACKSLASH + "b"):
         assert source._coerce_target(target).parent.path == "/mnt/dir"
         assert source._rename_target(target).parent.path == "/mnt/dir"
@@ -207,8 +207,8 @@ def test_sync_overlap_sees_a_local_path_and_its_file_uri(tmp_path):
     (tree / "inner").mkdir(parents=True)
     (tree / "keep.txt").write_text("keep")
     local = LocalPath(tree)
-    as_uri = UriPath(tree.as_uri())
-    assert isinstance(as_uri, FileUri)
+    as_uri = URIPath(tree.as_uri())
+    assert isinstance(as_uri, FileURIPath)
 
     assert _paths_overlap(local, as_uri) and _paths_overlap(as_uri, local)
     assert _paths_overlap(local / "inner", as_uri)
@@ -226,7 +226,7 @@ def test_sync_overlap_sees_a_local_path_and_its_file_uri(tmp_path):
 
 @windows_only
 def test_parents_of_a_unc_path_end_at_the_share_root():
-    path = UriPath("file://server/share/a/b")
+    path = URIPath("file://server/share/a/b")
     assert [p.as_uri() for p in path.parents] == [
         "file://server/share/a",
         "file://server/share/",
@@ -238,27 +238,27 @@ def test_parents_of_a_unc_path_end_at_the_share_root():
 @windows_only
 def test_a_share_root_is_its_own_parent_and_has_no_ancestors():
     for text in ("file://server/share", "file://server/share/"):
-        path = UriPath(text)
+        path = URIPath(text)
         assert path.parent.as_uri() == path.as_uri()
         assert list(path.parents) == []
-    assert UriPath("file://server/share/a").parent.as_uri() == "file://server/share/"
-    assert UriPath("file://server/share/a").parents[0].as_uri() == (
+    assert URIPath("file://server/share/a").parent.as_uri() == "file://server/share/"
+    assert URIPath("file://server/share/a").parents[0].as_uri() == (
         "file://server/share/"
     )
 
 
 @windows_only
 def test_a_named_host_that_is_this_machine_is_still_a_unc_share():
-    path = UriPath("file://localhost/share/a")
+    path = URIPath("file://localhost/share/a")
     assert path.parent.as_uri() == "file://localhost/share"
-    assert UriPath("file://Server/Share/a/b").parents[-1].as_uri() == (
+    assert URIPath("file://Server/Share/a/b").parents[-1].as_uri() == (
         "file://server/Share/"
     )
 
 
 @posix_only
 def test_off_windows_the_root_of_a_host_ends_the_chain():
-    path = UriPath("file://server/share/a/b")
+    path = URIPath("file://server/share/a/b")
     assert [p.as_uri() for p in path.parents] == [
         "file://server/share/a",
         "file://server/share",
@@ -271,20 +271,20 @@ def test_off_windows_the_root_of_a_host_ends_the_chain():
 
 @windows_only
 def test_a_file_uri_argument_with_a_drive_restarts_the_join():
-    base = UriPath("file:///C:/d/")
-    other = UriPath("file:///D:/f")
+    base = URIPath("file:///C:/d/")
+    other = URIPath("file:///D:/f")
     assert (base / other).as_uri() == "file:/D:/f"
     assert base.joinpath(other, "x").as_uri() == "file:/D:/f/x"
-    assert UriPath(base, other).as_uri() == "file:/D:/f"
-    assert (base / UriPath("file:///D:/f/g/")).as_uri() == "file:/D:/f/g/"
+    assert URIPath(base, other).as_uri() == "file:/D:/f"
+    assert (base / URIPath("file:///D:/f/g/")).as_uri() == "file:/D:/f/g/"
     # The same answer whichever class carries the argument.
-    assert (base / Uri("file:///D:/f")).as_uri() == "file:/D:/f"
+    assert (base / URI("file:///D:/f")).as_uri() == "file:/D:/f"
     assert (base / "D:/f").as_uri() == "file:/D:/f"
     assert (base / "rel").as_uri() == "file:/C:/d/rel"
-    assert (base / UriPath("file:rel")).as_uri() == "file:/C:/d/rel"
+    assert (base / URIPath("file:rel")).as_uri() == "file:/C:/d/rel"
 
 
 @posix_only
 def test_off_windows_a_drive_spelling_is_an_ordinary_relative_name():
-    base = UriPath("file:///d/")
-    assert (base / UriPath("file:D:/f")).as_uri().endswith("/d/D:/f")
+    base = URIPath("file:///d/")
+    assert (base / URIPath("file:D:/f")).as_uri().endswith("/d/D:/f")

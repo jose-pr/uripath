@@ -19,7 +19,7 @@ from pathlib_next.mempath import MemPath
 
 pytest.importorskip("uritools")
 
-from uripath import Source, UriPath  # noqa: E402
+from uripath import Source, URIPath  # noqa: E402
 
 LocalPath = pathlib_next.LocalPath
 
@@ -31,10 +31,10 @@ def test_http_session_backend_does_not_follow_join_to_another_host():
     """A credential-bearing session must never reach another host.
 
     A `str` join cannot take one there at all: it names a path on THIS host
-    (`Uri._join_arg`), so the session stays and so does the host. Only a
-    `Uri` argument crosses, and then the backend is dropped."""
+    (`URI._join_arg`), so the session stays and so does the host. Only a
+    `URI` argument crosses, and then the backend is dropped."""
     base = on_current_transport(
-        UriPath("http://trusted.invalid/api/"),
+        URIPath("http://trusted.invalid/api/"),
         headers={"Authorization": "Bearer s3cret"},
     )
     assert (base / "child").backend is base.backend
@@ -47,8 +47,8 @@ def test_http_session_backend_does_not_follow_join_to_another_host():
     assert literal.backend is base.backend  # still the trusted host
 
     for crossing in (
-        base / UriPath("http://other.invalid/steal"),
-        UriPath(base, UriPath("http://other.invalid/steal")),
+        base / URIPath("http://other.invalid/steal"),
+        URIPath(base, URIPath("http://other.invalid/steal")),
     ):
         assert crossing.source.host == "other.invalid"
         assert crossing.backend is not base.backend
@@ -56,7 +56,7 @@ def test_http_session_backend_does_not_follow_join_to_another_host():
 
 def test_with_source_keeps_backend_only_for_the_same_authority():
     base = on_current_transport(
-        UriPath("http://trusted.invalid/api/"),
+        URIPath("http://trusted.invalid/api/"),
         headers={"Authorization": "Bearer s3cret"},
     )
     same = base.with_source(Source("http", None, "trusted.invalid", None))
@@ -66,9 +66,9 @@ def test_with_source_keeps_backend_only_for_the_same_authority():
 
 
 def test_github_token_backend_does_not_follow_join_to_another_host():
-    from uripath.schemes.github import GitHubPath
+    from uripath.schemes.github import GitHubURIPath
 
-    root = GitHubPath("github://ghp_SECRET@github.com/acme/widgets")
+    root = GitHubURIPath("github://ghp_SECRET@github.com/acme/widgets")
 
     # A str join stays on the original host, so the token goes nowhere new.
     literal = root / "github://evil.invalid/x/y"
@@ -81,8 +81,8 @@ def test_github_token_backend_does_not_follow_join_to_another_host():
     root.backend  # now it exists, and the next child shares it
     assert (root / "docs").backend is root.backend
 
-    # Crossing hosts needs a Uri argument, and that drops the token.
-    evil = root / GitHubPath("github://evil.invalid/x/y")
+    # Crossing hosts needs a URI argument, and that drops the token.
+    evil = root / GitHubURIPath("github://evil.invalid/x/y")
     assert evil.source.host == "evil.invalid"
     assert evil.backend is not root.backend
     assert evil.backend.token != "ghp_SECRET"
@@ -93,9 +93,9 @@ def test_github_token_backend_does_not_follow_join_to_another_host():
 
 
 def test_ftp_rename_to_another_server_raises_not_implemented():
-    src = UriPath("ftp://a.invalid/report.csv")
+    src = URIPath("ftp://a.invalid/report.csv")
     with pytest.raises(NotImplementedError):
-        src.rename(UriPath("ftp://b.invalid/sub/report.csv"))
+        src.rename(URIPath("ftp://b.invalid/sub/report.csv"))
 
 
 # --- archives -------------------------------------------------------------
@@ -110,7 +110,7 @@ def _zip(path, members):
 
 def test_zip_member_move_to_local_path_extracts_it(tmp_path):
     archive = _zip(tmp_path / "a.zip", {"x.txt": "X", "keep.txt": "K"})
-    member = UriPath(f"zip:{archive.as_uri()}!/x.txt")
+    member = URIPath(f"zip:{archive.as_uri()}!/x.txt")
     out = LocalPath(tmp_path / "out.txt")
     member.move(out)
     assert out.read_text() == "X"
@@ -121,9 +121,9 @@ def test_zip_member_move_to_local_path_extracts_it(tmp_path):
 def test_zip_member_rename_into_another_archive_raises(tmp_path):
     a = _zip(tmp_path / "a.zip", {"x.txt": "X"})
     b = _zip(tmp_path / "b.zip", {"y.txt": "Y"})
-    member = UriPath(f"zip:{a.as_uri()}!/x.txt")
+    member = URIPath(f"zip:{a.as_uri()}!/x.txt")
     with pytest.raises(NotImplementedError):
-        member.rename(UriPath(f"zip:{b.as_uri()}!/x.txt"))
+        member.rename(URIPath(f"zip:{b.as_uri()}!/x.txt"))
     with zipfile.ZipFile(a) as z:
         assert z.namelist() == ["x.txt"]
     with zipfile.ZipFile(b) as z:
@@ -140,17 +140,17 @@ def test_file_uri_rename_relative_str_is_a_sibling_rename(tmp_path, monkeypatch)
     data = tmp_path / "data"
     data.mkdir()
     (data / "a.txt").write_text("A")
-    result = UriPath(LocalPath(data / "a.txt")).rename("b.txt")
+    result = URIPath(LocalPath(data / "a.txt")).rename("b.txt")
     assert (data / "b.txt").read_text() == "A"
     assert not (elsewhere / "b.txt").exists()
-    assert type(result).__name__ == "FileUri"
+    assert type(result).__name__ == "FileURIPath"
 
 
 def test_file_uri_rename_to_remote_target_raises(tmp_path):
     (tmp_path / "a.txt").write_text("A")
-    src = UriPath(LocalPath(tmp_path / "a.txt"))
+    src = URIPath(LocalPath(tmp_path / "a.txt"))
     with pytest.raises(NotImplementedError):
-        src.rename(UriPath("ftp://host.invalid/srv/a.txt"))
+        src.rename(URIPath("ftp://host.invalid/srv/a.txt"))
     assert (tmp_path / "a.txt").read_text() == "A"
 
 

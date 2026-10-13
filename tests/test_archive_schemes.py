@@ -12,47 +12,50 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes import archive
 from uripath.schemes.archive import (
-    ArchiveTarUri,
-    ArchiveUri,
-    ArchiveZipUri,
-    TarUri,
-    ZipUri,
+    ArchiveTarURIPath,
+    ArchiveURIPath,
+    ArchiveZipURIPath,
+    TarURIPath,
+    ZipURIPath,
 )
 
 SCHEMES = {
-    "zip": ZipUri,
-    "archive+zip": ZipUri,
-    "tar": TarUri,
-    "archive+tar": TarUri,
-    "archive": ArchiveUri,
+    "zip": ZipURIPath,
+    "archive+zip": ZipURIPath,
+    "tar": TarURIPath,
+    "archive+tar": TarURIPath,
+    "archive": ArchiveURIPath,
 }
 
 
 def test_the_documented_class_names_are_still_importable():
-    assert archive.ArchiveZipUri is ZipUri
-    assert archive.ArchiveTarUri is TarUri
-    assert ArchiveZipUri is ZipUri and ArchiveTarUri is TarUri
+    assert archive.ArchiveZipURIPath is ZipURIPath
+    assert archive.ArchiveTarURIPath is TarURIPath
+    assert ArchiveZipURIPath is ZipURIPath and ArchiveTarURIPath is TarURIPath
     for entry_point in (
-        "uripath.schemes.archive:ArchiveZipUri",
-        "uripath.schemes.archive:ArchiveTarUri",
+        "uripath.schemes.archive:ArchiveZipURIPath",
+        "uripath.schemes.archive:ArchiveTarURIPath",
     ):
         module, _, name = entry_point.partition(":")
-        assert getattr(importlib.import_module(module), name) in (ZipUri, TarUri)
+        assert getattr(importlib.import_module(module), name) in (
+            ZipURIPath,
+            TarURIPath,
+        )
 
 
 @pytest.mark.parametrize("scheme", SCHEMES)
 def test_every_registered_scheme_name_builds_its_class(scheme):
-    path = UriPath(f"{scheme}:file:///a/outer.zip!/m")
+    path = URIPath(f"{scheme}:file:///a/outer.zip!/m")
     assert type(path) is SCHEMES[scheme]
     assert path.source.scheme == scheme
 
 
 @pytest.mark.parametrize("scheme", SCHEMES)
 def test_a_path_prints_and_pickles_with_the_scheme_it_was_written_with(scheme):
-    path = UriPath(f"{scheme}:file:///a/outer.zip!/d/m")
+    path = URIPath(f"{scheme}:file:///a/outer.zip!/d/m")
     assert str(path).startswith(f"{scheme}:")
     assert path.as_uri().startswith(f"{scheme}:")
     again = pickle.loads(pickle.dumps(path))
@@ -66,8 +69,8 @@ def test_a_member_has_one_identity_under_the_pinned_and_the_plain_scheme(tmp_pat
     with zipfile.ZipFile(archive_path, "w") as zf:
         zf.writestr("m", b"M")
     uri = archive_path.as_uri()
-    one = UriPath(f"zip:{uri}!/m")
-    two = UriPath(f"archive+zip:{uri}!/m")
+    one = URIPath(f"zip:{uri}!/m")
+    two = URIPath(f"archive+zip:{uri}!/m")
     assert one != two  # two spellings of the URI
     assert one._node_key() == two._node_key()
     assert one.backend is two.backend
@@ -93,5 +96,5 @@ def test_a_hard_link_reports_the_size_of_its_target_however_the_target_is_spelle
         link.type = tarfile.LNKTYPE
         link.linkname = linkname
         tf.addfile(link)
-    path = UriPath(f"tar:{archive_path.as_uri()}!/link.txt")
+    path = URIPath(f"tar:{archive_path.as_uri()}!/link.txt")
     assert path.stat().st_size == len(path.read_bytes()) == 4

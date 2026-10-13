@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from pathlib_next.archive import TarPath
-from ._base import ArchiveUri
+from ._base import ArchiveURIPath
 
 
-class TarUri(ArchiveUri):
+class TarURIPath(ArchiveURIPath):
     """`tar:` scheme (also handles `.tar.gz`/`.tar.bz2`/`.tar.xz` via
     the standard library's auto-detected "r:*" mode). Read-only. Members stored with a
     `./` prefix are addressed without it. `archive+tar:` is the same scheme

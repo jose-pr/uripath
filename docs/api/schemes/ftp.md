@@ -4,6 +4,6 @@
     options:
       members:
         - DEFAULT_TIMEOUT
-        - BaseFtpBackend
-        - FtpBackend
-        - FtpPath
+        - BaseFTPURIBackend
+        - FTPURIBackend
+        - FTPURIPath

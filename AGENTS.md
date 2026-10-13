@@ -5,7 +5,7 @@ commands, CI and release. It is not the API reference and it does not ship.
 
 | Header | Covers |
 | --- | --- |
-| [`src/uripath/AGENTS.md`](src/uripath/AGENTS.md) | The public API: `Uri`, `UriPath`, `Source`, `Query` and every built-in scheme, with signatures and gotchas. It ships in the wheel, so it stays self-contained (no repo-relative links) and changes in the same commit as any public API change. |
+| [`src/uripath/AGENTS.md`](src/uripath/AGENTS.md) | The public API: `URI`, `URIPath`, `Source`, `Query` and every built-in scheme, with signatures and gotchas. It ships in the wheel, so it stays self-contained (no repo-relative links) and changes in the same commit as any public API change. |
 
 [`docs/divergences.md`](docs/divergences.md) records every deliberate difference
 from `pathlib.Path`. `pathlib.Path` parity is the contract; a behavioral

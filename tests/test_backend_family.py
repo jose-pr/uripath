@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 
 
 class _Backend:
@@ -18,7 +18,7 @@ class _Backend:
         self.tag = tag
 
 
-class FamilyScopePath(UriPath):
+class FamilyScopePath(URIPath):
     """A scheme whose backend says which endpoint built it and records every
     build."""
 
@@ -54,10 +54,10 @@ def _family_of(p):
         p.with_fragment("f"),
         p.with_path("/other"),
         p / "k",
-        p / Uri("k"),
+        p / URI("k"),
         p / "a" / "b",
-        p.joinpath("k", Uri("m")),
-        UriPath(p, "k"),
+        p.joinpath("k", URI("m")),
+        URIPath(p, "k"),
         FamilyScopePath(p, "k"),
         p._make_child_relpath("k"),
         p._coerce_target("k"),
@@ -70,7 +70,7 @@ def _family_of(p):
 
 
 def test_deriving_builds_nothing_and_every_relative_shares_one_backend():
-    p = UriPath("family-scope://a/x/y.txt")
+    p = URIPath("family-scope://a/x/y.txt")
     relatives = _family_of(p)
     assert FamilyScopePath.built == []
     assert all(d._backend is None for d in relatives) and p._backend is None
@@ -81,7 +81,7 @@ def test_deriving_builds_nothing_and_every_relative_shares_one_backend():
 
 
 def test_the_first_relative_to_do_io_fills_the_slot_for_the_rest():
-    p = UriPath("family-scope://a/x/y.txt")
+    p = URIPath("family-scope://a/x/y.txt")
     relatives = _family_of(p)
     middle = relatives[len(relatives) // 2]
     built = middle.backend
@@ -92,7 +92,7 @@ def test_the_first_relative_to_do_io_fills_the_slot_for_the_rest():
 
 
 def test_a_relative_made_after_the_slot_is_filled_reads_it():
-    p = UriPath("family-scope://a/x")
+    p = URIPath("family-scope://a/x")
     first = p / "one"
     built = first.backend
     for later in (p / "two", p.parent, first.parent / "three", copy.copy(p)):
@@ -101,7 +101,7 @@ def test_a_relative_made_after_the_slot_is_filled_reads_it():
 
 
 def test_twenty_children_of_one_fresh_root_build_one_backend():
-    root = UriPath("family-scope://a/")
+    root = URIPath("family-scope://a/")
     children = [root / f"f{i}.txt" for i in range(20)]
     assert FamilyScopePath.built == []
     assert len({id(c.backend) for c in children}) == 1
@@ -109,7 +109,7 @@ def test_twenty_children_of_one_fresh_root_build_one_backend():
 
 
 def test_a_walk_down_a_tree_shares_one_backend():
-    root = UriPath("family-scope://a/")
+    root = URIPath("family-scope://a/")
     leaves = [root / f"d{i}" / "sub" / "leaf" for i in range(5)]
     assert len({id(leaf.backend) for leaf in leaves}) == 1
     assert root.backend is leaves[0].backend
@@ -117,8 +117,8 @@ def test_a_walk_down_a_tree_shares_one_backend():
 
 
 def test_paths_built_separately_do_not_share():
-    one = UriPath("family-scope://a/x")
-    two = UriPath("family-scope://a/x")
+    one = URIPath("family-scope://a/x")
+    two = URIPath("family-scope://a/x")
     assert one.backend is not two.backend
     assert (one / "k").backend is one.backend
     assert (two / "k").backend is two.backend
@@ -126,9 +126,9 @@ def test_paths_built_separately_do_not_share():
 
 
 def test_an_equal_path_built_from_a_string_is_not_in_the_family():
-    root = UriPath("family-scope://a/")
+    root = URIPath("family-scope://a/")
     a = root / "x"
-    b = UriPath("family-scope://a/x")
+    b = URIPath("family-scope://a/x")
     assert a.backend is not b.backend
 
 
@@ -140,15 +140,15 @@ def _derived_tag(path):
 
 
 def test_a_path_that_crosses_to_another_endpoint_builds_its_own():
-    p = UriPath("family-scope://u@a:1/d")
+    p = URIPath("family-scope://u@a:1/d")
     crossing = [
-        p.with_source(UriPath("family-scope://b/").source),
-        p / Uri("family-scope://b/e"),
-        UriPath(p, Uri("family-scope://b/e")),
+        p.with_source(URIPath("family-scope://b/").source),
+        p / URI("family-scope://b/e"),
+        URIPath(p, URI("family-scope://b/e")),
         p._coerce_target("family-scope://b/e"),
-        p / Uri("family-scope://u@a:2/e"),
-        p / Uri("family-scope://other@a:1/e"),
-        p / Uri("family-scope://u@c:1/e"),
+        p / URI("family-scope://u@a:2/e"),
+        p / URI("family-scope://other@a:1/e"),
+        p / URI("family-scope://u@c:1/e"),
     ]
     assert FamilyScopePath.built == []
     for path in crossing:
@@ -169,23 +169,23 @@ def test_a_path_that_crosses_to_another_endpoint_builds_its_own():
 
 
 def test_a_userinfo_or_port_difference_does_not_join_the_family():
-    base = UriPath("family-scope://user@a:1/d")
+    base = URIPath("family-scope://user@a:1/d")
     kept = base / "x"
-    same = base / Uri("family-scope://USER@a:1/e")
-    other = base / Uri("family-scope://user@a:2/e")
+    same = base / URI("family-scope://USER@a:1/e")
+    other = base / URI("family-scope://user@a:2/e")
     assert kept.backend is base.backend
     assert other.backend is not base.backend
     # The host compares without case, the userinfo with it.
-    assert (base / Uri("family-scope://user@A:1/e")).backend is base.backend
+    assert (base / URI("family-scope://user@A:1/e")).backend is base.backend
     assert same.backend is not base.backend
 
 
 def test_the_sourceless_result_of_relative_to_carries_no_slot():
-    root = UriPath("family-scope://a/root")
+    root = URIPath("family-scope://a/root")
     rel = (root / "x" / "y").relative_to(root)
     assert rel._derived_cell is None and rel._backend is None
     assert (rel / "z")._derived_cell is None
-    other = UriPath("family-scope://b/root")
+    other = URIPath("family-scope://b/root")
     joined = other / rel
     assert joined.backend is other.backend
     assert FamilyScopePath.built == ["b"]
@@ -196,7 +196,7 @@ def test_the_sourceless_result_of_relative_to_carries_no_slot():
 
 
 def test_a_supplied_backend_is_carried_as_before_and_never_replaced():
-    p = UriPath("family-scope://a/x")
+    p = URIPath("family-scope://a/x")
     relatives = [p / "one", p.parent]
     supplied = _Backend("supplied")
     mine = p.with_backend(supplied)
@@ -215,30 +215,30 @@ def test_a_supplied_backend_is_carried_as_before_and_never_replaced():
 
 def test_a_supplied_backend_wins_over_a_fresh_path_on_the_same_endpoint():
     supplied = _Backend("supplied")
-    root = UriPath("family-scope://a/d", backend=supplied)
-    fresh = UriPath("family-scope://a/e")
-    assert UriPath(root, fresh).backend is supplied
-    assert UriPath(fresh, root).backend is supplied
+    root = URIPath("family-scope://a/d", backend=supplied)
+    fresh = URIPath("family-scope://a/e")
+    assert URIPath(root, fresh).backend is supplied
+    assert URIPath(fresh, root).backend is supplied
     assert (root / fresh).backend is supplied
     assert FamilyScopePath.built == []
 
 
 def test_supplied_and_derived_keep_their_meaning_for_same_filesystem_and_scope():
-    p = UriPath("family-scope://a/x")
+    p = URIPath("family-scope://a/x")
     q = p / "k"
     assert p._supplied_backend() is None and q._supplied_backend() is None
     assert p.backend is q.backend
     assert p._supplied_backend() is None and q._supplied_backend() is None
     assert p._same_filesystem(q)
-    other = UriPath("family-scope://a/x", backend=_Backend("s"))
+    other = URIPath("family-scope://a/x", backend=_Backend("s"))
     assert p._same_filesystem(other)
     assert not other._same_filesystem(
-        UriPath("family-scope://a/y", backend=_Backend("t"))
+        URIPath("family-scope://a/y", backend=_Backend("t"))
     )
 
 
 def test_a_pickle_or_copy_of_a_family_member_follows_the_rules_of_a_path():
-    p = UriPath("family-scope://a/x")
+    p = URIPath("family-scope://a/x")
     q = p / "k"
     restored = pickle.loads(pickle.dumps(q))
     assert restored == q
@@ -256,7 +256,7 @@ def test_two_threads_doing_first_io_on_two_relatives_end_with_one_backend():
     FamilyScopePath.delay = 0.05
     for _ in range(20):
         FamilyScopePath.built.clear()
-        root = UriPath("family-scope://a/")
+        root = URIPath("family-scope://a/")
         pair = (root / "one", root / "two")
         start = threading.Barrier(2)
         seen = []
@@ -312,14 +312,14 @@ def counting_server(http_transport_kind):
 
 
 def test_twenty_children_of_one_fresh_root_use_one_connection(counting_server):
-    root = UriPath(counting_server.base + "/")
+    root = URIPath(counting_server.base + "/")
     sizes = [(root / f"f{i}.txt").stat().st_size for i in range(20)]
     assert sizes == [3] * 20
     assert len(counting_server.accepted) == 1
 
 
 def test_a_parent_and_the_path_use_one_connection(counting_server):
-    p = UriPath(counting_server.base + "/d/f.txt")
+    p = URIPath(counting_server.base + "/d/f.txt")
     assert p.parent.exists()
     assert p.exists()
     assert len(counting_server.accepted) == 1
@@ -327,5 +327,5 @@ def test_a_parent_and_the_path_use_one_connection(counting_server):
 
 def test_paths_built_separately_still_use_one_connection_each(counting_server):
     for i in range(3):
-        UriPath(f"{counting_server.base}/f{i}.txt").stat()
+        URIPath(f"{counting_server.base}/f{i}.txt").stat()
     assert len(counting_server.accepted) == 3

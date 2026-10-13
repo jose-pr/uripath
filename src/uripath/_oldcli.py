@@ -11,7 +11,7 @@ import typing as _ty
 from pathlib_next import LocalPath
 from pathlib_next.sync import PathSyncer, SyncEvent
 
-from . import Source, UriPath
+from . import Source, URIPath
 
 _CHUNK_SIZE = 1024 * 1024
 
@@ -42,7 +42,7 @@ def _looks_like_uri(value: str) -> bool:
         return True
     scheme = value[: match.end() - 1].lower()
     try:
-        return Source(scheme, None, None, None).get_scheme_cls() is not UriPath
+        return Source(scheme, None, None, None).get_scheme_cls() is not URIPath
     except Exception:
         # A scheme plugin that fails to load: `_path()` reports it.
         return True
@@ -50,7 +50,7 @@ def _looks_like_uri(value: str) -> bool:
 
 def _path(value: str):
     if _looks_like_uri(value):
-        return UriPath(value, findclass=True)
+        return URIPath(value, findclass=True)
     return LocalPath(value)
 
 

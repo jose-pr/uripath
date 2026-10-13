@@ -11,7 +11,7 @@ import pytest
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes._gitrepo import RepoBackend
 
 FILE = b"x" * 70_000
@@ -71,7 +71,7 @@ def api(serve_http):
 
 
 def _path(api, name="dir/f.bin", query="", **backend):
-    return UriPath(
+    return URIPath(
         f"github://github.com/o/r/{name}{query}",
         backend=RepoBackend(api_base=api.base, **backend),
     )

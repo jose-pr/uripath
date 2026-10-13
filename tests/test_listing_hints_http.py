@@ -9,9 +9,9 @@ import json
 import pytest
 
 from http_fakes import spy_on_sends
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes.github import RepoBackend
-from uripath.schemes.gitlab import GitLabPath
+from uripath.schemes.gitlab import GitLabURIPath
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def _gitlab(server, path=""):
     base_url, owner, repo = server
     backend = RepoBackend(api_base=f"{base_url}/api/v4")
     uri = f"gitlab://gitlab.com/{owner}/{repo}"
-    return GitLabPath(f"{uri}/{path}" if path else uri, backend=backend)
+    return GitLabURIPath(f"{uri}/{path}" if path else uri, backend=backend)
 
 
 def _kinds(sent):
@@ -83,7 +83,7 @@ def test_gitlab_type_questions_about_listed_blobs_cost_nothing(gitlab_api_server
 
 
 def test_stdlib_index_walk_sends_one_get_per_directory_and_no_head(http_server, sent):
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
 
     walked = [(top, sorted(files)) for top, _dirs, files in root.walk()]
 
@@ -96,7 +96,7 @@ def test_stdlib_index_walk_sends_one_get_per_directory_and_no_head(http_server, 
 
 def test_stdlib_index_stat_of_a_listed_file_is_exact(http_server, fixture_tree, sent):
     (fixture_tree / "big.bin").write_bytes(b"x" * 12345)
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
     child = next(c for c in root.iterdir() if c.name == "big.bin")
     sent.clear()
 
@@ -156,7 +156,7 @@ def _apache(serve_http, sizes):
 
 def test_apache_index_with_human_sizes_walks_without_a_head_per_file(serve_http, sent):
     with _apache(serve_http, {"/d/a.txt": 1228, "/d/sub/b.txt": 3481}) as base:
-        root = UriPath(f"{base}/d/")
+        root = URIPath(f"{base}/d/")
         entries = dict(root._scandir())
 
         walked = [(top, sorted(files)) for top, _dirs, files in root.walk()]
@@ -175,7 +175,7 @@ def test_apache_index_stat_of_a_listed_file_is_exact_not_the_rounded_column(
     serve_http, sent
 ):
     with _apache(serve_http, {"/d/a.txt": 1228}) as base:
-        child = next(c for c in UriPath(f"{base}/d/").iterdir() if c.name == "a.txt")
+        child = next(c for c in URIPath(f"{base}/d/").iterdir() if c.name == "a.txt")
         sent.clear()
 
         stat = child.stat()
@@ -205,7 +205,7 @@ def test_a_listing_with_exact_sizes_stays_a_full_hint(serve_http, sent):
             pass
 
     with serve_http(Handler) as base:
-        child = next(c for c in UriPath(f"{base}/d/").iterdir())
+        child = next(c for c in URIPath(f"{base}/d/").iterdir())
         sent.clear()
 
         stat = child.stat()

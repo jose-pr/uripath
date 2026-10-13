@@ -67,7 +67,7 @@ def test_a_zip_member_holds_what_was_read_whatever_stat_says(claimed):
 
 @requires_uri_extra
 def test_a_tar_of_an_http_file_served_without_a_length_holds_all_its_bytes():
-    from uripath import UriPath
+    from uripath import URIPath
 
     class Handler(http.server.BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.0"  # the body ends when the connection does
@@ -91,7 +91,7 @@ def test_a_tar_of_an_http_file_served_without_a_length_holds_all_its_bytes():
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        source = UriPath(f"http://127.0.0.1:{server.server_address[1]}/data.bin")
+        source = URIPath(f"http://127.0.0.1:{server.server_address[1]}/data.bin")
         assert source.stat().st_size == 0
         target = MemPath("/out.tar")
         make_archive(source, "tar", target)

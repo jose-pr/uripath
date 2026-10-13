@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from uripath import UriPath
+from uripath import URIPath
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def _child(root):
 
 
 def test_a_member_name_that_is_not_utf8_is_one_printable_component(latin1_tar):
-    root = UriPath(f"tar:{latin1_tar.as_uri()}!/")
+    root = URIPath(f"tar:{latin1_tar.as_uri()}!/")
     child = _child(root)
     assert child.name == "caf\udce9.txt"
     assert child.parent == root / "d"
@@ -42,7 +42,7 @@ def test_a_member_name_that_is_not_utf8_is_one_printable_component(latin1_tar):
 
 
 def test_such_a_name_compares_hashes_and_deduplicates(latin1_tar):
-    root = UriPath(f"tar:{latin1_tar.as_uri()}!/")
+    root = URIPath(f"tar:{latin1_tar.as_uri()}!/")
     first, second = _child(root), _child(root)
     assert first == second and hash(first) == hash(second)
     assert len({first, second}) == 1
@@ -50,20 +50,20 @@ def test_such_a_name_compares_hashes_and_deduplicates(latin1_tar):
 
 
 def test_such_a_name_reads_through_every_spelling_of_it(latin1_tar):
-    root = UriPath(f"tar:{latin1_tar.as_uri()}!/")
+    root = URIPath(f"tar:{latin1_tar.as_uri()}!/")
     child = _child(root)
     assert child.read_bytes() == b"x"
     assert child.stat().st_size == 1
     assert child.exists() and child.is_file()
-    typed = UriPath(f"tar:{latin1_tar.as_uri()}!/d/caf%E9.txt")
+    typed = URIPath(f"tar:{latin1_tar.as_uri()}!/d/caf%E9.txt")
     assert typed == child
     assert typed.read_bytes() == b"x"
-    assert UriPath(child.as_uri()) == child
-    assert UriPath(str(child)).read_bytes() == b"x"
+    assert URIPath(child.as_uri()) == child
+    assert URIPath(str(child)).read_bytes() == b"x"
 
 
 def test_such_a_name_is_listed_by_walk_and_glob(latin1_tar):
-    root = UriPath(f"tar:{latin1_tar.as_uri()}!/")
+    root = URIPath(f"tar:{latin1_tar.as_uri()}!/")
     walked = sorted(name for _, _, files in root.walk() for name in files)
     assert walked == ["caf\udce9.txt", "plain.txt"]
     globbed = sorted(str(p) for p in root.glob("d/*.txt"))

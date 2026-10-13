@@ -12,7 +12,7 @@ import urllib.parse as _urlparse
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from .. import DerivedBackend, UriPath
+from .. import DerivedBackend, URIPath
 from . import _elsewhere, _httpdate
 from ._http import (
     HTTPResponse,
@@ -37,15 +37,15 @@ from ._http._headers import merge_headers as _merge_headers
 from ._http._headers import peer_text
 
 DEFAULT_TIMEOUT = (10, 60)
-"""`(connect, read)` timeout, in seconds, `HttpBackend` sends with every
-request unless the caller supplies `timeout` (`HttpBackend(timeout=...)`,
+"""`(connect, read)` timeout, in seconds, `HTTPBackend` sends with every
+request unless the caller supplies `timeout` (`HTTPBackend(timeout=...)`,
 `with_transport(timeout=...)`, `with_session(..., timeout=...)`, or per
 request); `timeout=None` there waits without a limit."""
 
 MAX_LISTING_BYTES = 8 * 1024 * 1024
 """Most bytes of a reply the library reads whole, after any content decoding: a
 directory index, and a reply it needs for what it says (a PROPFIND's, a git
-API's, `HttpBackend.request(stream=False)`'s). A longer body raises
+API's, `HTTPBackend.request(stream=False)`'s). A longer body raises
 `OSError(EFBIG)` naming the path and closes the connection. The body of a
 reply nobody looks at (a write's, a DELETE's) is read up to this many bytes
 and dropped. Raise it for an index that is legitimately larger; parsing costs
@@ -606,7 +606,7 @@ class _UploadStream(_io.BytesIO):
 
     _ready = False
 
-    def __init__(self, path: "HttpPath"):
+    def __init__(self, path: "HTTPURIPath"):
         super().__init__()
         self._path = path
 
@@ -625,8 +625,8 @@ class _UploadStream(_io.BytesIO):
             super().close()
 
 
-class HttpWriteStream(_UploadStream):
-    def __init__(self, path: "HttpPath", exclusive: bool = False):
+class HTTPWriteStream(_UploadStream):
+    def __init__(self, path: "HTTPURIPath", exclusive: bool = False):
         super().__init__(path)
         # `exclusive` (mode "x"): the upload carries `If-None-Match: *`, and a
         # 412 reply means the file appeared since the caller looked.
@@ -652,8 +652,8 @@ class HttpWriteStream(_UploadStream):
                 _drop_body(resp, MAX_LISTING_BYTES)
 
 
-class HttpAppendStream(_UploadStream):
-    def __init__(self, path: "HttpPath"):
+class HTTPAppendStream(_UploadStream):
+    def __init__(self, path: "HTTPURIPath"):
         super().__init__(path)
         if path.backend.append_mode == "rewrite":
             try:
@@ -732,8 +732,8 @@ _UNSET = object()
 _BASE_HEADERS = {"User-Agent": "pathlib-next", "Accept": "*/*"}
 
 
-class HttpBackend(TransportOwner):
-    """The transport and the settings shared by an `HttpPath` tree (see
+class HTTPBackend(TransportOwner):
+    """The transport and the settings shared by an `HTTPURIPath` tree (see
     `with_transport()` and `with_session()`).
 
     `transport` is any object with a `send()` method as
@@ -831,7 +831,7 @@ class HttpBackend(TransportOwner):
     def request(
         self,
         method,
-        uri: "HttpPath|str",
+        uri: "HTTPURIPath|str",
         *,
         data=None,
         headers=None,
@@ -855,7 +855,7 @@ class HttpBackend(TransportOwner):
     def redirect(
         self,
         method,
-        uri: "HttpPath|str",
+        uri: "HTTPURIPath|str",
         resp: HTTPResponse,
         *,
         headers=None,
@@ -878,14 +878,14 @@ class HttpBackend(TransportOwner):
         )
 
 
-class _DerivedHttpBackend(HttpBackend, DerivedBackend):
-    """What `HttpPath._initbackend()` returns: the class itself says the path
-    derived this backend for itself (see `UriPath._supplied_backend()`)."""
+class _DerivedHTTPBackend(HTTPBackend, DerivedBackend):
+    """What `HTTPURIPath._initbackend()` returns: the class itself says the path
+    derived this backend for itself (see `URIPath._supplied_backend()`)."""
 
     __slots__ = ()
 
 
-class HttpPath(UriPath):
+class HTTPURIPath(URIPath):
     """`http`/`https` scheme: read/write access over HTTP (`PUT`/`DELETE`
     for writes/deletes, configurable via `with_transport()`), listing
     directories by scraping an Apache/nginx-style HTML index with a
@@ -897,10 +897,10 @@ class HttpPath(UriPath):
     __slots__ = ()
 
     if _ty.TYPE_CHECKING:
-        backend: HttpBackend
+        backend: HTTPBackend
 
     def _initbackend(self):
-        return _DerivedHttpBackend(timeout=DEFAULT_TIMEOUT)
+        return _DerivedHTTPBackend(timeout=DEFAULT_TIMEOUT)
 
     def _listdir(self) -> list[_FileEntry]:
         # The slash form first: a server redirects a directory's slash-less URL to it, at a
@@ -1108,12 +1108,12 @@ class HttpPath(UriPath):
             req = self._get(self.as_uri(), headers=_IDENTITY_ENCODING)
             return _response_reader(self, req, buffering)
         if mode == "a":
-            return HttpAppendStream(self)
+            return HTTPAppendStream(self)
         if mode not in ("w", "x"):
             raise NotImplementedError(f"open(mode={mode!r})")
         if mode == "x":
             self._ensure_missing()
-        return HttpWriteStream(self, exclusive=mode == "x")
+        return HTTPWriteStream(self, exclusive=mode == "x")
 
     def unlink(self, missing_ok=False):
         # A server that honours DELETE on a collection (WebDAV, RFC 4918) removes the whole
@@ -1164,7 +1164,7 @@ class HttpPath(UriPath):
         it). `headers` go with every request; `write_method` (`"PUT"`, or
         e.g. `"POST"`) uploads on close, and `append_mode` is `"rewrite"` or
         `"patch"`."""
-        backend = HttpBackend(
+        backend = HTTPBackend(
             transport,
             headers=headers,
             timeout=timeout,

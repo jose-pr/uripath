@@ -91,8 +91,8 @@ def test_decode_reads_a_plus_as_a_plus_not_as_a_space():
 
 
 def test_a_signature_set_with_with_query_reaches_the_wire_escaped():
-    from uripath import Uri
+    from uripath import URI
 
-    uri = Uri("http://h/x").with_query({"sig": "ab+cd=="})
+    uri = URI("http://h/x").with_query({"sig": "ab+cd=="})
     assert uri.as_uri() == "http://h/x?sig=ab%2Bcd%3D%3D"
     assert uri.query.to_dict() == {"sig": ["ab+cd=="]}

@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("uritools")
 
 import uripath as uri_module
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 
 # --- the entry points are read once -----------------------------------------------------
 
@@ -25,7 +25,7 @@ def test_many_unknown_schemes_scan_the_plugins_once_and_remember_nothing_per_sch
 
     with mock.patch("importlib.metadata.entry_points", side_effect=entry_points):
         for index in range(300):
-            assert type(UriPath(f"nosuch{index}-g5:x")) is UriPath
+            assert type(URIPath(f"nosuch{index}-g5:x")) is URIPath
         declared = uri_module._ENTRY_POINTS[1]
     assert len(calls) == 1
     assert declared == {}
@@ -37,7 +37,7 @@ def test_an_entry_point_that_registers_nothing_is_loaded_once():
     ep.load.return_value = object
     with mock.patch("importlib.metadata.entry_points", return_value=[ep]) as lookup:
         for _ in range(5):
-            assert type(UriPath("declaredg5://h/x")) is UriPath
+            assert type(URIPath("declaredg5://h/x")) is URIPath
     assert ep.load.call_count == 1
     assert lookup.call_count == 1
 
@@ -47,13 +47,13 @@ def test_a_class_defined_later_makes_the_plugins_be_read_again():
     first.name = "laterg5"
     first.load.return_value = object
     with mock.patch("importlib.metadata.entry_points", return_value=[first]) as lookup:
-        UriPath("laterg5://h/x")
+        URIPath("laterg5://h/x")
 
-        class Defined(UriPath):  # noqa: F841 - defining it is the point
+        class Defined(URIPath):  # noqa: F841 - defining it is the point
             __SCHEMES = ("definedg5",)
             __slots__ = ()
 
-        UriPath("laterg5://h/y")
+        URIPath("laterg5://h/y")
         assert lookup.call_count == 2
 
 
@@ -61,34 +61,34 @@ def test_a_class_defined_later_makes_the_plugins_be_read_again():
 
 
 def test_a_new_instance_starts_with_every_slot_at_none():
-    for cls in (Uri, UriPath):
-        instance = Uri.__new__(cls)
+    for cls in (URI, URIPath):
+        instance = URI.__new__(cls)
         names = cls._slot_names
         assert "_raw_uris" in names and "_initiated" in names
         assert len(names) == len(set(names))
         assert all(getattr(instance, name) is None for name in names)
-    assert "_backend" in UriPath._slot_names
-    assert "_backend" not in Uri._slot_names
+    assert "_backend" in URIPath._slot_names
+    assert "_backend" not in URI._slot_names
 
 
 def test_a_subclass_gets_its_own_slots_in_the_list():
-    class WithSlot(UriPath):
+    class WithSlot(URIPath):
         __SCHEMES = ("withslotg5",)
         __slots__ = ("_extra",)
 
     assert "_extra" in WithSlot._slot_names
-    assert "_extra" not in UriPath._slot_names
-    instance = UriPath("withslotg5://h/x")
+    assert "_extra" not in URIPath._slot_names
+    instance = URIPath("withslotg5://h/x")
     assert instance._extra is None
     assert type(instance) is WithSlot
 
 
 def test_a_class_with_a_string_slot_or_a_weakref_slot_is_constructed():
-    class Odd(UriPath):
+    class Odd(URIPath):
         __SCHEMES = ("oddg5",)
         __slots__ = ("_single", "__weakref__")
 
-    instance = UriPath("oddg5://h/x")
+    instance = URIPath("oddg5://h/x")
     assert instance._single is None
     assert Odd._slot_names.count("_single") == 1
     assert "__weakref__" not in Odd._slot_names

@@ -18,9 +18,9 @@ import pytest
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath, MemPathBackend
 from pathlib_next.protocols import BinaryOpen
-from uripath import Uri, UriPath
-from uripath.schemes.data import DataUri
-from uripath.schemes.file import FileUri
+from uripath import URI, URIPath
+from uripath.schemes.data import DataURIPath
+from uripath.schemes.file import FileURIPath
 from uripath.source import Source
 from pathlib_next import checksum
 from pathlib_next import FileStat
@@ -74,8 +74,8 @@ def test_uripath_samefile_str_keeps_the_host(monkeypatch):
         seen.append((self.source.host, self.path))
         return types.SimpleNamespace(st_mode=0o100644, st_dev=1, st_ino=self.path)
 
-    monkeypatch.setattr(FileUri, "stat", fake_stat)
-    path = UriPath("file://server/share/a")
+    monkeypatch.setattr(FileURIPath, "stat", fake_stat)
+    path = URIPath("file://server/share/a")
     assert path.samefile("/share/a") is True
     assert seen == [("server", "/share/a"), ("server", "/share/a")]
 
@@ -127,11 +127,11 @@ def _race(action, trials=200):
 
 
 def test_str_rtruediv_uri_is_a_decoded_path():
-    joined = "a" / Uri("b")
-    assert type(joined) is Uri
+    joined = "a" / URI("b")
+    assert type(joined) is URI
     assert joined.path == "a/b"
     # Not URI syntax: no scheme, query or fragment is parsed out of the str.
-    odd = "C:/x?y#z" / Uri("b")
+    odd = "C:/x?y#z" / URI("b")
     assert (odd.source, odd.path, odd.query, odd.fragment) == (
         Source(None, None, None, None),
         "C:/x?y#z/b",
@@ -142,15 +142,15 @@ def test_str_rtruediv_uri_is_a_decoded_path():
 
 def test_str_rtruediv_uripath_keeps_source_and_backend():
     backend = object()
-    base = UriPath("http://h/b").with_backend(backend)
+    base = URIPath("http://h/b").with_backend(backend)
     joined = "a" / base
     assert type(joined) is type(base)
     # An absolute path restarts the join, as in pathlib.
     assert joined.as_uri() == "http://h/b"
     assert joined.backend is backend
-    relative = "C:/p" / UriPath("x")
+    relative = "C:/p" / URIPath("x")
     assert (type(relative), relative.source, relative.path) == (
-        UriPath,
+        URIPath,
         Source(None, None, None, None),
         "C:/p/x",
     )
@@ -177,7 +177,7 @@ _SUFFIX_NAMES = [
 @pytest.mark.parametrize("name", _SUFFIX_NAMES)
 def test_suffix_rules_follow_running_pathlib(name):
     expected = pathlib.PurePosixPath("x", name)
-    for path in (MemPath("x", name), Uri(f"x/{name}"), UriPath(f"http://h/x/{name}")):
+    for path in (MemPath("x", name), URI(f"x/{name}"), URIPath(f"http://h/x/{name}")):
         assert path.name == expected.name
         assert path.suffix == expected.suffix, path
         assert path.suffixes == expected.suffixes, path
@@ -189,21 +189,21 @@ def test_suffix_rules_follow_running_pathlib(name):
 
 
 def test_explicit_schemesmap_is_not_extended_on_a_miss():
-    assert type(UriPath("ftp://h/a", schemesmap={"data": DataUri})) is UriPath
-    assert type(UriPath("file:///etc/x", schemesmap={"data": DataUri})) is UriPath
-    assert type(UriPath("data:,x", schemesmap={"data": DataUri})) is DataUri
-    assert type(UriPath("data:,x", schemesmap={})) is UriPath
+    assert type(URIPath("ftp://h/a", schemesmap={"data": DataURIPath})) is URIPath
+    assert type(URIPath("file:///etc/x", schemesmap={"data": DataURIPath})) is URIPath
+    assert type(URIPath("data:,x", schemesmap={"data": DataURIPath})) is DataURIPath
+    assert type(URIPath("data:,x", schemesmap={})) is URIPath
     # Without a map, the registry (and lazy loading) still applies.
-    assert type(UriPath("data:,x")) is DataUri
+    assert type(URIPath("data:,x")) is DataURIPath
 
 
-# --- lazy parse publishes a fully-initialised Uri ---------------------------
+# --- lazy parse publishes a fully-initialised URI ---------------------------
 
 
 def test_lazy_parse_sets_initiated_after_the_components():
     observed = []
 
-    class Probe(Uri):
+    class Probe(URI):
         __slots__ = ()
 
         def __setattr__(self, name, value):
@@ -218,21 +218,21 @@ def test_lazy_parse_sets_initiated_after_the_components():
     assert not any(initiated for _, initiated in observed)
 
 
-# --- Uri equality and hashing -----------------------------------------------
+# --- URI equality and hashing -----------------------------------------------
 
 
 def test_uri_eq_against_relative_localpath_does_not_raise():
-    assert (LocalPath("a") in [Uri("x")]) is False
-    assert (Uri("x") == LocalPath("a")) is False
+    assert (LocalPath("a") in [URI("x")]) is False
+    assert (URI("x") == LocalPath("a")) is False
 
 
 def test_uri_eq_is_consistent_with_hash():
     mem = MemPath("/a")
-    uri = Uri("mempath:/a")
+    uri = URI("mempath:/a")
     assert uri != mem and mem != uri
     assert len({uri, mem}) == 2
     assert uri == "mempath:/a" and hash(uri) == hash("mempath:/a")
-    other = UriPath("mempath:/a")
+    other = URIPath("mempath:/a")
     assert uri == other and hash(uri) == hash(other)
 
 
@@ -240,24 +240,24 @@ def test_uri_eq_is_consistent_with_hash():
 
 
 def test_with_source_without_scheme_gives_plain_uripath():
-    moved = UriPath("http://h/a").with_source(Source(None, None, "other", None))
-    assert type(moved) is UriPath
+    moved = URIPath("http://h/a").with_source(Source(None, None, "other", None))
+    assert type(moved) is URIPath
     assert (moved.source.host, moved.path) == ("other", "/a")
 
 
 def test_truediv_does_not_mask_a_scheme_type_error(monkeypatch):
-    base = UriPath("data:,a")
+    base = URIPath("data:,a")
 
     def broken_init(self, *args, **kwargs):
         raise TypeError("scheme bug")
 
-    monkeypatch.setattr(DataUri, "_init", broken_init)
+    monkeypatch.setattr(DataURIPath, "_init", broken_init)
     with pytest.raises(TypeError, match="scheme bug"):
         base / "b"
 
 
 def test_truediv_unsupported_operand_still_returns_notimplemented():
-    base = UriPath("http://h/a")
+    base = URIPath("http://h/a")
     assert base.__truediv__(3) is NotImplemented
     with pytest.raises(TypeError, match="unsupported operand"):
         base / 3
@@ -268,16 +268,16 @@ def test_truediv_unsupported_operand_still_returns_notimplemented():
 
 
 def test_posix_double_slash_path_is_not_an_authority():
-    uri = Uri(pathlib.PurePosixPath("//a/b"))
+    uri = URI(pathlib.PurePosixPath("//a/b"))
     assert not uri.source
     assert uri.path == "//a/b"
-    assert Uri(str(uri)).path == "//a/b"
+    assert URI(str(uri)).path == "//a/b"
 
 
 def test_file_uri_with_empty_authority_and_double_slash_path_renders():
-    uri = Uri("file:////server/share/x")
+    uri = URI("file:////server/share/x")
     text = str(uri)
-    reparsed = Uri(text)
+    reparsed = URI(text)
     assert (reparsed.source.scheme, reparsed.path) == ("file", "//server/share/x")
     assert reparsed == uri and hash(reparsed) == hash(uri)
     assert repr(uri)
@@ -287,22 +287,22 @@ def test_file_uri_with_empty_authority_and_double_slash_path_renders():
 
 
 def test_non_ascii_host_is_composed_as_idna():
-    path = UriPath("http://b\u00fccher.example/a")
+    path = URIPath("http://b\u00fccher.example/a")
     assert path.source.host == "b\u00fccher.example"
     assert path.as_uri() == "http://xn--bcher-kva.example/a"
-    assert UriPath(path.as_uri()) == path
+    assert URIPath(path.as_uri()) == path
 
 
 def test_non_ascii_host_request_url_is_idna():
     requests = pytest.importorskip("requests")
-    url = UriPath("https://b\u00fccher.example/a").as_uri()
+    url = URIPath("https://b\u00fccher.example/a").as_uri()
     prepared = requests.Request("GET", url).prepare()
     assert prepared.url == "https://xn--bcher-kva.example/a"
 
 
 def test_invalid_idna_host_keeps_percent_encoding():
     # An empty label cannot be IDNA-encoded.
-    assert Uri("http://b\u00fc..x/a").as_uri() == "http://b%C3%BC..x/a"
+    assert URI("http://b\u00fc..x/a").as_uri() == "http://b%C3%BC..x/a"
 
 
 # --- data: URIs -------------------------------------------------------------
@@ -311,11 +311,11 @@ def test_invalid_idna_host_keeps_percent_encoding():
 @pytest.mark.parametrize("mode", ["r+b", "w", "ab", "x"])
 def test_data_uri_rejects_every_writable_mode(mode):
     with pytest.raises(NotImplementedError):
-        UriPath("data:,abc").open(mode)
+        URIPath("data:,abc").open(mode)
 
 
 def test_data_uri_read_handle_is_not_writable():
-    with UriPath("data:,abc").open("rb") as handle:
+    with URIPath("data:,abc").open("rb") as handle:
         assert handle.writable() is False
         with pytest.raises(io.UnsupportedOperation):
             handle.write(b"zz")
@@ -334,7 +334,7 @@ def test_data_uri_read_handle_is_not_writable():
     ],
 )
 def test_data_uri_mediatype_and_base64_follow_rfc2397(uri, mediatype, content):
-    path = UriPath(uri)
+    path = URIPath(uri)
     assert path.mediatype == mediatype
     assert path.read_bytes() == content
 
@@ -343,21 +343,21 @@ def test_data_uri_mediatype_and_base64_follow_rfc2397(uri, mediatype, content):
 
 
 def test_uri_is_absolute_follows_the_path():
-    assert Uri("/a").is_absolute() is True
-    assert Uri("a").is_absolute() is False
-    assert Uri("").is_absolute() is False
-    assert Uri("http://h/a").is_absolute() is True
-    assert UriPath("data:,abc").is_absolute() is False
+    assert URI("/a").is_absolute() is True
+    assert URI("a").is_absolute() is False
+    assert URI("").is_absolute() is False
+    assert URI("http://h/a").is_absolute() is True
+    assert URIPath("data:,abc").is_absolute() is False
 
 
 def test_file_uri_of_absolute_local_path_is_absolute(tmp_path):
-    uri = UriPath(LocalPath(tmp_path))
-    assert isinstance(uri, FileUri)
+    uri = URIPath(LocalPath(tmp_path))
+    assert isinstance(uri, FileURIPath)
     assert uri.is_absolute() is True
 
 
 @pytest.mark.skipif(os.name != "nt", reason="drive letters are Windows-only")
 def test_file_uri_drive_relative_is_not_absolute():
-    assert FileUri("file:///C:/x").is_absolute() is True
-    assert FileUri("file:///C:/").is_absolute() is True
-    assert FileUri("file:C:").is_absolute() is False
+    assert FileURIPath("file:///C:/x").is_absolute() is True
+    assert FileURIPath("file:///C:/").is_absolute() is True
+    assert FileURIPath("file:C:").is_absolute() is False

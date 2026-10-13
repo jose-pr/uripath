@@ -1,6 +1,6 @@
 """A URI path means what it spells: RFC 3986 5.2.4 removes its dot segments
 whether it was written in the constructor, joined as a `str` or joined as a
-`Uri`. The join itself stays pathlib-style concatenation (`/d` + `x` is
+`URI`. The join itself stays pathlib-style concatenation (`/d` + `x` is
 `/d/x`); only the removal of `.` and `..` is the RFC's.
 """
 
@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 
 WINDOWS = os.name == "nt"
 
@@ -25,7 +25,7 @@ _ANSWERS = {
     "%2e%2e/x": "dotseg://h/x",
 }
 _BASES = ["dotseg://h/d", "dotseg://h/d/"]
-_CLASSES = [Uri, UriPath]
+_CLASSES = [URI, URIPath]
 
 
 def _spellings(cls, base, key):
@@ -33,7 +33,7 @@ def _spellings(cls, base, key):
     return {
         "constructor": cls(base, key),
         "str join": cls(base) / key,
-        "Uri join": cls(base) / Uri(key),
+        "URI join": cls(base) / URI(key),
     }
 
 
@@ -62,23 +62,23 @@ def test_a_str_join_and_the_constructor_agree_on_a_file_name_below_the_base(cls)
 
 
 def test_a_name_that_only_looks_like_a_dot_segment_is_a_name():
-    base = Uri("dotseg://h/d/")
+    base = URI("dotseg://h/d/")
     for name in ("...", ".hidden", "a..b", "..x", "x."):
         assert (base / name).path == f"/d/{name}"
-        assert Uri(base, name).path == f"/d/{name}"
+        assert URI(base, name).path == f"/d/{name}"
         assert base._make_child_relpath(name).path == f"/d/{name}"
-        assert Uri((base / name).as_uri()) == base / name
+        assert URI((base / name).as_uri()) == base / name
 
 
 @pytest.mark.parametrize("base", _BASES)
 def test_a_child_built_from_a_listed_name_is_not_resolved(base):
     """The listing route builds a child by name and never resolves one; a
     name that is not one plain component is refused before this point."""
-    parent = UriPath(base)
+    parent = URIPath(base)
     assert parent._make_child_relpath("x").path == "/d/x"
     assert parent._make_child_relpath("x.y").path == "/d/x.y"
 
-    class Listed(UriPath):
+    class Listed(URIPath):
         __SCHEMES = ("dot-listing",)
         __slots__ = ()
 
@@ -117,18 +117,18 @@ def test_a_percent_encoded_dot_segment_is_removed_after_decoding(spelled):
 
 
 def test_a_percent_encoded_dot_is_removed_too():
-    assert Uri("dotseg://h/a/%2e/b").path == "/a/b"
-    assert Uri("dotseg://h/a/%2e").path == "/a/"
+    assert URI("dotseg://h/a/%2e/b").path == "/a/b"
+    assert URI("dotseg://h/a/%2e").path == "/a/"
 
 
 def test_an_escape_that_is_not_a_dot_segment_is_left_alone():
-    path = Uri("dotseg://h/a%20b/c%2Ed.txt")
+    path = URI("dotseg://h/a%20b/c%2Ed.txt")
     assert path.path == "/a b/c.d.txt"
-    assert Uri(path.as_uri()) == path
+    assert URI(path.as_uri()) == path
 
 
 def test_a_data_payload_is_never_resolved():
-    assert Uri("data:,a/%2e%2e/b").path == ",a/../b"
+    assert URI("data:,a/%2e%2e/b").path == ",a/../b"
 
 
 # --- a reference past its start ----------------------------------------------
@@ -136,15 +136,15 @@ def test_a_data_payload_is_never_resolved():
 
 def test_a_relative_reference_keeps_the_dots_it_cannot_resolve():
     """The constructor keeps a leading `..`, and so does a join: one routine
-    removes the dot segments, so `Uri("a") / "../../x"` is what
-    `Uri("a/../../x")` is."""
-    assert Uri("a/../../x").path == "../x"
-    assert (Uri("a") / "../../x").path == "../x"
-    assert Uri("a", "../../x").path == "../x"
-    assert (Uri("a") / Uri("../../x")).path == "../x"
-    assert Uri("..").path == "../"
-    assert (Uri("") / "..").path == "../"
-    assert (Uri("a/b") / "../..").path == Uri("a/b/../..").path == "./"
+    removes the dot segments, so `URI("a") / "../../x"` is what
+    `URI("a/../../x")` is."""
+    assert URI("a/../../x").path == "../x"
+    assert (URI("a") / "../../x").path == "../x"
+    assert URI("a", "../../x").path == "../x"
+    assert (URI("a") / URI("../../x")).path == "../x"
+    assert URI("..").path == "../"
+    assert (URI("") / "..").path == "../"
+    assert (URI("a/b") / "../..").path == URI("a/b/../..").path == "./"
 
 
 @pytest.mark.parametrize("cls", _CLASSES)
@@ -158,15 +158,15 @@ def test_a_dot_segment_never_climbs_past_the_root_of_an_absolute_path(cls):
 
 def test_a_join_below_the_root_reaches_the_same_path_as_its_spelling():
     for spelling, joined in (
-        ("dotseg://h/d/../x", Uri("dotseg://h/d/") / "../x"),
-        ("dotseg://h/d/x/../..", Uri("dotseg://h/d/x") / "../.."),
-        ("dotseg://h/d/./x/", Uri("dotseg://h/d") / "./x/"),
+        ("dotseg://h/d/../x", URI("dotseg://h/d/") / "../x"),
+        ("dotseg://h/d/x/../..", URI("dotseg://h/d/x") / "../.."),
+        ("dotseg://h/d/./x/", URI("dotseg://h/d") / "./x/"),
     ):
-        assert Uri(spelling) == joined
+        assert URI(spelling) == joined
 
 
 def test_a_destination_with_dots_resolves_like_a_join():
-    source = UriPath("sftp://user@host/mnt/sub/a.txt")
+    source = URIPath("sftp://user@host/mnt/sub/a.txt")
     for target, path in (
         ("../b.txt", "/mnt/b.txt"),
         ("./b.txt", "/mnt/sub/b.txt"),
@@ -181,7 +181,7 @@ def test_a_destination_with_dots_resolves_like_a_join():
 
 
 @pytest.mark.skipif(not WINDOWS, reason="a drive letter is only an anchor on Windows")
-@pytest.mark.parametrize("cls", [Uri, UriPath])
+@pytest.mark.parametrize("cls", [URI, URIPath])
 def test_dot_segments_never_climb_above_a_windows_drive(cls):
     assert cls("file:///D:/data/../../x").path.removeprefix("/") == "D:/x"
     assert cls("file:///C:/d/../../../x").as_uri() == "file:/C:/x"
@@ -191,17 +191,17 @@ def test_dot_segments_never_climb_above_a_windows_drive(cls):
 
 @pytest.mark.skipif(not WINDOWS, reason="a drive letter is only an anchor on Windows")
 def test_a_join_never_climbs_above_a_windows_drive():
-    base = UriPath("file:///C:/d/")
+    base = URIPath("file:///C:/d/")
     assert (base / "../../../x").path == "C:/x"
     assert (base / "..").path == "C:/"
     assert (base / "../..").path == "C:/"
     assert (base / "../../..").as_uri() == "file:/C:/"
-    assert UriPath("file:///C:/d", "../../../x").path == "C:/x"
+    assert URIPath("file:///C:/d", "../../../x").path == "C:/x"
     assert (base / "D:/e/../../f").path == "D:/f"
 
 
 @pytest.mark.skipif(WINDOWS, reason="a drive letter is an ordinary name off Windows")
 def test_a_drive_shaped_name_is_an_ordinary_directory_off_windows():
-    assert UriPath("file:///D:/data/../../x").path == "/x"
-    assert (UriPath("file:///C:/d/") / "../../../x").path == "/x"
-    assert (UriPath("file:///C:/d/") / "..").path == "/C:/"
+    assert URIPath("file:///D:/data/../../x").path == "/x"
+    assert (URIPath("file:///C:/d/") / "../../../x").path == "/x"
+    assert (URIPath("file:///C:/d/") / "..").path == "/C:/"

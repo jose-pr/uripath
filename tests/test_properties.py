@@ -14,7 +14,7 @@ import uritools
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from uripath import Uri
+from uripath import URI
 from uripath.source import (
     Source,
     _compose_uri,
@@ -49,15 +49,15 @@ def _posix(segs: list[str]) -> str:
 @given(segs=segments_list)
 @settings(max_examples=200)
 def test_uri_str_roundtrip(segs):
-    u = Uri(_posix(segs))
-    assert Uri(str(u)) == u
+    u = URI(_posix(segs))
+    assert URI(str(u)) == u
 
 
 @given(segs=segments_list)
 @settings(max_examples=200)
 def test_uri_as_uri_roundtrip(segs):
-    u = Uri(_posix(segs))
-    assert Uri(u.as_uri()) == u
+    u = URI(_posix(segs))
+    assert URI(u.as_uri()) == u
 
 
 # --- Path joining ---
@@ -66,14 +66,14 @@ def test_uri_as_uri_roundtrip(segs):
 @given(base=segments_list, a=segment, b=segment)
 @settings(max_examples=200)
 def test_join_is_associative(base, a, b):
-    u = Uri(_posix(base))
+    u = URI(_posix(base))
     assert (u / a) / b == u.joinpath(a, b)
 
 
 @given(base=segments_list, tail=nonempty_segments_list)
 @settings(max_examples=200)
 def test_joinpath_matches_repeated_truediv(base, tail):
-    u = Uri(_posix(base))
+    u = URI(_posix(base))
     joined = u.joinpath(*tail)
     stepped = u
     for part in tail:
@@ -88,9 +88,9 @@ def test_joinpath_matches_repeated_truediv(base, tail):
 @settings(max_examples=200)
 def test_segments_match_pure_posix_path_parts(segs):
     path_str = _posix(segs)
-    u = Uri(path_str)
+    u = URI(path_str)
     pp = pathlib.PurePosixPath(path_str)
-    # Uri.segments keeps a leading "" to mark the root ("/a/b" -> ("", "a",
+    # URI.segments keeps a leading "" to mark the root ("/a/b" -> ("", "a",
     # "b")); PurePosixPath.parts marks it as "/" instead ("/a/b" -> ("/",
     # "a", "b")). Everything after that first element matches exactly.
     assert u.segments[0] == ""
@@ -101,7 +101,7 @@ def test_segments_match_pure_posix_path_parts(segs):
 @settings(max_examples=200)
 def test_name_matches_pure_posix_path(segs):
     path_str = _posix(segs)
-    assert Uri(path_str).name == pathlib.PurePosixPath(path_str).name
+    assert URI(path_str).name == pathlib.PurePosixPath(path_str).name
 
 
 @given(common=segments_list, tail=nonempty_segments_list)
@@ -111,7 +111,7 @@ def test_relative_to_matches_pure_posix_path(common, tail):
     child_str = _posix(child_segs)
     base_str = _posix(common)
 
-    u_child, u_base = Uri(child_str), Uri(base_str)
+    u_child, u_base = URI(child_str), URI(base_str)
     pp_child, pp_base = pathlib.PurePosixPath(child_str), pathlib.PurePosixPath(
         base_str
     )
@@ -131,7 +131,7 @@ def test_relative_to_unrelated_raises_on_both(a, b):
 
     u_raises = False
     try:
-        Uri(a_str).relative_to(Uri(b_str))
+        URI(a_str).relative_to(URI(b_str))
     except ValueError:
         u_raises = True
 
@@ -149,7 +149,7 @@ def test_relative_to_unrelated_raises_on_both(a, b):
 def test_match_trailing_segment_wildcard_matches_pure_posix_path(segs):
     path_str = _posix(segs)
     pattern = "*" + segs[-1][1:] if len(segs[-1]) > 1 else "*"
-    assert Uri(path_str).match(pattern) == pathlib.PurePosixPath(path_str).match(
+    assert URI(path_str).match(pattern) == pathlib.PurePosixPath(path_str).match(
         pattern
     )
 
@@ -159,11 +159,11 @@ def test_match_trailing_segment_wildcard_matches_pure_posix_path(segs):
 def test_is_relative_to_matches_pure_posix_path(segs):
     path_str = _posix(segs)
     parent_str = _posix(segs[:-1])
-    u, pp = Uri(path_str), pathlib.PurePosixPath(path_str)
-    u_parent, pp_parent = Uri(parent_str), pathlib.PurePosixPath(parent_str)
+    u, pp = URI(path_str), pathlib.PurePosixPath(path_str)
+    u_parent, pp_parent = URI(parent_str), pathlib.PurePosixPath(parent_str)
     assert u.is_relative_to(u_parent) == pp.is_relative_to(pp_parent) == True
     # The str form must agree with the object form: it used to anchor
-    # `other` at self's root (Uri(self, _ROOT, other)) and answer False for
+    # `other` at self's root (URI(self, _ROOT, other)) and answer False for
     # every *relative* self.
     assert u.is_relative_to(parent_str) == pp.is_relative_to(parent_str) == True
 
@@ -175,11 +175,11 @@ def test_is_relative_to_str_matches_pure_posix_path_for_unrelated_other(segs):
     # prefix must answer False for both, relative and absolute self alike.
     other_str = _posix(["zzz-unrelated"])
     for path_str in (_posix(segs), "/" + _posix(segs)):
-        u, pp = Uri(path_str), pathlib.PurePosixPath(path_str)
+        u, pp = URI(path_str), pathlib.PurePosixPath(path_str)
         assert u.is_relative_to(other_str) == pp.is_relative_to(other_str)
 
 
-# --- Generic Pathname (Uri, MemPath) vs PurePosixPath: match, parents,
+# --- Generic Pathname (URI, MemPath) vs PurePosixPath: match, parents,
 # MemPath normalization. Small alphabets so wildcards actually hit. ---
 
 _match_name = st.sampled_from(["a", "b", "ab", "a.py", ".a", "b.a"])
@@ -191,7 +191,7 @@ _match_pattern_part = st.sampled_from(
 def _generic_classes():
     from pathlib_next.mempath import MemPath
 
-    return (Uri, MemPath)
+    return (URI, MemPath)
 
 
 @given(
@@ -249,7 +249,7 @@ _mem_piece = st.sampled_from(["", ".", "a", "b", "cd"])
 
 
 # --- uritools oracle: one-pass parse/compose fast paths ---
-# `Uri._parse_uri`/`Uri._format_parsed_parts` bypass uritools' get*()
+# `URI._parse_uri`/`URI._format_parsed_parts` bypass uritools' get*()
 # accessors and uricompose() for speed (one-pass authority/path extraction,
 # direct string assembly) but must remain byte-for-byte equivalent to them
 # -- uritools stays installed as the oracle here specifically so that
@@ -393,11 +393,11 @@ def test_fast_parse_matches_uritools_getters(uri):
 @given(uri=_uri_string())
 @settings(max_examples=500)
 def test_uri_parse_uri_matches_oracle_components(uri):
-    """Same oracle check, but through the real `Uri._parse_uri` (not just
+    """Same oracle check, but through the real `URI._parse_uri` (not just
     the standalone helper functions), so a future refactor that changes
     how they're wired together is still caught."""
     try:
-        source, path, query, fragment = Uri._parse_uri(uri)
+        source, path, query, fragment = URI._parse_uri(uri)
         fast = (
             source.scheme,
             source.userinfo,
@@ -504,7 +504,7 @@ def test_uri_format_parsed_parts_matches_uricompose(
 ):
     source = Source(scheme, userinfo, host, port)
     try:
-        fast = Uri._format_parsed_parts(
+        fast = URI._format_parsed_parts(
             source, path, query, fragment, sanitize=sanitize
         )
     except Exception as e:
@@ -521,7 +521,7 @@ def test_uri_format_parsed_parts_matches_uricompose(
 @given(
     # `_compose_uri` is a low-level primitive: it expects an
     # already-lowercased scheme (its callers -- `_format_parsed_parts`,
-    # `DavPath._wire_uri` -- do the lowering themselves before calling it,
+    # `DAVURIPath._wire_uri` -- do the lowering themselves before calling it,
     # matching how it's actually used in production), so this doesn't
     # generate uppercase schemes -- that's `_format_parsed_parts`'s
     # contract, already covered by the test above.
@@ -538,7 +538,7 @@ def test_compose_uri_matches_uricompose_direct(
     scheme, userinfo, host, port, path, query, fragment
 ):
     """`_compose_uri` used directly (not via the truthy-filtering
-    `_format_parsed_parts` wrapper) -- this is DavPath._wire_uri()'s call
+    `_format_parsed_parts` wrapper) -- this is DAVURIPath._wire_uri()'s call
     shape: None-checked, not truthy-filtered."""
     try:
         fast = _compose_uri(
@@ -588,7 +588,7 @@ _name = st.one_of(_any_name, _spicy_name)
 @given(name=_name)
 @settings(max_examples=300)
 def test_a_joined_child_keeps_the_name_it_was_given(name):
-    base = Uri("sftp://host/dir")
+    base = URI("sftp://host/dir")
     child = base / name
     assert child.name == name
     assert child.path == "/dir/" + name
@@ -598,9 +598,9 @@ def test_a_joined_child_keeps_the_name_it_was_given(name):
 @given(name=_name)
 @settings(max_examples=300)
 def test_a_joined_child_survives_its_own_uri_text(name):
-    child = Uri("sftp://host/dir") / name
-    assert Uri(child.as_uri()) == child
-    assert Uri(str(child)) == child
+    child = URI("sftp://host/dir") / name
+    assert URI(child.as_uri()) == child
+    assert URI(str(child)) == child
 
 
 _pairs = st.lists(
@@ -619,8 +619,8 @@ def test_query_pairs_survive_a_uri_round_trip(pairs):
 
     assert Query(pairs).decode() == [(k, v) for k, v in pairs]
     if pairs:
-        uri = Uri("http://host/p").with_query(Query(pairs))
-        assert Query(Uri(uri.as_uri()).query).decode() == [(k, v) for k, v in pairs]
+        uri = URI("http://host/p").with_query(Query(pairs))
+        assert Query(URI(uri.as_uri()).query).decode() == [(k, v) for k, v in pairs]
 
 
 _userinfo = st.one_of(
@@ -654,4 +654,4 @@ def test_a_password_in_the_userinfo_is_not_in_the_text_a_log_would_show(
     source = Source("sftp", f"{user}:{password}", host, None)
     assert password not in repr(source)
     assert password not in str(source)
-    assert password not in str(Uri(source.as_str(sanitize=False) + "/x"))
+    assert password not in str(URI(source.as_str(sanitize=False) + "/x"))

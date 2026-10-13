@@ -1,10 +1,10 @@
 # Extending
 
-A new URI scheme is a `UriPath` subclass. You implement a small method surface;
+A new URI scheme is a `URIPath` subclass. You implement a small method surface;
 everything else (`open`/`read_text`/`write_text`/`glob`/`walk`/`touch`/`rm`/
 `copy`/`move`/`exists`/`is_dir`/`is_file`/...) is *derived* from the protocols
 in `pathlib_next.protocols`. The class registers itself and gets URI parsing,
-joining, query and fragment handling from `Uri`.
+joining, query and fragment handling from `URI`.
 
 A resource that is not naturally a URI (a database-backed virtual filesystem, a
 key-value store) is a subclass of `pathlib_next.Path` instead; that is
@@ -14,20 +14,20 @@ described in the
 Run the shared contract suite against your implementation -- see
 [Testing your implementation](#testing-your-implementation) below.
 
-## Subclass `UriPath`
+## Subclass `URIPath`
 
-The pure-path side (parsing, join, query/fragment, `with_*`) comes from `Uri`.
+The pure-path side (parsing, join, query/fragment, `with_*`) comes from `URI`.
 Register the scheme and implement the I/O surface:
 
 ```python
 import errno
 import os
 
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next import FileStat
 
 
-class MyPath(UriPath):
+class MyPath(URIPath):
     __SCHEMES = ("myscheme",)  # name-mangled: declare it in every class
 
     def _initbackend(self):
@@ -54,10 +54,10 @@ class MyPath(UriPath):
         return self.with_path(target.path)
 
 
-print(type(UriPath("myscheme://host/data/file.txt")).__name__)
+print(type(URIPath("myscheme://host/data/file.txt")).__name__)
 ```
 
-Defining (importing) the subclass is enough: `UriPath("myscheme://...")`
+Defining (importing) the subclass is enough: `URIPath("myscheme://...")`
 dispatches to it, also when the class is defined after the first dispatch.
 The class name must not start with an underscore, or the name-mangled
 `__SCHEMES` lookup misses it, and a subclass that lists no `__SCHEMES` of its
@@ -87,15 +87,15 @@ distribution that registers one through this entry-point group takes it. To repl
 purpose, say so in the class statement:
 
 ```python
-from uripath import UriPath
+from uripath import URIPath
 
 
-class MyHttp(UriPath, replace=True):
+class MyHttp(URIPath, replace=True):
     __SCHEMES = ("http", "https")
 
 
-assert UriPath.scheme_class("https") is MyHttp
-assert type(UriPath("http://example.com/x")) is MyHttp
+assert URIPath.scheme_class("https") is MyHttp
+assert type(URIPath("http://example.com/x")) is MyHttp
 ```
 
 A built-in class defined after a replacement leaves it in place. Paths built
@@ -105,18 +105,18 @@ twice, a notebook cell) is not a second claim: the newer class takes the name
 without `replace=True`. A class of another module, or of another qualified
 name, is still refused.
 
-`UriPath.schemes()` lists the registered names, sorted, including built-in
+`URIPath.schemes()` lists the registered names, sorted, including built-in
 and entry-point schemes whose module is not imported yet and the schemes
 that other distributions provide (those fail where they are used, naming the
-distribution to install). `UriPath.scheme_class(name)` returns the class registered for a
+distribution to install). `URIPath.scheme_class(name)` returns the class registered for a
 name, importing or loading it first, or raises `ValueError` naming the
 registered schemes:
 
 ```python
-from uripath import UriPath
+from uripath import URIPath
 
-print(UriPath.scheme_class("data").__name__)  # DataUri
-print("ftp" in UriPath.schemes())  # True, though its module is not imported
+print(URIPath.scheme_class("data").__name__)  # DataURIPath
+print("ftp" in URIPath.schemes())  # True, though its module is not imported
 ```
 
 Conventions for a scheme implementation:
@@ -155,14 +155,14 @@ Conventions for a scheme implementation:
   when the stream is closed.
 
 The shipped API header (`AGENTS.md` inside the package) lists the hooks and
-helpers of `UriPath` with their signatures, under "For scheme implementers";
+helpers of `URIPath` with their signatures, under "For scheme implementers";
 the one inside `pathlib_next` lists those of `Path`, under "For path
 implementers". The built-in schemes use no other underscore name of either.
 
 The built-in schemes are worked examples of increasing size:
-[`FileUri`](../api/schemes/local.md) delegates to `LocalPath`,
-[`FtpPath`](../api/schemes/ftp.md) adapts the `pathlib_next` FTP path to a
-URI, and [`HttpPath`](../api/schemes/http.md) scrapes HTML listings behind a
+[`FileURIPath`](../api/schemes/local.md) delegates to `LocalPath`,
+[`FTPURIPath`](../api/schemes/ftp.md) adapts the `pathlib_next` FTP path to a
+URI, and [`HTTPURIPath`](../api/schemes/http.md) scrapes HTML listings behind a
 replaceable transport.
 
 ## Testing your implementation
@@ -199,26 +199,26 @@ A backend that genuinely cannot meet a rule sets the matching class attribute to
 
 | Attribute | Contract | Covers | Built-in schemes that set it `False` |
 | --- | --- | --- | --- |
-| `supports_listing` | `ReadPathContract` | `iterdir()`, `glob()`, `walk()` | `DataUri` (a single resource) |
-| `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | `GitHubPath`, `GitLabPath` (git trees cannot hold an empty directory) |
-| `distinguishes_file_types` | `ReadPathContract` | listing a file raises `NotADirectoryError`; reading a directory raises | `HttpPath` (one URL serves an index page or a file) |
+| `supports_listing` | `ReadPathContract` | `iterdir()`, `glob()`, `walk()` | `DataURIPath` (a single resource) |
+| `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | `GitHubURIPath`, `GitLabURIPath` (git trees cannot hold an empty directory) |
+| `distinguishes_file_types` | `ReadPathContract` | listing a file raises `NotADirectoryError`; reading a directory raises | `HTTPURIPath` (one URL serves an index page or a file) |
 | `supports_pickle` | `ReadPathContract` | `pickle.loads(pickle.dumps(path))` is equal to the path and hashes alike | none |
 | `supports_rename` | `PathContract` | `rename()` | none here (`MemPath` of `pathlib_next` sets it: `move()` copies instead) |
-| `supports_append` | `PathContract` | `open("a")` | `ZipUri`, `DavPath` |
+| `supports_append` | `PathContract` | `open("a")` | `ZipURIPath`, `DAVURIPath` |
 | `supports_exclusive_create` | `PathContract` | `open("x")` | none |
 | `enforces_directory_hierarchy` | `PathContract` | `mkdir()`/writes below a missing parent raise `FileNotFoundError`; writing a file over a directory raises; `rename()` onto a non-empty directory raises | none (the object stores of `uripath-objstore` set it) |
 | `supports_mkdir` | `PathContract` | `mkdir()`, and every test that creates a directory | none (a transport with no directories, such as TFTP, sets it) |
 | `supports_delete` | `PathContract` | `unlink()`, `rmdir()`, `rm()`, and replacing a file in `copy(overwrite=True)` | none (TFTP sets it) |
 | `supports_move` | `PathContract` | `move()`, by `rename()` or by copying and deleting | none (TFTP sets it) |
 | `supports_unusual_names` | `PathContract` | names holding a space, `#`, `%`, `+`, `&`, `=` and mixed case are stored and listed as written | none |
-| `supports_utime` | `PathContract` | `_utime()` sets an existing file's modification time and `touch()` of it moves the time | `ZipUri`, `archive:`/`archive+zip:`, `DavPath` (no settable time) |
-| `supports_question_mark_names` | `PathContract` | the same for names holding `?`. **Defaults to `False`**: a Windows file system cannot store such a name | `True` for `ZipUri`, and where the machine can store one for `FileUri`, `FtpPath`, `DavPath` |
+| `supports_utime` | `PathContract` | `_utime()` sets an existing file's modification time and `touch()` of it moves the time | `ZipURIPath`, `archive:`/`archive+zip:`, `DAVURIPath` (no settable time) |
+| `supports_question_mark_names` | `PathContract` | the same for names holding `?`. **Defaults to `False`**: a Windows file system cannot store such a name | `True` for `ZipURIPath`, and where the machine can store one for `FileURIPath`, `FTPURIPath`, `DAVURIPath` |
 
 ### Which contract runs against the built-in schemes?
 
 `tests/test_contract.py` runs:
 
-- **Full `PathContract`**: `LocalPath`, `MemPath`, `FileUri`, `ZipUri` and `archive:`/`archive+zip:` (local outer archive), `FtpPath` (in-process pyftpdlib) and `DavPath` (in-process WsgiDAV).
-- **`ReadPathContract`**: `HttpPath` (local HTTP server), `TarUri` and `archive:`/`archive+tar:`, `DataUri` (listing skipped), and `GitHubPath`/`GitLabPath` and their `git+github:`/`git+gitlab:` spellings (in-process fake APIs).
+- **Full `PathContract`**: `LocalPath`, `MemPath`, `FileURIPath`, `ZipURIPath` and `archive:`/`archive+zip:` (local outer archive), `FTPURIPath` (in-process pyftpdlib) and `DAVURIPath` (in-process WsgiDAV).
+- **`ReadPathContract`**: `HTTPURIPath` (local HTTP server), `TarURIPath` and `archive:`/`archive+tar:`, `DataURIPath` (listing skipped), and `GitHubURIPath`/`GitLabURIPath` and their `git+github:`/`git+gitlab:` spellings (in-process fake APIs).
 
 See `tests/test_contract.py` for how each scheme's `root` fixture is wired.

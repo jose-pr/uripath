@@ -11,7 +11,7 @@ import uritools as _uritools
 _IPAddress = _ty.Union[_ip.IPv4Address, _ip.IPv6Address]
 
 if _ty.TYPE_CHECKING:
-    from . import UriPath
+    from . import URIPath
 
 _DIGITS = "0123456789"
 
@@ -80,7 +80,7 @@ def _split_authority(
     RAW/undecoded strings, port as int-or-None. Ported from
     `uritools.SplitResult`'s `.userinfo`/`.host`/`.port` properties (each
     independently re-`rpartition`s `authority`, ~3-4x redundant work per
-    `Uri()` construction) -- verified equivalent by fuzzing against uritools
+    `URI()` construction) -- verified equivalent by fuzzing against uritools
     as the oracle (tests/test_properties.py), with the differences listed
     there:
 
@@ -138,7 +138,7 @@ def _decode_host(host: str) -> "str | _IPAddress":
 
 def _parse_source(scheme: "str | None", authority: "str | None") -> "Source":
     """The `Source` of an already split URI: `scheme` is lower-cased by the
-    caller, `authority` is the raw text. Used by `Uri` and `Source.from_str`
+    caller, `authority` is the raw text. Used by `URI` and `Source.from_str`
     so both read an authority the same way."""
     userinfo, host, port = _split_authority(authority)
     if userinfo is not None:
@@ -250,7 +250,7 @@ def _encode_userinfo(userinfo: str) -> str:
 
 def _encode_raw_query(query: str) -> str:
     """Emit a stored query for the wire: it is kept in its received,
-    still-percent-encoded form (see `Uri.query`), so an existing `%XX`
+    still-percent-encoded form (see `URI.query`), so an existing `%XX`
     escape and every delimiter (`&`, `=`, `+`, `;`) go out unchanged. Only
     characters that cannot appear in a query at all (a space, non-ASCII, a
     `%` that starts no escape) are encoded.
@@ -414,7 +414,7 @@ def _redact_userinfo(userinfo: str, scheme: "str | None") -> "_Userinfo | None":
 def _source_parts(source: "Source", sanitize: bool) -> tuple:
     """`(scheme, userinfo, host, port)` as `_compose_uri` takes them for
     `source`: falsy fields are left out and `sanitize` drops the password.
-    A `Source` and a `Uri` both render through this, so they cannot
+    A `Source` and a `URI` both render through this, so they cannot
     disagree."""
     scheme = source.scheme.lower() if source.scheme else None
     userinfo = source.userinfo or None
@@ -451,19 +451,19 @@ class Source(_ty.NamedTuple):
     def as_str(self, /, sanitize=True) -> str:
         """Compose this `Source` back into an authority string
         (`scheme://userinfo@host:port`; `file:` for an empty host). It is the
-        composer `Uri.as_uri()` uses, so a non-ASCII host renders as IDNA
+        composer `URI.as_uri()` uses, so a non-ASCII host renders as IDNA
         here too, and a scheme or port that is not valid raises
         `ValueError`. `sanitize=True` (the default, matching `__str__`)
         drops the password from `userinfo`; pass `sanitize=False` for the
         full, credentialed round trip -- the same escape hatch
-        `Uri.as_uri(sanitize=False)` provides one layer up.
+        `URI.as_uri(sanitize=False)` provides one layer up.
         """
         scheme, userinfo, host, port = _source_parts(self, sanitize)
         return _compose_uri(scheme, userinfo, host, port, "", None, None)
 
     def __str__(self) -> str:
         """Deliberately sanitized (password dropped from `userinfo`), same
-        rationale as `Uri.__str__`: this is what logging/printing reach
+        rationale as `URI.__str__`: this is what logging/printing reach
         for, and a `Source` on a failing call stack must not leak a
         credential. Does NOT round-trip a credentialed source -- use
         `as_str(sanitize=False)` for the unredacted form.
@@ -516,21 +516,21 @@ class Source(_ty.NamedTuple):
         user, password = _split_userinfo_text(self.userinfo)
         return user, password or ""
 
-    def get_scheme_cls(self, schemesmap: _ty.Mapping[str, type["UriPath"]] = None):
-        """The `UriPath` subclass registered for this scheme, or `UriPath`
+    def get_scheme_cls(self, schemesmap: _ty.Mapping[str, type["URIPath"]] = None):
+        """The `URIPath` subclass registered for this scheme, or `URIPath`
         itself. An explicit `schemesmap` is the complete set of classes to
-        choose from: a scheme missing from it gives `UriPath`, and neither
+        choose from: a scheme missing from it gives `URIPath`, and neither
         plugins nor the global registry are consulted."""
-        from . import UriPath
+        from . import URIPath
 
         if self.scheme:
             if schemesmap is not None:
-                return schemesmap.get(self.scheme, None) or UriPath
+                return schemesmap.get(self.scheme, None) or URIPath
             # A scheme no class registers is looked up in the built-in modules and the
             # entry points once; `_load_entry_point` caches that negative answer instead
             # of rescanning every installed distribution on each construction.
-            return UriPath._find_scheme(self.scheme) or UriPath
-        return UriPath
+            return URIPath._find_scheme(self.scheme) or URIPath
+        return URIPath
 
     def is_local(self) -> bool:
         """Whether `host` resolves to this machine.

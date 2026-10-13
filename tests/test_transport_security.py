@@ -32,15 +32,15 @@ import pytest
 
 from http_fakes import FakeTransport, reply
 import uripath
-from uripath import Source, UriPath
+from uripath import Source, URIPath
 from uripath.schemes import _gitrepo
 from uripath.schemes import http as http_scheme
-from uripath.schemes.dav import DavPath
+from uripath.schemes.dav import DAVURIPath
 from pathlib_next.ftp import FTPBackend
-from uripath.schemes.ftp import FtpBackend, FtpPath
-from uripath.schemes.github import GitHubPath
-from uripath.schemes.gitlab import GitLabPath
-from uripath.schemes.http import HttpBackend, HttpPath
+from uripath.schemes.ftp import FTPURIBackend, FTPURIPath
+from uripath.schemes.github import GitHubURIPath
+from uripath.schemes.gitlab import GitLabURIPath
+from uripath.schemes.http import HTTPBackend, HTTPURIPath
 
 SRC = str(pathlib.Path(uripath.__file__).resolve().parent.parent)
 
@@ -147,7 +147,7 @@ def test_http_sends_userinfo_as_authorization_not_in_url(
 ):
     host, seen = recording_http_server
     transport = _recording(http_transport)
-    p = UriPath(f"http://alice:s3cr3t@{host}/ok").with_transport(transport)
+    p = URIPath(f"http://alice:s3cr3t@{host}/ok").with_transport(transport)
     assert p.read_bytes() == b"ok"
 
     sent = transport.sent[-1]
@@ -162,7 +162,7 @@ def test_http_percent_encoded_userinfo_is_decoded_for_authorization(
 ):
     host, seen = recording_http_server
     transport = _recording(http_transport)
-    p = HttpPath(f"http://al%40ice:p%3Aw@{host}/ok").with_transport(transport)
+    p = HTTPURIPath(f"http://al%40ice:p%3Aw@{host}/ok").with_transport(transport)
     p.read_bytes()
     assert transport.sent[-1].url == f"http://{host}/ok"
     assert seen[-1][2]["Authorization"] == "Basic " + base64.b64encode(
@@ -172,9 +172,9 @@ def test_http_percent_encoded_userinfo_is_decoded_for_authorization(
 
 def test_http_explicit_authorization_wins_over_userinfo():
     transport = _FakeTransport()
-    p = HttpPath(
+    p = HTTPURIPath(
         "http://alice:s3cr3t@h/x",
-        backend=HttpBackend(transport, headers={"authorization": "Bearer B"}),
+        backend=HTTPBackend(transport, headers={"authorization": "Bearer B"}),
     )
     p.backend.request("GET", p)
     sent = transport.sent[-1]
@@ -188,7 +188,7 @@ def test_http_redirect_response_urls_carry_no_credentials(
     recording_http_server, http_transport
 ):
     host, seen = recording_http_server
-    p = UriPath(f"http://alice:s3cr3t@{host}/redirect").with_transport(http_transport)
+    p = URIPath(f"http://alice:s3cr3t@{host}/redirect").with_transport(http_transport)
     resp = p.backend.request("GET", p)
     resp.close()
     assert resp.url == f"http://{host}/final"
@@ -205,7 +205,7 @@ def test_http_error_text_and_traceback_carry_no_password(
     recording_http_server, http_transport, path, exc
 ):
     host, _seen = recording_http_server
-    p = UriPath(f"http://alice:s3cr3t@{host}/{path}").with_transport(http_transport)
+    p = URIPath(f"http://alice:s3cr3t@{host}/{path}").with_transport(http_transport)
     with pytest.raises(exc) as excinfo:
         p.read_bytes()
     text = _formatted(excinfo.value)
@@ -215,7 +215,7 @@ def test_http_error_text_and_traceback_carry_no_password(
 
 
 def test_http_refused_connection_carries_no_password(unused_tcp_port, http_transport):
-    p = UriPath(f"http://alice:s3cr3t@127.0.0.1:{unused_tcp_port}/x").with_transport(
+    p = URIPath(f"http://alice:s3cr3t@127.0.0.1:{unused_tcp_port}/x").with_transport(
         http_transport
     )
     with pytest.raises(ConnectionError) as excinfo:
@@ -227,7 +227,7 @@ def test_http_refused_connection_carries_no_password(unused_tcp_port, http_trans
 
 def test_http_timeout_carries_no_password(http_status_server, http_transport):
     host = http_status_server.removeprefix("http://")
-    p = UriPath(f"http://alice:s3cr3t@{host}/timeout").with_transport(
+    p = URIPath(f"http://alice:s3cr3t@{host}/timeout").with_transport(
         http_transport, timeout=0.5
     )
     with pytest.raises(TimeoutError) as excinfo:
@@ -251,7 +251,7 @@ def test_http_transport_error_text_never_reaches_the_raised_error(make, exc):
     quoted = "http://proxyuser:pr0xyS3cret@proxy.example:3128"
     transport = _FakeTransport()
     transport.fail = make(f"ProxyError({quoted})")
-    p = HttpPath("http://alice:s3cr3t@h/x", backend=HttpBackend(transport))
+    p = HTTPURIPath("http://alice:s3cr3t@h/x", backend=HTTPBackend(transport))
     with pytest.raises(exc) as excinfo:
         p.read_bytes()
     text = _formatted(excinfo.value)
@@ -265,7 +265,7 @@ def test_http_error_message_keeps_status():
     transport = _FakeTransport(
         {("GET", "http://h/x"): _FakeResponse(502, "Bad Gateway")}
     )
-    p = HttpPath("http://alice:s3cr3t@h/x", backend=HttpBackend(transport))
+    p = HTTPURIPath("http://alice:s3cr3t@h/x", backend=HTTPBackend(transport))
     with pytest.raises(OSError) as excinfo:
         p.read_bytes()
     assert "HTTP Error 502 Bad Gateway" in str(excinfo.value)
@@ -275,7 +275,7 @@ def test_dav_error_and_move_destination_carry_no_password(
     recording_http_server, http_transport
 ):
     host, seen = recording_http_server
-    p = DavPath(f"dav://alice:s3cr3t@{host}/501").with_transport(http_transport)
+    p = DAVURIPath(f"dav://alice:s3cr3t@{host}/501").with_transport(http_transport)
     with pytest.raises(OSError) as excinfo:
         p.rename("b.txt")
     assert "s3cr3t" not in _formatted(excinfo.value)
@@ -287,7 +287,7 @@ def test_dav_error_and_move_destination_carry_no_password(
 
 def test_dav_requests_strip_userinfo():
     transport = _FakeTransport({("MOVE", "http://host/docs/a.txt"): _FakeResponse(201)})
-    p = DavPath("dav://alice:pw@host/docs/a.txt", backend=HttpBackend(transport))
+    p = DAVURIPath("dav://alice:pw@host/docs/a.txt", backend=HTTPBackend(transport))
     p.rename("b.txt")
     sent = transport.sent[-1]
     assert sent.url == "http://host/docs/a.txt"
@@ -310,7 +310,7 @@ def _FakeTransport(responses=None):
 
 def test_http_default_timeout_applied():
     transport = _FakeTransport()
-    HttpBackend(transport).request("GET", "http://h/x")
+    HTTPBackend(transport).request("GET", "http://h/x")
     assert transport.sent[-1].timeout == (10, 60)
     assert http_scheme.DEFAULT_TIMEOUT == (10, 60)
 
@@ -318,9 +318,9 @@ def test_http_default_timeout_applied():
 @pytest.mark.parametrize("timeout", [5, None])
 def test_http_caller_timeout_wins(timeout):
     transport = _FakeTransport()
-    HttpBackend(transport, timeout=timeout).request("GET", "http://h/x")
+    HTTPBackend(transport, timeout=timeout).request("GET", "http://h/x")
     assert transport.sent[-1].timeout == timeout
-    HttpBackend(transport).request("GET", "http://h/x", timeout=timeout)
+    HTTPBackend(transport).request("GET", "http://h/x", timeout=timeout)
     assert transport.sent[-1].timeout == timeout
 
 
@@ -329,7 +329,7 @@ def test_http_stalled_server_times_out_by_default(
 ):
     # The default path (no caller timeout), shortened for the test.
     monkeypatch.setattr(http_scheme, "DEFAULT_TIMEOUT", (2, 0.5))
-    p = UriPath(f"http://127.0.0.1:{stalled_server}/x")
+    p = URIPath(f"http://127.0.0.1:{stalled_server}/x")
     started = time.monotonic()
     with pytest.raises(TimeoutError):
         p.stat()
@@ -347,10 +347,10 @@ def test_http_stalled_server_times_out_by_default(
         ("oauth2:glpat-REAL789", "glpat-REAL789"),
     ],
 )
-@pytest.mark.parametrize("cls", [GitHubPath, GitLabPath])
+@pytest.mark.parametrize("cls", [GitHubURIPath, GitLabURIPath])
 def test_git_token_slot_and_redaction(recording_http_server, cls, userinfo, token):
     host, seen = recording_http_server
-    scheme = "github" if cls is GitHubPath else "gitlab"
+    scheme = "github" if cls is GitHubURIPath else "gitlab"
     p = cls(f"{scheme}://{userinfo}@example.test/acme/widgets/a.txt")
     assert p.backend.token == token
     user = userinfo.partition(":")[0]
@@ -376,7 +376,7 @@ def test_git_dispatch_error_redacts_token():
     # Built outside the raising line: a traceback prints that source line.
     url = "git://" + "ghp_SECRET123" + "@ghe.internal/acme/widgets/README.md"
     with pytest.raises(ValueError) as excinfo:
-        UriPath(url)
+        URIPath(url)
     assert "ghp_SECRET123" not in _formatted(excinfo.value)
     assert "ghe.internal/acme/widgets/README.md" in str(excinfo.value)
 
@@ -393,7 +393,7 @@ def test_git_stalled_server_times_out_by_default(
     stalled_server, monkeypatch, http_transport_kind
 ):
     monkeypatch.setattr(_gitrepo, "DEFAULT_TIMEOUT", (2, 0.5))
-    p = GitHubPath("github://github.com/acme/widgets/a.txt")
+    p = GitHubURIPath("github://github.com/acme/widgets/a.txt")
     p.backend.api_base = f"http://127.0.0.1:{stalled_server}"
     started = time.monotonic()
     with pytest.raises(TimeoutError):
@@ -423,13 +423,15 @@ def test_ftp_default_timeout_reaches_ftplib(monkeypatch):
             pass
 
     monkeypatch.setattr(ftplib, "FTP", _FakeClient)
-    FtpBackend().client(Source("ftp", None, "host", None), tls=False)
+    FTPURIBackend().client(Source("ftp", None, "host", None), tls=False)
     assert received == [30.0]
-    assert FtpPath("ftp://host/x").backend.timeout == 30.0
+    assert FTPURIPath("ftp://host/x").backend.timeout == 30.0
 
 
 def test_ftp_stalled_server_times_out(stalled_server):
-    p = FtpPath(f"ftp://127.0.0.1:{stalled_server}/x", backend=FtpBackend(timeout=0.5))
+    p = FTPURIPath(
+        f"ftp://127.0.0.1:{stalled_server}/x", backend=FTPURIBackend(timeout=0.5)
+    )
     started = time.monotonic()
     with pytest.raises((socket.timeout, TimeoutError)):
         p.stat()
@@ -604,8 +606,8 @@ def ftps_server(tmp_path):
 def test_ftps_self_signed_rejected_by_default_before_password(ftps_server):
     server, _certfile = ftps_server
     # The default route: dispatch + the backend `_initbackend()` builds.
-    p = UriPath(f"ftps://alice:s3cret@127.0.0.1:{server.port}/a.txt")
-    assert isinstance(p, FtpPath)
+    p = URIPath(f"ftps://alice:s3cret@127.0.0.1:{server.port}/a.txt")
+    assert isinstance(p, FTPURIPath)
     with pytest.raises(ssl.SSLCertVerificationError):
         p.read_bytes()
     assert server.commands == ["AUTH TLS"]
@@ -614,9 +616,9 @@ def test_ftps_self_signed_rejected_by_default_before_password(ftps_server):
 
 def test_ftps_verify_false_opt_out_accepts(ftps_server):
     server, _certfile = ftps_server
-    p = FtpPath(
+    p = FTPURIPath(
         f"ftps://alice:s3cret@127.0.0.1:{server.port}/a.txt",
-        backend=FtpBackend(timeout=5, verify=False),
+        backend=FTPURIBackend(timeout=5, verify=False),
     )
     assert p.read_bytes() == b"hello"
     assert "PASS s3cret" in server.commands
@@ -626,9 +628,9 @@ def test_ftps_verify_false_opt_out_accepts(ftps_server):
 def test_ftps_custom_ssl_context_verifies_against_its_ca(ftps_server):
     server, certfile = ftps_server
     context = ssl.create_default_context(cafile=certfile)
-    p = FtpPath(
+    p = FTPURIPath(
         f"ftps://alice:s3cret@127.0.0.1:{server.port}/a.txt",
-        backend=FtpBackend(timeout=5, ssl_context=context),
+        backend=FTPURIBackend(timeout=5, ssl_context=context),
     )
     assert p.read_bytes() == b"hello"
     assert server.data_session_reused == [True]
@@ -636,9 +638,9 @@ def test_ftps_custom_ssl_context_verifies_against_its_ca(ftps_server):
 
 def test_ftps_data_connection_reuses_tls_session(ftps_server):
     server, _certfile = ftps_server
-    p = FtpPath(
+    p = FTPURIPath(
         f"ftps://alice:s3cret@127.0.0.1:{server.port}/a.txt",
-        backend=FtpBackend(timeout=5, verify=False),
+        backend=FTPURIBackend(timeout=5, verify=False),
     )
     assert p.read_bytes() == b"hello"
     assert p.read_bytes() == b"hello"
@@ -657,12 +659,12 @@ def test_ftps_dispatches_in_fresh_process(disable):
     code = "\n".join(
         [
             "from unittest import mock",
-            "from uripath import UriPath",
+            "from uripath import URIPath",
             f"name = {disable!r}",
-            "ctx = mock.patch.object(UriPath, name, return_value=False) if name "
+            "ctx = mock.patch.object(URIPath, name, return_value=False) if name "
             "else mock.MagicMock()",
             "with ctx:",
-            "    p = UriPath('ftps://u:p@127.0.0.1:1/x')",
+            "    p = URIPath('ftps://u:p@127.0.0.1:1/x')",
             "print(type(p).__module__ + '.' + type(p).__name__)",
         ]
     )
@@ -676,4 +678,4 @@ def test_ftps_dispatches_in_fresh_process(disable):
         timeout=120,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "uripath.schemes.ftp.FtpPath"
+    assert result.stdout.strip() == "uripath.schemes.ftp.FTPURIPath"

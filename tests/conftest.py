@@ -646,7 +646,7 @@ def _git_tree_children(tree, prefix):
 @pytest.fixture
 def github_api_server(fixture_tree):
     """Faithful (not mocked) fake of the subset of the GitHub REST contents
-    API (`GET /repos/{owner}/{repo}/contents/{path}`) that `GitHubPath`
+    API (`GET /repos/{owner}/{repo}/contents/{path}`) that `GitHubURIPath`
     actually calls: directory listing (JSON array), file metadata
     (JSON object, base64 `content`), and raw file bodies (`Accept:
     .../vnd.github.raw+json`). A `HEAD` gets the headers of the `GET`, and
@@ -810,7 +810,7 @@ def github_api_server(fixture_tree):
 @pytest.fixture
 def gitlab_api_server(fixture_tree):
     """Faithful (not mocked) fake of the subset of the GitLab REST API v4
-    that `GitLabPath` actually calls: `.../repository/tree` (listing, no
+    that `GitLabURIPath` actually calls: `.../repository/tree` (listing, no
     size -- matches the real endpoint's shape), `.../repository/files/:path`
     (file metadata) and `.../repository/files/:path/raw` (file body). Like
     the real API, the tree listing is paginated (`per_page` capped at 100,
@@ -887,7 +887,7 @@ def gitlab_api_server(fixture_tree):
                 # Real GitLab requires `ref` on the files endpoints (both
                 # metadata and /raw) -- omitting it is a 400, not a
                 # default-branch fallback like the tree endpoint gets
-                # (confirmed live against gitlab.com; GitLabPath resolves
+                # (confirmed live against gitlab.com; GitLabURIPath resolves
                 # and sends it, this just mirrors the real requirement).
                 if "ref" not in qs:
                     self._send_json(400, {"error": "ref is missing, ref is empty"})

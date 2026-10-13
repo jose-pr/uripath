@@ -18,7 +18,7 @@ pytest.importorskip("uritools")
 from pathlib_next import Path
 from uripath.schemes import dav
 
-CASES = [(dav.DavPath, "dav://host/dir")]
+CASES = [(dav.DAVURIPath, "dav://host/dir")]
 IDS = [cls.__name__ for cls, _ in CASES]
 
 

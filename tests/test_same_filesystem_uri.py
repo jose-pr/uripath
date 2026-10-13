@@ -1,4 +1,4 @@
-"""`UriPath._same_filesystem()`: a backend the caller supplied names a
+"""`URIPath._same_filesystem()`: a backend the caller supplied names a
 filesystem; one a path derived for itself says no more than the URI does.
 
 Before this rule two separately built paths to one URL each derived their
@@ -11,7 +11,7 @@ import pytest
 
 from pathlib_next.path._relation import _same_file
 from pathlib_next.providers import contains
-from uripath import UriPath, _DerivedBackend
+from uripath import URIPath, _DerivedBackend
 from pathlib_next import FileStat
 from pathlib_next.sync import PathSyncer
 from pathlib_next.sync._paths import _paths_overlap
@@ -66,7 +66,7 @@ class _Writer(io.BytesIO):
         super().close()
 
 
-class ProbePath(UriPath):
+class ProbePath(URIPath):
     __SCHEMES = ("samefs-probe",)
     __slots__ = ()
 
@@ -129,12 +129,12 @@ def _guards(a, b):
 
 
 def test_dispatch():
-    assert type(UriPath(URL)) is ProbePath
+    assert type(URIPath(URL)) is ProbePath
 
 
 @pytest.mark.parametrize("touch", ["neither", "source", "both"])
 def test_separately_built_paths_to_one_url_are_the_same_file(touch):
-    a, b = UriPath(URL), UriPath(URL)
+    a, b = URIPath(URL), URIPath(URL)
     if touch in ("source", "both"):
         a.stat()
     if touch == "both":
@@ -148,7 +148,7 @@ def test_separately_built_paths_to_one_url_are_the_same_file(touch):
 
 
 def test_sync_of_one_url_onto_itself_is_refused():
-    a, b = UriPath(URL).parent, UriPath(URL).parent
+    a, b = URIPath(URL).parent, URIPath(URL).parent
     a.stat(), b.stat()
     with pytest.raises(ValueError, match="overlap"):
         PathSyncer(lambda p: "x", remove_missing=True).sync(a, b)
@@ -158,7 +158,7 @@ def test_sync_of_one_url_onto_itself_is_refused():
 def test_a_supplied_backend_against_a_fresh_path_is_the_same_file():
     # The fresh side will connect to the authority both URLs name; nothing
     # says the supplied backend goes anywhere else.
-    a, b = UriPath(URL, backend=SERVER), UriPath(URL)
+    a, b = URIPath(URL, backend=SERVER), URIPath(URL)
     assert _guards(a, b) == (True, True, True)
     assert _guards(b, a) == (True, True, True)
     with pytest.raises(OSError, match="same file"):
@@ -168,7 +168,7 @@ def test_a_supplied_backend_against_a_fresh_path_is_the_same_file():
 
 def test_two_supplied_backends_are_two_hosts():
     one, two = Store({"/dir/f.txt": b"ONE"}), Store({"/dir/f.txt": b"TWO"})
-    a, b = UriPath(URL, backend=one), UriPath(URL, backend=two)
+    a, b = URIPath(URL, backend=one), URIPath(URL, backend=two)
     assert a == b
     assert _guards(a, b) == (False, False, False)
 
@@ -184,7 +184,7 @@ def test_two_supplied_backends_are_two_hosts():
 
 def test_a_shared_supplied_backend_is_one_host():
     store = Store({"/dir/f.txt": b"ONE"})
-    a, b = UriPath(URL, backend=store), UriPath(URL, backend=store)
+    a, b = URIPath(URL, backend=store), URIPath(URL, backend=store)
     assert _guards(a, b) == (True, True, True)
     assert _guards(a, a.parent / "f.txt") == (True, True, True)
     with pytest.raises(OSError, match="same file"):
@@ -197,7 +197,7 @@ def test_a_derived_backend_that_cannot_be_weakly_referenced(monkeypatch):
     # tracked by identity is still derived: two paths to one URL are the same
     # file and a copy onto itself is refused.
     monkeypatch.setattr(ProbePath, "_initbackend", lambda self: SlottedStore())
-    a, b = UriPath(URL), UriPath(URL)
+    a, b = URIPath(URL), URIPath(URL)
     a.backend["/dir/f.txt"] = b"A"
     b.backend["/dir/f.txt"] = b"B"
     assert a._supplied_backend() is None
@@ -211,27 +211,27 @@ def test_a_derived_backend_that_cannot_be_weakly_referenced(monkeypatch):
 
 def test_a_supplied_backend_that_cannot_be_weakly_referenced_stays_supplied():
     one, two = SlottedStore(), SlottedStore()
-    a, b = UriPath(URL, backend=one), UriPath(URL, backend=two)
+    a, b = URIPath(URL, backend=one), URIPath(URL, backend=two)
     assert a._supplied_backend() is one
     assert not a._same_filesystem(b)
     assert (a / "x")._supplied_backend() is one
 
 
 def test_supplied_backend_is_never_built_by_asking():
-    a = UriPath(URL)
+    a = URIPath(URL)
     assert a._supplied_backend() is None
-    assert a._same_filesystem(UriPath(URL))
+    assert a._same_filesystem(URIPath(URL))
     assert a._backend is None
 
 
 def test_an_unreferenceable_backend_class_can_mark_itself_derived(monkeypatch):
-    # A tuple cannot be weakly referenced (`HttpBackend` is one), so its
+    # A tuple cannot be weakly referenced (`HTTPBackend` is one), so its
     # class says so instead.
     class Marked(tuple, _DerivedBackend):
         __slots__ = ()
 
     monkeypatch.setattr(ProbePath, "_initbackend", lambda self: Marked())
-    a, b = UriPath(URL), UriPath(URL)
+    a, b = URIPath(URL), URIPath(URL)
     assert a.backend is not b.backend
     assert a._supplied_backend() is None
     assert a._same_filesystem(b)

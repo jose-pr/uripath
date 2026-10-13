@@ -33,7 +33,7 @@ from .source import (
     _split_userinfo_text,
 )
 
-UriLike: TypeAlias = "str | Uri | os.PathLike"
+URILike: TypeAlias = "str | URI | os.PathLike"
 
 _NOSOURCE = Source(None, None, None, None)
 _NO_QUERY = Query("")
@@ -106,7 +106,7 @@ class _BackendCell:
 _CELL_LOCK = _threading.Lock()
 
 
-_U = _ty.TypeVar("_U", bound="Uri")
+_U = _ty.TypeVar("_U", bound="URI")
 
 
 def _segments_of(path: str) -> list[str]:
@@ -134,13 +134,13 @@ def _path_reference(posix: str) -> str:
 
 class _RelativeLocalPath(str):
     """The encoded posix spelling of a *relative* concrete local path
-    (`pathlib.Path("a/b")`, `LocalPath("a/b")`) in `Uri._raw_uris`.
+    (`pathlib.Path("a/b")`, `LocalPath("a/b")`) in `URI._raw_uris`.
 
     It joins like a relative `PurePath` -- onto the preceding segments,
     keeping their source -- and supplies a `file:` scheme only when no
     segment has a source at all. Turning it into `file:a/b` up front let
     that scheme replace the base's, so
-    `UriPath("sftp://h/srv/") / pathlib.Path("etc/x")` became the LOCAL
+    `URIPath("sftp://h/srv/") / pathlib.Path("etc/x")` became the LOCAL
     file `/srv/etc/x`."""
 
     __slots__ = ()
@@ -181,7 +181,7 @@ _BUILTIN_SCHEMES = {
 }
 
 #: Scheme -> the class that registered it, filled when the class is defined.
-_CLAIMS: "dict[str, type[UriPath]]" = {}
+_CLAIMS: "dict[str, type[URIPath]]" = {}
 
 #: Schemes a class took with `replace=True`; a built-in class defined after
 #: one of them leaves it with the replacement.
@@ -241,7 +241,7 @@ def _declared_entry_points() -> "dict[str, object]":
     declaration of a name winning. Scanning every distribution cost 13-29 ms
     per construction with an unregistered scheme (`C:/x` on Windows
     included), so the group is read once per lookup function and dropped when
-    a `UriPath` subclass is defined (`_forget_entry_points`)."""
+    a `URIPath` subclass is defined (`_forget_entry_points`)."""
     global _ENTRY_POINTS
     import importlib.metadata as _metadata
 
@@ -323,10 +323,10 @@ def _slot_names(cls: type) -> "tuple[str, ...]":
     return tuple(names)
 
 
-def _as_uri(value) -> "Uri":
+def _as_uri(value) -> "URI":
     """`value` as the constructor reads one argument: a `TypeError` for
     what it cannot read."""
-    converted = Uri.__new__(Uri)
+    converted = URI.__new__(URI)
     converted.__init__(value)
     return converted
 
@@ -337,7 +337,7 @@ def _has_dot_segment(path: str) -> bool:
     return "/." in path or path.startswith(".")
 
 
-class Uri(Pathname):
+class URI(Pathname):
     """A pure (no I/O) RFC 3986 URI, lazily parsed into `source` (scheme/
     userinfo/host/port), `path`, `query`, and `fragment` on first access.
     Join semantics (multiple constructor args, or `/`) are pathlib-
@@ -377,14 +377,14 @@ class Uri(Pathname):
             setattr(inst, slot, None)
         return inst
 
-    def __init__(self, *uris: UriLike, **options):
+    def __init__(self, *uris: URILike, **options):
         if self._raw_uris or self._initiated:
             return
-        _uris: list[str | Uri] = []
+        _uris: list[str | URI] = []
         for uri in uris:
             if uri is None or (isinstance(uri, (str, bytes)) and not uri):
                 uri = ""
-            if isinstance(uri, Uri):
+            if isinstance(uri, URI):
                 _uris.append(uri)
             elif isinstance(uri, (_pathlib.Path, Path)):
                 try:
@@ -462,7 +462,7 @@ class Uri(Pathname):
         3986 reference resolution): multiple constructor arguments are
         joined pathlib-`joinpath`-style, right to left, stopping at the
         first absolute segment, and then RFC 3986 5.2.4 removes the dot
-        segments of the joined path (`Uri("http://h/d/", "../x")` is
+        segments of the joined path (`URI("http://h/d/", "../x")` is
         `http://h/x`). `source` is taken from the last (rightmost) segment
         that has one; `query`/`fragment` likewise come from the last
         segment that actually sets one (a later segment with no
@@ -476,13 +476,13 @@ class Uri(Pathname):
 
         if not uris:
             pass
-        elif len(uris) == 1 and isinstance(uris[0], Uri):
+        elif len(uris) == 1 and isinstance(uris[0], URI):
             source, _path, query, fragment = uris[0].parts
         else:
             paths: list[tuple[str, bool]] = []
             for _uri in uris:
                 src, path, q, frag = (
-                    _uri.parts if isinstance(_uri, Uri) else self._parse_uri(_uri)
+                    _uri.parts if isinstance(_uri, URI) else self._parse_uri(_uri)
                 )
                 local = local or isinstance(_uri, _RelativeLocalPath)
                 if bool(src):
@@ -491,11 +491,11 @@ class Uri(Pathname):
                     query = q
                 if frag:
                     fragment = frag
-                # A `Uri` argument says what restarts a join for its own
-                # scheme (a `FileUri` stores "D:/f" without the "/").
+                # A `URI` argument says what restarts a join for its own
+                # scheme (a `FileURIPath` stores "D:/f" without the "/").
                 absolute = (
                     _uri._is_absolute_decoded(path)
-                    if isinstance(_uri, Uri)
+                    if isinstance(_uri, URI)
                     else path.startswith("/")
                 )
                 paths.append((path, absolute))
@@ -578,7 +578,7 @@ class Uri(Pathname):
         nothing is percent-decoded.
 
         This is what a destination/target argument must go through.
-        Feeding such a string back into the URI parser (`Uri(path)`,
+        Feeding such a string back into the URI parser (`URI(path)`,
         `type(self)(path)`) reads it as syntax: "a?b.txt" silently became
         "a" plus a query, "a#b.txt" became "a" plus a fragment,
         "a%20b.txt" became "a b.txt", and a relative "C:/Temp/x" became
@@ -594,10 +594,10 @@ class Uri(Pathname):
 
     def _is_absolute_decoded(self, path: str) -> bool:
         """Whether a decoded path string restarts the join. A leading "/"
-        does; `FileUri` also accepts a Windows drive ("C:/x")."""
+        does; `FileURIPath` also accepts a Windows drive ("C:/x")."""
         return path.startswith("/")
 
-    def _join_decoded(self, key: str) -> "Uri":
+    def _join_decoded(self, key: str) -> "URI":
         """Join `key` as an already-decoded path, one segment at a time.
 
         Each name goes through `_make_child_relpath()` -- what `iterdir()`
@@ -607,7 +607,7 @@ class Uri(Pathname):
         same source. A key with `.` or `..` segments is joined as a whole
         and has them removed as RFC 3986 5.2.4 says (`_join_dotted`). An empty
         segment inside the key is a segment (`x//y` is `x//y`, RFC 3986 3.3):
-        the constructor and a `Uri` argument keep it, and on an object store
+        the constructor and a `URI` argument keep it, and on an object store
         `d//y` and `d/y` are two keys.
 
         A `data:` payload is an opaque octet string, so it never gets
@@ -654,7 +654,7 @@ class Uri(Pathname):
             return self._from_parsed_parts(self.source, path, "", "")
         return self._from_parsed_parts(self.source, path, self.query, self.fragment)
 
-    def _join_children(self, segments: "list[str]", absolute: bool) -> "Uri":
+    def _join_children(self, segments: "list[str]", absolute: bool) -> "URI":
         """`_join_decoded()` for a scheme that overrides
         `_make_child_relpath()`: it is asked for every name, one child at a
         time, exactly as a listing asks it."""
@@ -672,13 +672,13 @@ class Uri(Pathname):
             result = result._with_empty_segments(empty, between=False)
         return result
 
-    def _with_empty_segments(self, count: int, *, between: bool) -> "Uri":
+    def _with_empty_segments(self, count: int, *, between: bool) -> "URI":
         """This URI with `count` empty segments after its path."""
         path = self.path
         slashes = _empty_slashes(path, count, between)
         return self.with_path(path + "/" * slashes) if slashes > 0 else self
 
-    def _join_dotted(self, segments: "list[str]") -> "Uri":
+    def _join_dotted(self, segments: "list[str]") -> "URI":
         """`_join_decoded()` for a key holding `.` or `..` segments.
 
         The key is concatenated pathlib-style (`/d` + `x` is `/d/x`, whether
@@ -724,25 +724,25 @@ class Uri(Pathname):
 
         `/` and `joinpath()` name a child the way `iterdir()` does, so a
         name containing `?`, `#`, `%` or a leading `C:` joins verbatim. A
-        `Uri` argument keeps full URI semantics -- that is how a caller asks
-        for a scheme-aware join, e.g. `base / Uri("s3://bucket/key")`.
+        `URI` argument keeps full URI semantics -- that is how a caller asks
+        for a scheme-aware join, e.g. `base / URI("s3://bucket/key")`.
         """
         if isinstance(arg, bytes):
             arg = arg.decode()
         return arg
 
-    def _rename_target(self, target: UriLike) -> "Uri":
-        """Normalize a `rename()`/`replace()` destination to a `Uri`.
+    def _rename_target(self, target: URILike) -> "URI":
+        """Normalize a `rename()`/`replace()` destination to a `URI`.
 
         A `str` is an already-decoded path (see `_from_decoded_path`), and
         a relative one is resolved against `self.parent` -- the documented
         sibling-rename semantics ("rename this to a new name in the same
-        directory"), not against `self` itself. A `Uri` (of any scheme
-        class) is taken as given; anything else goes through `Uri(...)`,
+        directory"), not against `self` itself. A `URI` (of any scheme
+        class) is taken as given; anything else goes through `URI(...)`,
         which is lossless for `PurePath`/`os.PathLike` (they are
         percent-encoded on the way in and decoded back out).
         """
-        if isinstance(target, Uri):
+        if isinstance(target, URI):
             result = target
         else:
             if isinstance(target, str):
@@ -751,9 +751,9 @@ class Uri(Pathname):
                 # which an object store reads as another key.
                 result = self.parent._join_decoded(target)
             else:
-                # target is a Uri by now, so this join re-uses `_load_parts`'
+                # target is a URI by now, so this join re-uses `_load_parts`'
                 # existing right-to-left semantics without re-parsing it.
-                result = Uri(self.parent, target)
+                result = URI(self.parent, target)
         if not self._same_location(result):
             # Every scheme renames over its own connection or bucket using only
             # `target.path`, so a target elsewhere would be renamed in the wrong place;
@@ -763,7 +763,7 @@ class Uri(Pathname):
             )
         return result
 
-    def _same_location(self, other: "Uri") -> bool:
+    def _same_location(self, other: "URI") -> bool:
         """Whether `other` lives where a native `rename()` of `self` can
         reach it: the same endpoint (see `_same_authority`), or a sourceless
         path relative to `self`. Schemes whose namespace is narrower than the
@@ -890,7 +890,7 @@ class Uri(Pathname):
     def _make_child_relpath(self, name: str, **kwargs) -> _ty.Self:
         new_path = _child_path(self.path, name, self._has_authority())
         # Through `_from_parsed_parts`, so a scheme that carries per-instance
-        # state rebuilds it (`SftpPath._ssh_config`); building the instance
+        # state rebuilds it (`SFTPURIPath._ssh_config`); building the instance
         # directly dropped it, and `/` now walks segments through here.
         return self._from_parsed_parts(self.source, new_path, "", "", **kwargs)
 
@@ -965,7 +965,7 @@ class Uri(Pathname):
             return self
         if len(segments) == 2 and segments[0] == "":
             # "/a" -> "/", not "": the empty path is relative, so the parent
-            # of a top-level FileUri resolved to the current directory and
+            # of a top-level FileURIPath resolved to the current directory and
             # `parents` never reached the root.
             return self.with_path("/")
         return self.with_path("/".join(segments[:-1]))
@@ -1002,12 +1002,12 @@ class Uri(Pathname):
         a source (as `PurePosixPath("/a")` is absolute)."""
         return self.path.startswith("/")
 
-    def is_relative_to(self, other: UriLike):
+    def is_relative_to(self, other: URILike):
         """Return True if the path is relative to another path or False."""
-        # `other` is parsed standalone (`Uri(other)`), not anchored at self's root, as
+        # `other` is parsed standalone (`URI(other)`), not anchored at self's root, as
         # `relative_to()` and CPython do. A standalone parse leaves `other.source`
         # empty, which the guard below treats as compatible with any `self.source`.
-        other = other if isinstance(other, Uri) else Uri(other)
+        other = other if isinstance(other, URI) else URI(other)
         if not (
             (other.source == self.source)
             or not (bool(self.source) and bool(other.source))
@@ -1023,8 +1023,8 @@ class Uri(Pathname):
             return False
         return _self[: len(_other)] == _other
 
-    def relative_to(self, other: UriLike, *, walk_up=False):
-        other = other if isinstance(other, Uri) else Uri(other)
+    def relative_to(self, other: URILike, *, walk_up=False):
+        other = other if isinstance(other, URI) else URI(other)
         # No upfront `is_relative_to()` check: the step==0 iteration (path=other)
         # raises the same error, and an early one would skip the walk_up loop.
         for step, path in enumerate([other] + list(other.parents)):
@@ -1052,11 +1052,11 @@ class Uri(Pathname):
         """Return True if the URI points to a local resource."""
         return self.source.is_local()
 
-    def __eq__(self, other: Uri | str):
-        # Only a Uri or a URI string, which hash as their URI text like __hash__;
+    def __eq__(self, other: URI | str):
+        # Only a URI or a URI string, which hash as their URI text like __hash__;
         # another Pathname (MemPath, LocalPath) hashes by its own rule, and a
         # relative LocalPath's as_uri() raises.
-        if isinstance(other, Uri):
+        if isinstance(other, URI):
             uri = other.as_uri()
         elif isinstance(other, str):
             uri = other
@@ -1070,15 +1070,15 @@ class Uri(Pathname):
     def _order_key(self):
         return self.as_uri()
 
-    def _join_object(self, *parts) -> "Uri":
+    def _join_object(self, *parts) -> "URI":
         """A new URI of this class from `parts`, joined as the constructor
-        joins them. `UriPath` also chooses the class from the result's
-        scheme, so joining an absolute local path gives a `FileUri`."""
+        joins them. `URIPath` also chooses the class from the result's
+        scheme, so joining an absolute local path gives a `FileURIPath`."""
         return type(self)(*parts)
 
     def __truediv__(self, key):
         """`uri / "name"`. A `str` is a decoded path segment, never URI
-        syntax: "a?b.txt" is a filename, not a query (`Uri._join_arg`). Any
+        syntax: "a?b.txt" is a filename, not a query (`URI._join_arg`). Any
         other argument is joined as the constructor joins it."""
         # Only converting `key` decides NotImplemented: catching TypeError
         # around the whole construction would turn a bug inside a scheme's
@@ -1094,8 +1094,8 @@ class Uri(Pathname):
 
     def joinpath(self, *args):
         """Combine this URI with segments; a `str` is a decoded path (see
-        `Uri._join_arg`), anything else is joined as the constructor joins
-        it -- pass a `Uri` for a scheme-aware join."""
+        `URI._join_arg`), anything else is joined as the constructor joins
+        it -- pass a `URI` for a scheme-aware join."""
         result = self
         for arg in args:
             arg = result._join_arg(arg)
@@ -1110,8 +1110,8 @@ class Uri(Pathname):
         this one, never URI syntax (so "C:/x" is not read as a scheme)."""
         if not isinstance(key, str):
             return NotImplemented
-        # A plain Uri: building the prefix must not touch `self.backend`.
-        return self._join_object(Uri()._from_decoded_path(key), self)
+        # A plain URI: building the prefix must not touch `self.backend`.
+        return self._join_object(URI()._from_decoded_path(key), self)
 
     def as_posix(self):
         source = self.source
@@ -1128,7 +1128,7 @@ class Uri(Pathname):
 
 
 def _rebuild_path(cls, uri, options, backend, schemesmap):
-    """Unpickle a `UriPath`: the class built from its URI text again."""
+    """Unpickle a `URIPath`: the class built from its URI text again."""
     if backend is not None:
         options = {**options, "backend": backend}
     if schemesmap is not None:
@@ -1136,7 +1136,7 @@ def _rebuild_path(cls, uri, options, backend, schemesmap):
     return cls(uri, **options)
 
 
-Uri._slot_names = _slot_names(Uri)
+URI._slot_names = _slot_names(URI)
 
 
 def _looks_like_uri(value: str, schemesmap=None) -> bool:
@@ -1159,7 +1159,7 @@ def _looks_like_uri(value: str, schemesmap=None) -> bool:
     scheme = value[: match.end() - 1].lower()
     try:
         return (
-            Source(scheme, None, None, None).get_scheme_cls(schemesmap) is not UriPath
+            Source(scheme, None, None, None).get_scheme_cls(schemesmap) is not URIPath
         )
     except Exception:
         # A scheme plugin that fails to load: treat it as a URI, as the
@@ -1167,10 +1167,10 @@ def _looks_like_uri(value: str, schemesmap=None) -> bool:
         return True
 
 
-class UriPath(Uri, Path):
-    """`Uri` + `Path` (I/O) + scheme dispatch. `UriPath(...)` constructs
+class URIPath(URI, Path):
+    """`URI` + `Path` (I/O) + scheme dispatch. `URIPath(...)` constructs
     the concrete subclass registered for the URI's scheme (via `__SCHEMES`)
-    -- e.g. `UriPath("http://...")` returns an `HttpPath`. Subclass this
+    -- e.g. `URIPath("http://...")` returns an `HTTPURIPath`. Subclass this
     and set `__SCHEMES` to add a new scheme (Track B of extending this
     library; see `docs/guides/extending.md`): defining the class registers
     it, a name another class holds raises `ValueError` unless the class
@@ -1222,7 +1222,7 @@ class UriPath(Uri, Path):
         )
 
     @classmethod
-    def scheme_class(cls, name: str) -> "type[UriPath]":
+    def scheme_class(cls, name: str) -> "type[URIPath]":
         """The class registered for the scheme `name` (case-insensitive),
         importing its module or loading its entry point first when needed.
 
@@ -1302,21 +1302,21 @@ class UriPath(Uri, Path):
     def __new__(
         cls,
         *args,
-        schemesmap: "_ty.Mapping[str, type[UriPath]] | None" = None,
+        schemesmap: "_ty.Mapping[str, type[URIPath]] | None" = None,
         findclass=False,
         **kwargs,
-    ) -> "UriPath":
-        if cls is UriPath or findclass:
-            uri = Uri(*args, **kwargs)
-            cls: type[UriPath] = uri.source.get_scheme_cls(schemesmap)
-            if cls is UriPath:
-                inst = Uri.__new__(cls, *args, **kwargs)
+    ) -> "URIPath":
+        if cls is URIPath or findclass:
+            uri = URI(*args, **kwargs)
+            cls: type[URIPath] = uri.source.get_scheme_cls(schemesmap)
+            if cls is URIPath:
+                inst = URI.__new__(cls, *args, **kwargs)
             else:
                 inst = cls.__new__(cls, *args, **kwargs)
             inst._schemes_in_use = schemesmap
             inst._init(uri.source, uri.path, uri.query, uri.fragment, **kwargs)
         else:
-            inst = Uri.__new__(cls, *args, **kwargs)
+            inst = URI.__new__(cls, *args, **kwargs)
             inst._schemes_in_use = schemesmap
             backend = kwargs.get("backend", None)
             if backend is not None:
@@ -1494,7 +1494,7 @@ class UriPath(Uri, Path):
             return None
         return backend
 
-    def _same_filesystem(self, other: "UriPath") -> bool:
+    def _same_filesystem(self, other: "URIPath") -> bool:
         # A URI's equality includes its authority, so two paths built separately for one
         # URL are the same file; only two distinct SUPPLIED backends (separate
         # connections, or fakes for two hosts) are not provably the same tree.
@@ -1507,7 +1507,7 @@ class UriPath(Uri, Path):
         # cannot reach, so `move()` falls back to copy + delete by itself.
         return True
 
-    def _coerce_target(self, target: str) -> "UriPath":
+    def _coerce_target(self, target: str) -> "URIPath":
         """A `str` destination for `copy()`/`move()`, read by its shape.
 
         With a scheme (`s3://bucket/key`, `file:///tmp/x`) it is a URI, so a
@@ -1573,7 +1573,7 @@ class UriPath(Uri, Path):
         inst = memo[id(self)] = self.__copy__()
         return inst
 
-    def _join_object(self, *parts) -> "UriPath":
+    def _join_object(self, *parts) -> "URIPath":
         # The class comes from the joined scheme, and from the allow-list.
         return type(self)(*parts, findclass=True, schemesmap=self._schemes_in_use)
 
@@ -1581,8 +1581,8 @@ class UriPath(Uri, Path):
         cls = type(self)
         if not source or not source.scheme:
             # Nothing to dispatch on (`source.scheme + ":"` raised TypeError
-            # for a host-only Source): a plain UriPath.
-            inst = Uri.__new__(UriPath)
+            # for a host-only Source): a plain URIPath.
+            inst = URI.__new__(URIPath)
         elif source.scheme not in cls._schemes():
             inst = cls.__new__(
                 cls,
@@ -1601,10 +1601,10 @@ class UriPath(Uri, Path):
         inst._init(source, self.path, self.query, self.fragment)
         return inst
 
-    def _symlink_target(self, target: "UriLike") -> "_ty.Self":
+    def _symlink_target(self, target: "URILike") -> "_ty.Self":
         """`Path._symlink_target()` for URI-backed paths: a `str` target is
         an already-decoded path, never URI syntax (see
-        `Uri._from_decoded_path`).
+        `URI._from_decoded_path`).
 
         The default `type(self)(target)` ran the link target back through
         the URI parser, so `symlink_to("/mnt/cache?v=2")` created a link
@@ -1623,8 +1623,8 @@ class UriPath(Uri, Path):
         """Default: derives from `_listdir()` + one `stat()` per child (no
         round-trip savings over `iterdir()`). Schemes whose listing
         call already returns metadata should override this directly instead
-        (see docs/guides/extending.md) -- HttpPath/DavPath/SftpPath/FtpPath/
-        S3Path all do. A name that is not one path component
+        (see docs/guides/extending.md) -- HTTPURIPath/DAVURIPath/SFTPURIPath/FTPURIPath/
+        S3URIPath all do. A name that is not one path component
         (`providers.is_safe_child_name()`) is skipped, and an override must skip
         it too."""
         for name in self._listdir():
@@ -1683,7 +1683,7 @@ class UriPath(Uri, Path):
 
 #: The `_make_child_relpath` implementations that only write a child's path:
 #: a class with any other builds a joined key one child at a time
-#: (`Uri._join_children`).
+#: (`URI._join_children`).
 _DEFAULT_CHILD_BUILDERS = frozenset(
-    {Uri._make_child_relpath, UriPath._make_child_relpath}
+    {URI._make_child_relpath, URIPath._make_child_relpath}
 )

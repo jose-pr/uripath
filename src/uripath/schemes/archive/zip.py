@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from pathlib_next.archive import ZipPath
-from ._base import ArchiveUri
+from ._base import ArchiveURIPath
 
 
-class ZipUri(ArchiveUri):
+class ZipURIPath(ArchiveURIPath):
     """`zip:` scheme (`archive+zip:` is a second name for it). Read/write: write support (new entries, overwriting
     existing entries, `unlink`/`rmdir`/`rename`) works when the outer
     archive is a local `file:` URI; every other outer scheme is read-only

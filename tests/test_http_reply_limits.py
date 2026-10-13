@@ -10,9 +10,9 @@ import gzip
 import pytest
 
 from http_wire import Wire, response
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes import http as http_scheme
-from uripath.schemes.http import HttpBackend
+from uripath.schemes.http import HTTPBackend
 from waits import wait_until
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
@@ -42,7 +42,7 @@ def bomb(status=200, extra=None):
 
 def test_the_reply_to_a_write_is_dropped_and_its_connection_is_not_kept():
     with Wire(lambda r: long_reply(201)) as wire:
-        path = UriPath(wire.url + "/file")
+        path = URIPath(wire.url + "/file")
         path.write_bytes(b"data")  # the status was fine: nothing is raised
         assert wait_until(lambda: wire.closed == [0])
         path.write_bytes(b"again")
@@ -52,7 +52,7 @@ def test_the_reply_to_a_write_is_dropped_and_its_connection_is_not_kept():
 
 def test_the_reply_to_a_delete_is_dropped_and_its_connection_is_not_kept():
     with Wire(lambda r: long_reply(200)) as wire:
-        path = UriPath(wire.url + "/file")
+        path = URIPath(wire.url + "/file")
         path._delete()
         assert wait_until(lambda: wire.closed == [0])
     assert [r.method for r in wire.requests] == ["DELETE"]
@@ -60,7 +60,7 @@ def test_the_reply_to_a_delete_is_dropped_and_its_connection_is_not_kept():
 
 def test_a_small_reply_to_a_write_is_read_so_the_connection_serves_the_next_one():
     with Wire(lambda r: response(201, {}, b"x" * 1000)) as wire:
-        path = UriPath(wire.url + "/file")
+        path = URIPath(wire.url + "/file")
         path.write_bytes(b"one")
         path.write_bytes(b"two")
     assert wire.connections == 1
@@ -69,19 +69,19 @@ def test_a_small_reply_to_a_write_is_read_so_the_connection_serves_the_next_one(
 def test_an_error_reply_with_a_long_body_is_dropped_too():
     with Wire(lambda r: long_reply(500)) as wire:
         with pytest.raises(OSError):
-            UriPath(wire.url + "/file").write_bytes(b"data")
+            URIPath(wire.url + "/file").write_bytes(b"data")
         assert wait_until(lambda: wire.closed == [0])
 
 
 def test_a_coded_reply_to_a_write_is_not_inflated_whole():
     with Wire(lambda r: bomb(201)) as wire:
-        UriPath(wire.url + "/file").write_bytes(b"data")
+        URIPath(wire.url + "/file").write_bytes(b"data")
     assert [r.body for r in wire.requests] == [b"data"]
 
 
 def test_the_reply_to_an_append_is_dropped_in_both_modes():
     with Wire(lambda r: bomb(201) if r.method != "GET" else response(404)) as wire:
-        with UriPath(wire.url + "/log").open("ab") as stream:
+        with URIPath(wire.url + "/log").open("ab") as stream:
             stream.write(b"more")
         assert wait_until(lambda: len(wire.requests) == 2)
     assert [r.method for r in wire.requests] == ["GET", "PUT"]
@@ -92,7 +92,7 @@ def test_the_reply_to_an_append_is_dropped_in_both_modes():
 
 def test_a_propfind_reply_over_the_limit_is_efbig_counted_in_decoded_bytes():
     with Wire(lambda r: bomb(207, {"Content-Type": "application/xml"})) as wire:
-        path = UriPath("dav" + wire.url[len("http") :] + "/dir/")
+        path = URIPath("dav" + wire.url[len("http") :] + "/dir/")
         with pytest.raises(OSError) as excinfo:
             path.stat()
         # A kilobyte on the wire, so a check of the stated length would pass.
@@ -104,7 +104,7 @@ def test_a_propfind_reply_over_the_limit_is_efbig_counted_in_decoded_bytes():
 
 def test_a_propfind_reply_that_is_plain_and_too_long_is_efbig_as_well():
     with Wire(lambda r: long_reply(207)) as wire:
-        path = UriPath("dav" + wire.url[len("http") :] + "/dir/")
+        path = URIPath("dav" + wire.url[len("http") :] + "/dir/")
         with pytest.raises(OSError) as excinfo:
             path.stat()
         # Past the limit, the rest of the body is not waited for.
@@ -120,7 +120,7 @@ def test_a_propfind_reply_within_the_limit_is_read(monkeypatch):
         "<D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>"
     ).encode()
     with Wire(lambda r: response(207, {}, body)) as wire:
-        path = UriPath("dav" + wire.url[len("http") :] + "/dir/f")
+        path = URIPath("dav" + wire.url[len("http") :] + "/dir/f")
         assert path.stat().st_size == 5
         assert path.stat().st_size == 5
     assert wire.connections == 1
@@ -137,7 +137,7 @@ def test_the_limit_is_read_each_time_so_raising_it_lets_a_larger_reply_through(
         "</D:multistatus>" + " " * (2 * CAP)
     ).encode()
     with Wire(lambda r: response(207, {}, padded)) as wire:
-        path = UriPath("dav" + wire.url[len("http") :] + "/dir/f")
+        path = URIPath("dav" + wire.url[len("http") :] + "/dir/f")
         with pytest.raises(OSError):
             path.stat()
         monkeypatch.setattr(http_scheme, "MAX_LISTING_BYTES", 4 * CAP)
@@ -146,14 +146,14 @@ def test_the_limit_is_read_each_time_so_raising_it_lets_a_larger_reply_through(
 
 def test_a_dav_delete_with_a_207_reply_over_the_limit_is_efbig():
     with Wire(lambda r: bomb(207, {"Content-Type": "application/xml"})) as wire:
-        path = UriPath("dav" + wire.url[len("http") :] + "/dir/")
+        path = URIPath("dav" + wire.url[len("http") :] + "/dir/")
         with pytest.raises(OSError) as excinfo:
             path.rm(recursive=True)
     assert excinfo.value.errno == errno.EFBIG
 
 
 def test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited():
-    from uripath.schemes.github import GitHubPath, RepoBackend
+    from uripath.schemes.github import GitHubURIPath, RepoBackend
 
     raw = {
         "Content-Type": "application/vnd.github.raw+json",
@@ -168,22 +168,22 @@ def test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited():
 
     with Wire(script) as wire:
         backend = RepoBackend(api_base=wire.url)
-        directory = GitHubPath("github://github.com/o/r/dir", backend=backend)
+        directory = GitHubURIPath("github://github.com/o/r/dir", backend=backend)
         with pytest.raises(OSError) as excinfo:
             directory.stat()
         assert excinfo.value.errno == errno.EFBIG
         assert directory.exists() is False
         # The content of a file is what was asked for, not a document.
-        file = GitHubPath("github://github.com/o/r/file.bin", backend=backend)
+        file = GitHubURIPath("github://github.com/o/r/file.bin", backend=backend)
         assert file.read_bytes() == content
 
 
 def test_a_gitlab_api_reply_over_the_limit_is_efbig():
-    from uripath.schemes.gitlab import GitLabPath, RepoBackend
+    from uripath.schemes.gitlab import GitLabURIPath, RepoBackend
 
     with Wire(lambda r: bomb(200, {"Content-Type": "application/json"})) as wire:
         backend = RepoBackend(api_base=wire.url + "/api/v4")
-        path = GitLabPath("gitlab://gitlab.com/o/r", backend=backend)
+        path = GitLabURIPath("gitlab://gitlab.com/o/r", backend=backend)
         with pytest.raises(OSError) as excinfo:
             path.stat()
     assert excinfo.value.errno == errno.EFBIG
@@ -191,7 +191,7 @@ def test_a_gitlab_api_reply_over_the_limit_is_efbig():
 
 def test_the_backend_reads_a_reply_whole_only_up_to_the_limit(http_transport):
     with Wire(lambda r: bomb(200)) as wire:
-        backend = HttpBackend(http_transport)
+        backend = HTTPBackend(http_transport)
         with pytest.raises(OSError) as excinfo:
             backend.request("GET", wire.url + "/x")
         assert excinfo.value.errno == errno.EFBIG

@@ -6,13 +6,13 @@ from base64 import b64decode as _b64decode
 import uritools as _uritools
 
 from pathlib_next import FileStat
-from .. import UriPath
+from .. import URIPath
 from ..source import ERRORS
 
 _DEFAULT_MEDIATYPE = "text/plain;charset=US-ASCII"
 
 
-class DataUri(UriPath):
+class DataURIPath(URIPath):
     """`data:` scheme (RFC 2397): a read-only "file" whose entire content is
     embedded in the URI itself (`data:[<mediatype>][;base64],<data>`) -- no
     filesystem, no directories, no backend/connection. RFC 2397 has no query,

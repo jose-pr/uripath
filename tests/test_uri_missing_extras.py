@@ -69,12 +69,12 @@ _HTTP_URLS = [
 def test_a_path_with_the_client_libraries_hidden_does_pure_path_work(url):
     result = _run(
         f"""
-        from uripath import UriPath
-        path = UriPath({url!r})
+        from uripath import URIPath
+        path = URIPath({url!r})
         child = path / "y"
         assert child.name == "y" and child.parent == path
         assert child.as_uri().startswith({url.split("://")[0] + "://"!r})
-        assert path == UriPath({url!r}) and hash(path) == hash(UriPath({url!r}))
+        assert path == URIPath({url!r}) and hash(path) == hash(URIPath({url!r}))
         assert path.relative_to(path).as_posix() in ("", ".")
         assert (path.with_name("z") if path.name else path).as_uri()
         print(type(path).__name__)
@@ -89,12 +89,12 @@ def test_schemes_that_need_no_extra_work_with_every_client_blocked():
     result = _run(
         """
         import uripath.schemes as schemes
-        from uripath import UriPath
+        from uripath import URIPath
 
-        for name in ("HttpPath", "DavPath", "GitHubPath", "GitLabPath", "GitPath",
-                     "FtpPath", "ZipUri", "TarUri", "FileUri", "DataUri"):
+        for name in ("HTTPURIPath", "DAVURIPath", "GitHubURIPath", "GitLabURIPath", "GitURIPath",
+                     "FTPURIPath", "ZipURIPath", "TarURIPath", "FileURIPath", "DataURIPath"):
             assert hasattr(schemes, name), name
-        assert UriPath("data:,abc").read_bytes() == b"abc"
+        assert URIPath("data:,abc").read_bytes() == b"abc"
         print("ok")
         """,
         [

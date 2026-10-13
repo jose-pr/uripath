@@ -15,7 +15,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next.archive._zip import _ZipBackend
 
 
@@ -207,7 +207,7 @@ def test_a_rewrite_leaves_the_members_the_decompressing_rewrite_leaves(
     )
     actual = tmp_path / "actual.zip"
     shutil.copy(original, actual)
-    backend = _ZipBackend(UriPath(actual.as_uri()))
+    backend = _ZipBackend(URIPath(actual.as_uri()))
     backend._rewrite(
         exclude=set(options.get("exclude", ())),
         rename=options.get("rename"),
@@ -226,7 +226,7 @@ def test_the_bytes_before_the_first_member_and_the_comment_survive(tmp_path):
     archive = tmp_path / "stub.zip"
     _with_stub(archive)
     prefix = archive.read_bytes()[:22]
-    (UriPath(_zip_uri(archive)) / "top.txt").unlink()
+    (URIPath(_zip_uri(archive)) / "top.txt").unlink()
     assert archive.read_bytes()[:22] == prefix
     with zipfile.ZipFile(archive) as zf:
         assert zf.testzip() is None
@@ -265,7 +265,7 @@ def test_unlinking_one_member_inflates_nothing(tmp_path, monkeypatch):
         for i in range(100):
             zf.writestr(f"m{i:03d}.txt", _text(i, 500))
     count = _InflateCount(monkeypatch)
-    (UriPath(_zip_uri(archive)) / "m000.txt").unlink()
+    (URIPath(_zip_uri(archive)) / "m000.txt").unlink()
     assert (count.bytes, count.calls) == (0, 0)
     with zipfile.ZipFile(archive) as zf:
         assert zf.testzip() is None
@@ -276,7 +276,7 @@ def test_removing_a_tree_and_renaming_one_inflate_nothing(tmp_path, monkeypatch)
     archive = tmp_path / "tree.zip"
     _plain(archive)
     count = _InflateCount(monkeypatch)
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     (root / "d").rm(recursive=True)
     (root / "e" / "three.txt").rename("four.txt")
     assert (count.bytes, count.calls) == (0, 0)
@@ -312,7 +312,7 @@ def test_an_encrypted_member_survives_changes_to_other_members(tmp_path):
         before = (sealed.compress_size, sealed.CRC)
         start = sealed.header_offset
     _encrypt_flag(archive, "d/one.txt")
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     (root / "top.txt").unlink()
     (root / "z.txt").write_bytes(b"over")
     (root / "e" / "three.txt").rename("four.txt")
@@ -344,7 +344,7 @@ def test_removing_forty_members_one_by_one_is_one_rewrite_each_and_inflates_noth
 
     monkeypatch.setattr(_ZipBackend, "_replace_outer", counted)
     count = _InflateCount(monkeypatch)
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     for i in range(40):
         (root / f"m{i:03d}.txt").unlink()
     assert len(rewrites) == 40

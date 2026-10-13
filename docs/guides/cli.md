@@ -44,7 +44,7 @@ and `symlink`.
 ## Paths
 
 An argument containing `://`, or starting with a scheme that a class
-registers (`data:`, `zip:`, `file:`, ...), is a `UriPath`; anything else is a
+registers (`data:`, `zip:`, `file:`, ...), is a `URIPath`; anything else is a
 local path, so `C:/data`, `12:30.txt` and `notes:draft` stay local.
 
 ## Exit status

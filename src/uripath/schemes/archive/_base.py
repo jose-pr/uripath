@@ -10,13 +10,13 @@ from pathlib_next.archive import MAX_LINKS as MAX_LINKS
 from pathlib_next.archive import ArchivePath
 from pathlib_next.archive import LinkTarget as LinkTarget
 from pathlib_next.providers import as_error_handler, check_follow
-from ... import Uri, UriPath
+from ... import URI, URIPath
 from ...source import SAFE_PATH, Source, percent_encode
 from .._delegate import DelegatingPath
 
 _SEP = "!/"
 _SCHEME_RE = _re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
-# Every scheme an `ArchiveUri` class registers (see `archive/__init__.py`).
+# Every scheme an `ArchiveURIPath` class registers (see `archive/__init__.py`).
 _ARCHIVE_SCHEMES = ("zip", "tar", "archive", "archive+zip", "archive+tar")
 
 
@@ -68,20 +68,20 @@ def _parse_archive_uri(raw: str, scheme: str) -> "tuple[str, str, object, str] |
     if not sep or prefix.lower() != scheme:
         return None
     archive, inner = _split_archive_path(rest)
-    _, path, query, fragment = Uri._parse_uri("/" + inner.lstrip("/"))
+    _, path, query, fragment = URI._parse_uri("/" + inner.lstrip("/"))
     return archive, path.lstrip("/"), query, fragment
 
 
-def _open_outer(archive_uri: str, schemesmap=None) -> "UriPath":
+def _open_outer(archive_uri: str, schemesmap=None) -> "URIPath":
     if not _SCHEME_RE.match(archive_uri):
         raise ValueError(
             f"Archive URI {archive_uri!r} has no scheme -- prefix it "
             "explicitly, e.g. 'file:///path/to/archive.zip'."
         )
-    return UriPath(archive_uri, schemesmap=schemesmap)
+    return URIPath(archive_uri, schemesmap=schemesmap)
 
 
-class ArchiveUri(DelegatingPath):
+class ArchiveURIPath(DelegatingPath):
     """Common base for `zip:`/`tar:`/`archive:` archive paths:
     `<scheme>:<archive-uri>!/<inner-path>` (Java-style separator; the
     `<archive-uri>` half is itself any absolute URI with an explicit scheme
@@ -94,7 +94,7 @@ class ArchiveUri(DelegatingPath):
     is known) on that handle.
 
     Also registered directly as the `archive:` catch-all scheme (see
-    `__SCHEMES` below): `zip:`/`tar:` (via `ZipUri`/`TarUri`, which just
+    `__SCHEMES` below): `zip:`/`tar:` (via `ZipURIPath`/`TarURIPath`, which just
     pin `_core_cls`) fix the format; plain `archive:` leaves it undecided
     and settles it on first use. Writes are gated on the handle being
     writable, which only a zip archive that is a local `file:` ever is -- so a
@@ -141,16 +141,16 @@ class ArchiveUri(DelegatingPath):
                 archive_str, inner = _split_archive_path(path)
                 inner = inner.lstrip("/")
             outer = _open_outer(archive_str, self._schemes_in_use)
-            # `ZipUri`/`TarUri` pin the format; for `archive:` it is settled on
+            # `ZipURIPath`/`TarURIPath` pin the format; for `archive:` it is settled on
             # first use, so building the path reads nothing.
             backend = self._core_cls.backend_for(
                 outer,
                 # No class serves the outer's scheme (not in `schemesmap`, or
                 # unknown): it must not borrow a handle another path opened.
-                shared=type(outer) is not UriPath,
+                shared=type(outer) is not URIPath,
                 # A nested archive is named by its URI: asking it for its node
                 # would settle its format.
-                identity=outer.as_uri() if isinstance(outer, ArchiveUri) else None,
+                identity=outer.as_uri() if isinstance(outer, ArchiveURIPath) else None,
             )
         else:
             # A derived instance: the backend is known and `path` is already the inner path.
@@ -199,7 +199,7 @@ class ArchiveUri(DelegatingPath):
     def backend(self):
         return self._core_path.backend
 
-    def _outer_path(self) -> "UriPath":
+    def _outer_path(self) -> "URIPath":
         """The archive's own path. Never decides the format."""
         return super().backend.outer
 
@@ -211,7 +211,7 @@ class ArchiveUri(DelegatingPath):
         # path's `%`, `?` and `#`, and a literal "!/" inside the outer URI.
         outer = self._outer_path()
         outer_uri = outer.as_uri(sanitize=sanitize)
-        if not isinstance(outer, ArchiveUri):
+        if not isinstance(outer, ArchiveURIPath):
             # A nested archive's outer keeps its own separator (it already
             # encodes any other "!/"); see `_split_archive_path`.
             outer_uri = outer_uri.replace(_SEP, "%21/")
@@ -267,7 +267,7 @@ class ArchiveUri(DelegatingPath):
         # The archive handle is the namespace. An `archive:` path holds a
         # stand-in until its format is settled, and two of them naming one
         # archive settle on one handle.
-        if isinstance(other, ArchiveUri):
+        if isinstance(other, ArchiveURIPath):
             try:
                 return other.backend is self.backend
             except Exception:
@@ -275,17 +275,17 @@ class ArchiveUri(DelegatingPath):
                 return False
         return super()._same_filesystem(other)
 
-    def _same_location(self, other: Uri) -> bool:
+    def _same_location(self, other: URI) -> bool:
         # Every archive URI has the same bare "zip:"/"tar:" authority, so the
         # authority alone cannot tell two archives apart: an archive path is
         # only renameable onto a member of the very same archive (backend).
-        if isinstance(other, ArchiveUri):
+        if isinstance(other, ArchiveURIPath):
             return other.backend is self.backend
-        if isinstance(other, UriPath):
+        if isinstance(other, URIPath):
             return False
         return super()._same_location(other)
 
-    def rename(self, target: "ArchiveUri | Uri | str"):
+    def rename(self, target: "ArchiveURIPath | URI | str"):
         # A plain str target is a sibling rename (relative to self's parent), as in sftp
         # and ftp. An existing target is replaced as POSIX rename(2) does (a file over a
         # file, a directory over an empty one), never a duplicate member. Returns the new path.

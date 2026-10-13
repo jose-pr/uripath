@@ -1,4 +1,4 @@
-"""Unit-only FTP tests: mock BaseFtpBackend, no real server. Covers MLSD
+"""Unit-only FTP tests: mock BaseFTPURIBackend, no real server. Covers MLSD
 listing/stat, the NLST/SIZE fallback path, upload-on-close writes, and
 rename/chmod/mkdir/unlink error translation.
 """
@@ -7,8 +7,8 @@ import ftplib
 
 import pytest
 
-from uripath import Source, Uri
-from uripath.schemes.ftp import BaseFtpBackend, FtpBackend, FtpPath
+from uripath import Source, URI
+from uripath.schemes.ftp import BaseFTPURIBackend, FTPURIBackend, FTPURIPath
 
 
 class _FakeFtpClient:
@@ -80,7 +80,7 @@ class _FakeFtpClient:
         self.rename_calls.append((path, target))
 
 
-class _FakeBackend(BaseFtpBackend):
+class _FakeBackend(BaseFTPURIBackend):
     def __init__(self):
         self.client_calls = 0
         self._client = _FakeFtpClient()
@@ -91,16 +91,16 @@ class _FakeBackend(BaseFtpBackend):
 
 
 def _ftp(path, backend=None):
-    return FtpPath(path, backend=backend or _FakeBackend())
+    return FTPURIPath(path, backend=backend or _FakeBackend())
 
 
-# --- FtpBackend.client(): real connect() call, default port ---
+# --- FTPURIBackend.client(): real connect() call, default port ---
 
 
 def test_ftpbackend_client_uses_netimps_default_port_when_source_has_none(
     monkeypatch,
 ):
-    # FtpBackend.client() used to hardcode 21 inline; now delegates to
+    # FTPURIBackend.client() used to hardcode 21 inline; now delegates to
     # netimps.get_default_port("ftp"), which returns the same 21 -- assert
     # the actual value ftplib.FTP.connect() receives, not just that it's
     # unchanged by coincidence.
@@ -120,7 +120,7 @@ def test_ftpbackend_client_uses_netimps_default_port_when_source_has_none(
             pass
 
     monkeypatch.setattr(ftplib, "FTP", _FakeClient)
-    backend = FtpBackend()
+    backend = FTPURIBackend()
     backend.client(Source("ftp", None, "host", None), tls=False)
     assert calls == [("host", 21)]
 
@@ -142,7 +142,7 @@ def test_ftpbackend_client_source_port_overrides_default(monkeypatch):
             pass
 
     monkeypatch.setattr(ftplib, "FTP", _FakeClient)
-    backend = FtpBackend()
+    backend = FTPURIBackend()
     backend.client(Source("ftp", None, "host", 2121), tls=False)
     assert calls == [("host", 2121)]
 
@@ -178,7 +178,7 @@ def test_ftps_scheme_requests_tls():
     backend = _FakeBackend()
     calls = []
     backend.client = lambda source, tls: (calls.append(tls), _FakeFtpClient())[1]
-    p = FtpPath("ftps://host/a", backend=backend)
+    p = FTPURIPath("ftps://host/a", backend=backend)
     p._core_path._ftpclient
     assert calls == [True]
 
@@ -187,7 +187,7 @@ def test_ftp_scheme_no_tls():
     backend = _FakeBackend()
     calls = []
     backend.client = lambda source, tls: (calls.append(tls), _FakeFtpClient())[1]
-    p = FtpPath("ftp://host/a", backend=backend)
+    p = FTPURIPath("ftp://host/a", backend=backend)
     p._core_path._ftpclient
     assert calls == [False]
 
@@ -347,7 +347,7 @@ def test_unlink_missing_without_missing_ok_raises():
 def test_rename_uses_target_path():
     backend = _FakeBackend()
     p = _ftp("ftp://host/a.txt", backend=backend)
-    target = Uri("ftp://host/b.txt")
+    target = URI("ftp://host/b.txt")
     p.rename(target)
     assert backend._client.rename_calls == [("/a.txt", "/b.txt")]
 
@@ -377,8 +377,8 @@ def test_chmod_follow_symlinks_false_raises_notimplemented():
 
 
 # --- destination arguments are decoded paths, not URI syntax (0.9.3) ------
-# Same defect as SftpPath's (`Uri(self.parent, target)` re-parsed the
-# destination as a URI); FtpPath's `.path` is likewise a filesystem path on
+# Same defect as SFTPURIPath's (`URI(self.parent, target)` re-parsed the
+# destination as a URI); FTPURIPath's `.path` is likewise a filesystem path on
 # the server, so "?" / "#" / "%xx" in it are ordinary filename characters.
 
 

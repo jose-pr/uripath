@@ -7,7 +7,7 @@ server raises an `ImportError` that names what to install.
 
 from __future__ import annotations
 
-from .. import UriPath
+from .. import URIPath
 
 #: Scheme -> (the distribution that provides it, its import name, what to run
 #: to get it). A name listed here is known without the distribution: a path of
@@ -67,7 +67,7 @@ def requests_transport_missing() -> ImportError:
 
 
 def _unavailable(name: str):
-    """A hook of `UriPath` that does the one thing a path of a missing scheme
+    """A hook of `URIPath` that does the one thing a path of a missing scheme
     can do about I/O."""
 
     def hook(self, *args, **kwargs):
@@ -77,10 +77,10 @@ def _unavailable(name: str):
     return hook
 
 
-class ProvidedElsewhere(UriPath):
+class ProvidedElsewhere(URIPath):
     """The class of a path whose scheme another distribution provides and that is
     not installed. It registers no scheme: an installed distribution registers
-    its own class, which is found first. Every primitive of `UriPath` raises
+    its own class, which is found first. Every primitive of `URIPath` raises
     the `ImportError` of `not_installed()`, so each operation derived from one
     does too."""
 

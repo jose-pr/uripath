@@ -1,4 +1,4 @@
-"""Pure-path parity of the generic `Pathname` code (`MemPath`, `Uri`) and of
+"""Pure-path parity of the generic `Pathname` code (`MemPath`, `URI`) and of
 the fspath version shims, checked against `pathlib.PurePosixPath` /
 `PureWindowsPath` on the running interpreter.
 
@@ -17,9 +17,9 @@ import pytest
 
 from pathlib_next.fspath import LocalPath, PosixPathname, WindowsPathname
 from pathlib_next.mempath import MemPath, MemPathBackend
-from uripath import Uri
+from uripath import URI
 
-GENERIC = [MemPath, Uri]
+GENERIC = [MemPath, URI]
 
 # --- match(): right-anchored, per segment ---------------------------------
 
@@ -110,11 +110,11 @@ def test_generic_match_empty_pattern_raises(cls, pattern):
     ],
 )
 def test_uri_match_uses_path_segments_not_host(uri, pattern, expected):
-    assert Uri(uri).match(pattern) is expected
+    assert URI(uri).match(pattern) is expected
 
 
 def test_uri_match_and_full_match_agree_on_absolute_patterns():
-    u = Uri("http://h/a/b.py")
+    u = URI("http://h/a/b.py")
     assert u.match("/a/*.py") is True
     assert u.full_match("/a/*.py") is True
 
@@ -134,7 +134,7 @@ def test_generic_match_accepts_compiled_regex_on_the_path_string(cls):
 
     assert cls("/a/b.py").match(re.compile(r"/a/.*\.py"))
     assert not cls("/a/b.py").match(re.compile(r"b\.py"))
-    assert Uri("http://h/a/b.py").match(re.compile(r"/a/b\.py"))
+    assert URI("http://h/a/b.py").match(re.compile(r"/a/b\.py"))
 
 
 # --- fspath shims: match(case_sensitive=) and full_match() before 3.12/3.13 --
@@ -268,26 +268,26 @@ def _answer(call):
 
 
 def test_uri_parents_reach_the_authority_root_once():
-    parents = [str(p) for p in Uri("http://h/a/b/c.py").parents]
+    parents = [str(p) for p in URI("http://h/a/b/c.py").parents]
     assert parents == ["http://h/a/b", "http://h/a", "http://h/"]
-    assert Uri("http://h/a").parent == Uri("http://h/")
-    assert Uri("/c").parent.path == "/"
-    assert Uri("/c").parent.root == "/"
+    assert URI("http://h/a").parent == URI("http://h/")
+    assert URI("/c").parent.path == "/"
+    assert URI("/c").parent.root == "/"
     # The relative case is unchanged (documented divergence).
-    assert Uri("a").parent.path == ""
+    assert URI("a").parent.path == ""
 
 
 def test_parents_negative_index_and_slice_keep_the_root():
-    for p in (MemPath("/a/b/c"), Uri("/a/b/c")):
+    for p in (MemPath("/a/b/c"), URI("/a/b/c")):
         assert p.parents[-1].as_posix() == "/"
         assert [x.as_posix() for x in p.parents[1:]] == ["/a", "/"]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX file: root")
 def test_fileuri_top_level_parent_is_root_not_cwd():
-    from uripath import UriPath
+    from uripath import URIPath
 
-    parent = UriPath("file:///Users").parent
+    parent = URIPath("file:///Users").parent
     assert parent.path == "/"
     assert str(parent.filepath) == "/"
 
@@ -303,7 +303,7 @@ BAD_NAMES = ["", ".", "x/y", "../../etc/passwd", "/abs"]
 @pytest.mark.parametrize("name", BAD_NAMES)
 def test_uri_with_name_rejects_traversal_and_separators(path, name):
     with pytest.raises(ValueError):
-        Uri(path).with_name(name)
+        URI(path).with_name(name)
 
 
 @pytest.mark.parametrize("cls", GENERIC)
@@ -337,7 +337,7 @@ def test_generic_with_stem_and_with_suffix_validate_the_result(cls):
 @pytest.mark.parametrize("path", ["http://h/d/f.txt", "d/f.txt"])
 def test_with_name_accepts_dotdot_like_pathlib(path):
     assert pathlib.PurePosixPath("d/f.txt").with_name("..").name == ".."
-    assert Uri(path).with_name("..").segments[-1] == ".."
+    assert URI(path).with_name("..").segments[-1] == ".."
     assert MemPath("/srv/up.txt").with_name("..").as_posix() == "/srv/.."
 
 
@@ -373,13 +373,13 @@ MEM_PATHS = [
     ],
 )
 def test_uri_relative_to_authority_root(path, other, expected):
-    u = Uri(path)
+    u = URI(path)
     assert u.is_relative_to(other) is True
     assert u.relative_to(other).as_posix() == expected
 
 
 def test_uri_relative_to_own_parent():
-    for u in (Uri("http://h/a"), Uri("/a"), Uri("s3://b/k")):
+    for u in (URI("http://h/a"), URI("/a"), URI("s3://b/k")):
         assert u.relative_to(u.parent).as_posix() == u.name
         assert u.is_relative_to(u.parent)
 
@@ -394,27 +394,27 @@ def test_uri_relative_to_own_parent():
     ],
 )
 def test_uri_relative_to_walk_up_to_the_root(path, other, expected):
-    got = Uri(path).relative_to(other, walk_up=True).as_posix()
+    got = URI(path).relative_to(other, walk_up=True).as_posix()
     assert got == expected
     if sys.version_info >= (3, 12):
-        oracle = pathlib.PurePosixPath(Uri(path).path).relative_to(
-            Uri(other).path, walk_up=True
+        oracle = pathlib.PurePosixPath(URI(path).path).relative_to(
+            URI(other).path, walk_up=True
         )
         assert got == oracle.as_posix()
 
 
 def test_uri_absolute_is_not_relative_to_the_empty_path():
-    assert Uri("/a").is_relative_to("") is False
+    assert URI("/a").is_relative_to("") is False
     assert pathlib.PurePosixPath("/a").is_relative_to("") is False
     with pytest.raises(ValueError):
-        Uri("http://h/a").relative_to("")
+        URI("http://h/a").relative_to("")
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows drive roots")
 def test_file_uri_parent_of_top_level_windows_folder_is_the_drive_root():
-    from uripath import UriPath
+    from uripath import URIPath
 
-    parent = UriPath("file:///C:/Windows").parent
+    parent = URIPath("file:///C:/Windows").parent
     assert parent.path == "C:/"
     assert str(parent.filepath) == "C:\\"
     assert parent.parent == parent
@@ -568,11 +568,11 @@ def test_double_slash_root_is_not_modelled_by_the_generic_classes():
     assert tuple(MemPath("//").segments) == ("", "")
     assert str(MemPath("//a/b")) == "/a/b"
 
-    # A Uri reads "//" as the start of an authority (RFC 3986), so "//a/b"
+    # A URI reads "//" as the start of an authority (RFC 3986), so "//a/b"
     # has host "a" and path "/b" -- it cannot also be a root spelling.
-    assert Uri("//").path == ""
-    assert Uri("//a/b").path == "/b"
-    assert Uri("//a/b").source.host == "a"
+    assert URI("//").path == ""
+    assert URI("//a/b").path == "/b"
+    assert URI("//a/b").source.host == "a"
 
 
 # --- has_glob_pattern(): the anchor is not a pattern ----------------------
@@ -585,7 +585,7 @@ _EXTENDED_UNC = r"\\?\UNC\server\share\x"
 
 @pytest.mark.parametrize(
     "cls,path,expected",
-    [(MemPath, "/a/b", False), (MemPath, "/a/*.py", True), (Uri, "http://h/a", False)],
+    [(MemPath, "/a/b", False), (MemPath, "/a/*.py", True), (URI, "http://h/a", False)],
 )
 def test_has_glob_pattern_on_generic_paths(cls, path, expected):
     assert cls(path).has_glob_pattern() is expected

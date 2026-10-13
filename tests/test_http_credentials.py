@@ -10,7 +10,7 @@ import pytest
 
 import uripath
 from http_fakes import on_current_transport
-from uripath import UriPath
+from uripath import URIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -101,7 +101,7 @@ def _sent_credentials(server):
 def test_url_password_is_sent_as_the_octets_it_stands_for(
     recorder, scheme, password, octets
 ):
-    path = UriPath(f"{scheme}://us%40er:{password}@{recorder.base}/f.txt")
+    path = URIPath(f"{scheme}://us%40er:{password}@{recorder.base}/f.txt")
     assert path.stat().st_size in (0, 3)
     assert _sent_credentials(recorder) == b"us@er:" + octets
 
@@ -110,7 +110,7 @@ def test_ascii_credentials_reach_the_transport_as_a_basic_authorization_header()
     from http_fakes import FakeTransport, reply
 
     transport = FakeTransport(default=reply(200))
-    path = UriPath("http://al%40ice:s3cr3t@h/x").with_transport(transport)
+    path = URIPath("http://al%40ice:s3cr3t@h/x").with_transport(transport)
     path.exists()
     sent = transport.sent[0]
     assert sent.url == "http://h/x"
@@ -125,7 +125,7 @@ def test_ascii_credentials_reach_the_transport_as_a_basic_authorization_header()
 @pytest.mark.parametrize("scheme", ["http", "dav"])
 @pytest.mark.parametrize("mode", ["r+", "r+b", "rb+", "w+", "a+"])
 def test_read_write_modes_are_refused_before_any_request(recorder, scheme, mode):
-    path = UriPath(f"{scheme}://{recorder.base}/f.txt")
+    path = URIPath(f"{scheme}://{recorder.base}/f.txt")
     with pytest.raises(NotImplementedError):
         path.open(mode)
     assert recorder.log == []
@@ -134,30 +134,30 @@ def test_read_write_modes_are_refused_before_any_request(recorder, scheme, mode)
 @pytest.mark.parametrize("scheme", ["http", "dav"])
 @pytest.mark.parametrize("mode", ["r", "rb", "rt"])
 def test_plain_read_modes_still_open(recorder, scheme, mode):
-    path = UriPath(f"{scheme}://{recorder.base}/f.txt")
+    path = URIPath(f"{scheme}://{recorder.base}/f.txt")
     with path.open(mode) as handle:
         assert handle.read() in (b"", "")
     assert [m for m, _p, _h in recorder.log][0] == "GET"
 
 
-# --- DavPath honours what it is given ---
+# --- DAVURIPath honours what it is given ---
 
 
 def test_dav_write_method_is_the_method_that_uploads(recorder):
     path = on_current_transport(
-        UriPath(f"dav://{recorder.base}/f.txt"), write_method="POST"
+        URIPath(f"dav://{recorder.base}/f.txt"), write_method="POST"
     )
     path.write_bytes(b"data")
     assert [m for m, _p, _h in recorder.log] == ["POST"]
 
 
 def test_dav_default_upload_is_still_put(recorder):
-    UriPath(f"dav://{recorder.base}/f.txt").write_bytes(b"data")
+    URIPath(f"dav://{recorder.base}/f.txt").write_bytes(b"data")
     assert [m for m, _p, _h in recorder.log] == ["PUT"]
 
 
 def test_dav_stat_accepts_the_keyword_of_its_base(recorder):
-    path = UriPath(f"dav://{recorder.base}/f.txt")
+    path = URIPath(f"dav://{recorder.base}/f.txt")
     assert path.stat(walk_up_last_modified=True).st_size == 3
     assert [m for m, _p, _h in recorder.log] == ["PROPFIND"]
 
@@ -171,7 +171,7 @@ def test_headers_other_than_authorization_follow_a_redirect(recorder):
         # Another port is another origin: `Authorization` is dropped.
         recorder.redirect_to = f"http://127.0.0.1:{other.server_port}/landing"
         path = on_current_transport(
-            UriPath(f"http://{recorder.base}/redirect"),
+            URIPath(f"http://{recorder.base}/redirect"),
             headers={"Authorization": "Bearer T", "X-Api-Key": "K"},
         )
         path.read_bytes()

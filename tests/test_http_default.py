@@ -12,9 +12,9 @@ import pytest
 
 import uripath
 from http_fakes import FakeTransport, reply
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes._http import _select
-from uripath.schemes.http import HttpBackend, HTTPTransport
+from uripath.schemes.http import HTTPBackend, HTTPTransport
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 VARIABLE = "PATHLIB_NEXT_HTTP_TRANSPORT"
@@ -22,14 +22,14 @@ VARIABLE = "PATHLIB_NEXT_HTTP_TRANSPORT"
 
 def test_without_a_setting_the_built_in_transport_is_used(monkeypatch):
     monkeypatch.delenv(VARIABLE, raising=False)
-    with HttpBackend() as backend:
+    with HTTPBackend() as backend:
         assert type(backend.transport) is HTTPTransport
-    assert type(UriPath("http://h/x").backend) is not None
+    assert type(URIPath("http://h/x").backend) is not None
 
 
 def test_a_backend_builds_its_transport_on_first_use_and_keeps_it(monkeypatch):
     monkeypatch.delenv(VARIABLE, raising=False)
-    with HttpBackend() as backend:
+    with HTTPBackend() as backend:
         assert backend._transport is None
         first = backend.transport
         assert backend.transport is first
@@ -37,7 +37,7 @@ def test_a_backend_builds_its_transport_on_first_use_and_keeps_it(monkeypatch):
 
 def test_the_variable_chooses_the_transport(monkeypatch):
     monkeypatch.setenv(VARIABLE, "builtin")
-    with HttpBackend() as backend:
+    with HTTPBackend() as backend:
         assert type(backend.transport) is HTTPTransport
 
 
@@ -46,7 +46,7 @@ def test_a_value_that_is_not_a_choice_is_a_value_error_naming_the_choices(
     monkeypatch, value
 ):
     monkeypatch.setenv(VARIABLE, value)
-    backend = HttpBackend()
+    backend = HTTPBackend()
     with pytest.raises(ValueError) as excinfo:
         backend.transport
     message = str(excinfo.value)
@@ -55,7 +55,7 @@ def test_a_value_that_is_not_a_choice_is_a_value_error_naming_the_choices(
 
 def test_a_path_reports_a_bad_setting_when_it_sends_not_when_it_is_built(monkeypatch):
     monkeypatch.setenv(VARIABLE, "nonsense")
-    path = UriPath("http://127.0.0.1:1/x")
+    path = URIPath("http://127.0.0.1:1/x")
     assert path.name == "x"
     with pytest.raises(ValueError):
         path.stat()
@@ -73,11 +73,11 @@ def test_the_variable_in_the_header_is_the_one_the_code_reads():
 def test_a_backend_closes_the_transport_it_built_and_not_one_it_was_given(monkeypatch):
     monkeypatch.delenv(VARIABLE, raising=False)
     given = FakeTransport(default=reply(200))
-    backend = HttpBackend(given)
+    backend = HTTPBackend(given)
     backend.close()
     assert given.closed == 0
 
-    built = HttpBackend()
+    built = HTTPBackend()
     transport = built.transport
     closed = []
     transport.close = lambda: closed.append(True)
@@ -88,7 +88,7 @@ def test_a_backend_closes_the_transport_it_built_and_not_one_it_was_given(monkey
 
 def test_a_transport_is_an_object_with_a_send_method():
     with pytest.raises(TypeError):
-        HttpBackend(object())
+        HTTPBackend(object())
 
 
 # --- no third-party library ---------------------------------------------------
@@ -139,12 +139,12 @@ server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 host = "127.0.0.1:%d" % server.server_port
 
-from uripath import UriPath
+from uripath import URIPath
 
-page = UriPath("http://" + host + "/f.txt")
+page = URIPath("http://" + host + "/f.txt")
 print(page.exists(), page.read_bytes(), page.stat().st_size)
-print(UriPath("dav://" + host + "/f.txt").stat().st_size)
-github = UriPath("github://github.com/o/r/f.txt")
+print(URIPath("dav://" + host + "/f.txt").stat().st_size)
+github = URIPath("github://github.com/o/r/f.txt")
 github.backend.api_base = "http://" + host
 print(github.read_bytes())
 print(sorted(m for m in ("requests", "urllib3") if sys.modules.get(m) is not None))

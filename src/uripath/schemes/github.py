@@ -17,7 +17,7 @@ from ._gitrepo import (  # noqa: F401  (re-exported)
 from .http import _server_size
 
 
-class GitHubPath(_RepoApiPath):
+class GitHubURIPath(_RepoApiPath):
     """`github:` scheme: read-only access to a GitHub repository tree via
     the REST contents API (`GET /repos/{owner}/{repo}/contents/{path}`).
     `host` defaults to `github.com` (API at `api.github.com`); any other

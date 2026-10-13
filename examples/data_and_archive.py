@@ -11,20 +11,20 @@ import tempfile
 import zipfile
 
 from pathlib_next import Path
-from uripath import UriPath
+from uripath import URIPath
 
 
 def data_uri_example():
     print("--- data: URI Example ---")
     # Read plain text data URI
-    text_uri = UriPath("data:text/plain;charset=utf-8,Hello%20World%21")
-    print("DataUri content:", text_uri.read_text())
-    print("DataUri media type:", text_uri.mediatype)
-    print("DataUri size:", text_uri.stat().st_size)
+    text_uri = URIPath("data:text/plain;charset=utf-8,Hello%20World%21")
+    print("DataURIPath content:", text_uri.read_text())
+    print("DataURIPath media type:", text_uri.mediatype)
+    print("DataURIPath size:", text_uri.stat().st_size)
 
     # Read base64-encoded binary/text data URI
-    b64_uri = UriPath("data:text/plain;base64,SGVsbG8gRnJvbSBCYXNlNjQh")
-    print("DataUri base64 content:", b64_uri.read_text())
+    b64_uri = URIPath("data:text/plain;base64,SGVsbG8gRnJvbSBCYXNlNjQh")
+    print("DataURIPath base64 content:", b64_uri.read_text())
     print()
 
 
@@ -39,7 +39,7 @@ def zip_archive_example(tmpdir_path: Path):
     # Access the zip entries using uripath
     # Format: zip:file:///<absolute_path>!/<inner_path>
     zip_root_uri = f"zip:{zip_file.as_uri()}!/"
-    zip_root = UriPath(zip_root_uri)
+    zip_root = URIPath(zip_root_uri)
 
     print("ZIP listing:", sorted(p.name for p in zip_root.iterdir()))
 
@@ -78,7 +78,7 @@ def tar_archive_example(tmpdir_path: Path):
 
     # Access the tar entries using uripath
     tar_root_uri = f"tar:{tar_file.as_uri()}!/"
-    tar_root = UriPath(tar_root_uri)
+    tar_root = URIPath(tar_root_uri)
 
     print("TAR listing:", sorted(p.name for p in tar_root.iterdir()))
 

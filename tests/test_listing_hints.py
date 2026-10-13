@@ -14,7 +14,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from pathlib_next.mempath import MemPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next import FileStat
 from pathlib_next.sync import PathAndStat, PathSyncer
 from pathlib_next.sync._compare import _quick_check_in_sync
@@ -25,7 +25,7 @@ from pathlib_next.sync._compare import _quick_check_in_sync
 # --- a path class whose listing knows the type only -----------------------------
 
 
-class TypeOnlyG4(UriPath):
+class TypeOnlyG4(URIPath):
     """A flat store whose listing reports a file's type and nothing else; a
     `stat()` of the file gives its real size and time and is counted."""
 

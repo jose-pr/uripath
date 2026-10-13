@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib as _contextlib
 import typing as _ty
 
-from .. import UriPath
+from .. import URIPath
 
 
 def _scandir(self):
@@ -51,8 +51,8 @@ _FORWARDERS["_scandir"] = _scandir
 _FORWARDERS["_listdir"] = _listdir
 
 
-class DelegatingPath(UriPath):
-    """A `UriPath` whose I/O is done by a core path that needs no URI.
+class DelegatingPath(URIPath):
+    """A `URIPath` whose I/O is done by a core path that needs no URI.
 
     A scheme names the hooks it hands over in `_DELEGATED` and builds the core
     path for its URI in `_make_core()`; everything about URIs (parsing,

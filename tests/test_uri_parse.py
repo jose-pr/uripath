@@ -4,13 +4,13 @@ import pathlib
 import pytest
 
 import pathlib_next
-from uripath import Uri
+from uripath import URI
 
 test_uris = ["http://user:pass@google.com:80"]
 
 
 def parse_uri(_uri: str):
-    uri = Uri(_uri)
+    uri = URI(_uri)
     assert uri.as_uri() == _uri
     return uri
 
@@ -65,7 +65,7 @@ def test_path():
 
 
 def test_encoded_path():
-    uri = Uri(
+    uri = URI(
         "http://goog%2Fe.com/root/subroot/%3Fquery/%23fragment/%2Fencoded%2Ffilename.ext"
     )
     assert uri.source.scheme == "http"
@@ -76,14 +76,14 @@ def test_encoded_path():
 
 
 def test_child():
-    sftp_root = Uri("sftp://root@sftpexample/")
+    sftp_root = URI("sftp://root@sftpexample/")
     authkeys = sftp_root / "root/.ssh/authorized_keys"
     uri = authkeys.as_uri()
     assert uri == "sftp://root@sftpexample/root/.ssh/authorized_keys"
 
 
 def test_truediv_pathlib():
-    sftp_root = Uri("sftp://root@sftpexample/")
+    sftp_root = URI("sftp://root@sftpexample/")
     authkeys = sftp_root / pathlib.PurePosixPath("root/.ssh/authorized_keys")
     uri = authkeys.as_uri()
     assert uri == "sftp://root@sftpexample/root/.ssh/authorized_keys"
@@ -97,20 +97,20 @@ def test_truediv_pathlib():
 
     # An absolute one still replaces the base, as a local file: URI.
     absolute = pathlib.Path("/root/.ssh/authorized_keys").absolute()
-    assert (sftp_root / absolute).as_uri() == Uri(absolute.as_uri()).as_uri()
+    assert (sftp_root / absolute).as_uri() == URI(absolute.as_uri()).as_uri()
 
 
 def test_join_without_root():
-    authkeys = Uri("sftp://root@sftpexample") / "root/.ssh/authorized_keys"
+    authkeys = URI("sftp://root@sftpexample") / "root/.ssh/authorized_keys"
     uri = authkeys.as_uri()
     assert uri == "sftp://root@sftpexample/root/.ssh/authorized_keys"
 
 
 def test_fspath_raises_for_non_host_filesystem_scheme():
-    # Uri (pure, no _host_filesystem_path override) must keep raising for a
+    # URI (pure, no _host_filesystem_path override) must keep raising for a
     # remote scheme whose .path has no meaning as a filesystem path -- e.g.
     # http: is a URL path component, not a path on the host's filesystem.
-    uri = Uri("http://user:pass@example.com/a/b")
+    uri = URI("http://user:pass@example.com/a/b")
     with pytest.raises(NotImplementedError):
         os.fspath(uri)
     with pytest.raises(NotImplementedError):
@@ -118,7 +118,7 @@ def test_fspath_raises_for_non_host_filesystem_scheme():
 
 
 def test_str_sanitizes_password_but_as_uri_full_round_trips():
-    uri = Uri("http://user:pass@example.com/a/b")
+    uri = URI("http://user:pass@example.com/a/b")
     assert str(uri) == "http://user@example.com/a/b"
     assert uri.as_uri(sanitize=False) == "http://user:pass@example.com/a/b"
 
@@ -128,8 +128,8 @@ def test_source_str_and_repr_redact_password():
     # (password included) -- a genuinely valid, authenticated URI string,
     # and exactly the leak: repr() (NamedTuple's default, also unredacted)
     # is what a traceback frame renders, so a Source anywhere on a failing
-    # call stack leaked the credential, even though Uri.__str__() already
-    # redacted. Both now redact the same way Uri.__str__() does.
+    # call stack leaked the credential, even though URI.__str__() already
+    # redacted. Both now redact the same way URI.__str__() does.
     from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
@@ -148,7 +148,7 @@ def test_source_str_no_longer_reconstructs_authenticated_uri():
     # site reads individual Source fields -- .host/.port/.userinfo/
     # parsed_userinfo() -- never whole-object str()). The real round trip,
     # for any caller that genuinely needs it, is as_str(sanitize=False)
-    # (mirrors Uri.as_uri(sanitize=False)).
+    # (mirrors URI.as_uri(sanitize=False)).
     from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
@@ -176,13 +176,13 @@ def test_source_userinfo_field_still_carries_password():
     assert source["userinfo"] == "root:secret"
 
 
-# --- B15 regressions: Uri.__init__ from various source types ---
+# --- B15 regressions: URI.__init__ from various source types ---
 
 
 def test_from_pure_posix_path():
     # PurePosixPath isn't a pathlib.Path (no as_uri()), so this exercises
-    # the plain-Pathname/PurePath branch of Uri.__init__.
-    uri = Uri(pathlib.PurePosixPath("a/b/c"))
+    # the plain-Pathname/PurePath branch of URI.__init__.
+    uri = URI(pathlib.PurePosixPath("a/b/c"))
     assert uri.path.endswith("a/b/c")
 
 
@@ -193,14 +193,14 @@ def test_from_fspath_only_object():
         def __fspath__(self):
             return "a/b/c.txt"
 
-    uri = Uri(FspathOnly())
+    uri = URI(FspathOnly())
     assert uri.path.endswith("a/b/c.txt")
 
 
 def test_from_relative_local_path_no_crash():
-    # pathlib.Path.as_uri() raises ValueError for relative paths; Uri()
+    # pathlib.Path.as_uri() raises ValueError for relative paths; URI()
     # must fall back cleanly instead of propagating a bare except.
-    uri = Uri(pathlib.Path("relative/path.txt"))
+    uri = URI(pathlib.Path("relative/path.txt"))
     assert "relative/path.txt" in uri.path
 
 
@@ -210,14 +210,14 @@ def test_from_relative_local_path_no_crash():
 def test_join_query_fragment_last_setting_segment_wins():
     # A later segment with NO query/fragment must not blank out an earlier
     # segment's -- only a later segment that actually sets one should win.
-    base = Uri("http://h/a?x=1#frag")
-    joined = Uri(base, "b")
+    base = URI("http://h/a?x=1#frag")
+    joined = URI(base, "b")
     assert joined.query == "x=1"
     assert joined.fragment == "frag"
 
 
 def test_join_query_fragment_later_segment_overrides():
-    base = Uri("http://h/a?x=1")
-    joined = Uri(base, "b?y=2#frag2")
+    base = URI("http://h/a?x=1")
+    joined = URI(base, "b?y=2#frag2")
     assert joined.query == "y=2"
     assert joined.fragment == "frag2"

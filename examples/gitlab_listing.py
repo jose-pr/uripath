@@ -1,4 +1,4 @@
-"""List files in a GitLab project using GitLabPath.
+"""List files in a GitLab project using GitLabURIPath.
 Needs only `uripath` -- the
 standard library sends the requests, no python-gitlab SDK. Works unauthenticated for public
 projects; set GITLAB_TOKEN for a private one -- guarded under
@@ -19,14 +19,14 @@ Run directly:
 import os
 import sys
 
-from uripath.schemes.gitlab import GitLabPath, RepoBackend
+from uripath.schemes.gitlab import GitLabURIPath, RepoBackend
 
 
 def list_gitlab(host: str, owner_repo: str, path: str, ref: str, token: str):
     query = f"?ref={ref}" if ref else ""
     uri = f"gitlab://{host}/{owner_repo}/{path.lstrip('/')}{query}"
     backend = RepoBackend(token=token) if token else None
-    root = GitLabPath(uri, backend=backend) if backend else GitLabPath(uri)
+    root = GitLabURIPath(uri, backend=backend) if backend else GitLabURIPath(uri)
     print(f"Listing GitLab location: {uri}")
     for child in root.iterdir():
         kind = "dir " if child.is_dir() else "file"

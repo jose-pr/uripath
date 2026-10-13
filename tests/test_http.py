@@ -1,4 +1,4 @@
-"""HttpPath against a real stdlib ThreadingHTTPServer (see conftest.py's
+"""HTTPURIPath against a real stdlib ThreadingHTTPServer (see conftest.py's
 http_server fixture) serving fixture_tree's directory listing. Skipped
 entirely if the http extra isn't installed.
 """
@@ -10,7 +10,7 @@ import typing
 import pytest
 
 from http_fakes import FakeTransport, reply
-from uripath import UriPath
+from uripath import URIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -92,7 +92,7 @@ def site(serve_http):
 
 
 def test_iterdir_lists_files_and_dirs(http_server):
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
     names = {p.name for p in root.iterdir()}
     # B-adjacent regression: subdirectory entries used to get name == ""
     # because directory-listing entries carry a trailing "/" that wasn't
@@ -102,50 +102,50 @@ def test_iterdir_lists_files_and_dirs(http_server):
 
 
 def test_iterdir_subdir_is_dir_not_file(http_server):
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
     sub = next(p for p in root.iterdir() if p.name == "sub")
     assert sub.is_dir()
     assert not sub.is_file()
 
 
 def test_file_is_file_not_dir(http_server):
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
     f = next(p for p in root.iterdir() if p.name == "a.txt")
     assert f.is_file()
     assert not f.is_dir()
 
 
 def test_read_text(http_server):
-    p = UriPath(f"{http_server}/a.txt")
+    p = URIPath(f"{http_server}/a.txt")
     assert p.read_text() == "a"
 
 
 def test_stat_size(http_server):
-    p = UriPath(f"{http_server}/a.txt")
+    p = URIPath(f"{http_server}/a.txt")
     st = p.stat()
     assert st.st_size == 1  # fixture_tree's a.txt content is "a"
 
 
 def test_stat_missing_raises_filenotfounderror(http_server):
-    p = UriPath(f"{http_server}/does-not-exist.txt")
+    p = URIPath(f"{http_server}/does-not-exist.txt")
     with pytest.raises(FileNotFoundError):
         p.stat()
 
 
 def test_exists_false_for_missing(http_server):
-    p = UriPath(f"{http_server}/does-not-exist.txt")
+    p = URIPath(f"{http_server}/does-not-exist.txt")
     assert not p.exists()
 
 
 def test_dir_without_trailing_slash_is_dir(http_server):
     # The server 301-redirects a bare "/sub" request to "/sub/" --
     # is_dir() must follow that and report True.
-    p = UriPath(f"{http_server}/sub")
+    p = URIPath(f"{http_server}/sub")
     assert p.is_dir()
 
 
 def test_recursive_glob(http_server):
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
     names = {p.name for p in root.glob("**/*.py")}
     assert names == {"b.py", "c.py", "d.py"}
 
@@ -154,18 +154,18 @@ def test_http_exception_translation(http_server):
     # Test standard exception translation on real HTTP errors.
     # 404 client error -> FileNotFoundError
     with pytest.raises(FileNotFoundError):
-        UriPath(f"{http_server}/does-not-exist.txt").read_text()
+        URIPath(f"{http_server}/does-not-exist.txt").read_text()
 
     # 405 Method Not Allowed / 501 Not Implemented -> PermissionError or NotImplementedError.
     # The stdlib ThreadingHTTPServer returns 501 or 405 for DELETE/PUT.
-    p = UriPath(f"{http_server}/a.txt")
+    p = URIPath(f"{http_server}/a.txt")
     with pytest.raises(PermissionError):
         p.unlink()
 
 
 def test_http_write_put_default():
     transport = FakeTransport(default=reply(200))
-    p = UriPath("http://example.com/file.txt").with_transport(transport)
+    p = URIPath("http://example.com/file.txt").with_transport(transport)
     p.write_text("hello")
 
     assert [(s.method, s.url, s.body) for s in transport.sent] == [
@@ -175,7 +175,7 @@ def test_http_write_put_default():
 
 def test_http_write_post_configured():
     transport = FakeTransport(default=reply(200))
-    p = UriPath("http://example.com/file.txt").with_transport(
+    p = URIPath("http://example.com/file.txt").with_transport(
         transport, write_method="POST"
     )
     p.write_text("world")
@@ -188,7 +188,7 @@ def test_http_write_post_configured():
 def test_http_unlink(site):
     site.serve("/file.txt", b"hello")
 
-    UriPath(site.url("/file.txt")).unlink()
+    URIPath(site.url("/file.txt")).unlink()
 
     assert [(r.method, r.path) for r in site.sent("DELETE")] == [
         ("DELETE", "/file.txt")
@@ -197,19 +197,19 @@ def test_http_unlink(site):
 
 def test_http_unlink_of_a_missing_path_raises(site):
     with pytest.raises(FileNotFoundError):
-        UriPath(site.url("/gone.txt")).unlink()
+        URIPath(site.url("/gone.txt")).unlink()
     assert [r.path for r in site.sent("DELETE")] == ["/gone.txt"]
 
 
 def test_http_unlink_missing_ok_accepts_a_delete_answered_404(site):
-    UriPath(site.url("/gone.txt")).unlink(missing_ok=True)
+    URIPath(site.url("/gone.txt")).unlink(missing_ok=True)
     assert [r.path for r in site.sent("DELETE")] == ["/gone.txt"]
 
 
 def test_http_rmdir_empty(site):
     site.index("/dir/")
 
-    UriPath(site.url("/dir/")).rmdir()
+    URIPath(site.url("/dir/")).rmdir()
 
     assert [r.path for r in site.sent("DELETE")] == ["/dir/"]
     # The listing was read before the directory was removed.
@@ -223,7 +223,7 @@ def test_http_rmdir_not_empty(site):
     site.index("/dir/", '<a href="a.txt">a.txt</a>\n')
 
     with pytest.raises(OSError) as excinfo:
-        UriPath(site.url("/dir/")).rmdir()
+        URIPath(site.url("/dir/")).rmdir()
 
     assert excinfo.value.errno == errno.ENOTEMPTY
     assert site.sent("DELETE") == []
@@ -235,7 +235,7 @@ def test_http_unlink_on_directory_sends_no_delete(site):
     site.index("/dir/", '<a href="a.txt">a.txt</a>\n')
 
     with pytest.raises(IsADirectoryError) as excinfo:
-        UriPath(site.url("/dir/")).unlink()
+        URIPath(site.url("/dir/")).unlink()
 
     assert excinfo.value.errno == errno.EISDIR
     assert site.sent("DELETE") == []
@@ -246,7 +246,7 @@ def test_http_rmdir_ignores_dot_entries_in_listing(site):
     # still empty -- rmdir() must DELETE it, not raise ENOTEMPTY.
     site.index("/dir/", '<a href="..">..</a>\n', '<a href="./">./</a>\n')
 
-    UriPath(site.url("/dir/")).rmdir()
+    URIPath(site.url("/dir/")).rmdir()
 
     assert [r.path for r in site.sent("DELETE")] == ["/dir/"]
 
@@ -255,7 +255,7 @@ def test_http_listing_leaves_out_a_name_that_is_not_a_safe_component(site):
     # A NUL ends a name for most programs: "x<NUL>y" is not a child.
     site.index("/d/", '<a href="x%00y">x</a>\n', '<a href="ok.txt">ok.txt</a>\n')
 
-    children = [child.name for child in UriPath(site.url("/d/")).iterdir()]
+    children = [child.name for child in URIPath(site.url("/d/")).iterdir()]
 
     assert children == ["ok.txt"]
 
@@ -268,7 +268,7 @@ def test_http_rmdir_on_file_raises_notadirectoryerror(site, content_type):
     site.serve("/file", b"<html><body></body></html>", content_type)
 
     with pytest.raises(NotADirectoryError):
-        UriPath(site.url("/file")).rmdir()
+        URIPath(site.url("/file")).rmdir()
 
     assert site.sent("DELETE") == []
 
@@ -277,11 +277,11 @@ def test_http_write_stream_marks_closed_on_upload_failure():
     # A failed close() must not leave the stream open -- otherwise a
     # later close() (context-manager __exit__, or GC via
     # IOBase.__del__) silently retries the PUT.
-    from uripath.schemes.http import HttpWriteStream
+    from uripath.schemes.http import HTTPWriteStream
 
     transport = FakeTransport(default=reply(500))
-    p = UriPath("http://example.com/f.txt").with_transport(transport)
-    stream = HttpWriteStream(p)
+    p = URIPath("http://example.com/f.txt").with_transport(transport)
+    stream = HTTPWriteStream(p)
     stream.write(b"x")
 
     with pytest.raises(OSError):
@@ -323,7 +323,7 @@ def test_listdir_retries_with_trailing_slash_on_404():
         return _MockHttpResponse(404, url=url)
 
     transport = FakeTransport(handler=answer)
-    p = UriPath("http://example.com/sub").with_transport(transport)
+    p = URIPath("http://example.com/sub").with_transport(transport)
     names = {e.name for e in p._listdir()}
     assert names == {"a.txt"}
 
@@ -333,7 +333,7 @@ def test_listdir_no_retry_when_already_trailing_slash():
     # missing-redirect case -- must not retry (would just repeat the same
     # request) and must propagate FileNotFoundError.
     transport = FakeTransport(default=_MockHttpResponse(404))
-    p = UriPath("http://example.com/sub/").with_transport(transport)
+    p = URIPath("http://example.com/sub/").with_transport(transport)
     with pytest.raises(FileNotFoundError):
         p._listdir()
     assert [s.url for s in transport.sent] == ["http://example.com/sub/"]
@@ -345,7 +345,7 @@ def test_listdir_no_retry_when_already_trailing_slash():
 def test_http_append_rewrite_mode_nonexistent_file(http_writable_server):
     """Append to non-existent file in rewrite mode (default).
     Should behave like write mode."""
-    p = UriPath(f"{http_writable_server}/append_new.txt")
+    p = URIPath(f"{http_writable_server}/append_new.txt")
     with p.open("ab") as f:
         f.write(b"hello")
     assert p.read_bytes() == b"hello"
@@ -354,7 +354,7 @@ def test_http_append_rewrite_mode_nonexistent_file(http_writable_server):
 def test_http_append_rewrite_mode_existing_file(http_writable_server):
     """Append to existing file in rewrite mode (default).
     Should GET existing, then PUT old+new."""
-    p = UriPath(f"{http_writable_server}/append_existing.txt")
+    p = URIPath(f"{http_writable_server}/append_existing.txt")
     # Write initial content
     p.write_bytes(b"hello")
     # Append to it
@@ -365,7 +365,7 @@ def test_http_append_rewrite_mode_existing_file(http_writable_server):
 
 def test_http_append_rewrite_mode_multiple_writes(http_writable_server):
     """Multiple writes in append mode should concatenate."""
-    p = UriPath(f"{http_writable_server}/append_multi.txt")
+    p = URIPath(f"{http_writable_server}/append_multi.txt")
     p.write_bytes(b"a")
     with p.open("ab") as f:
         f.write(b"b")
@@ -382,7 +382,7 @@ def patch_mode_requests(http_transport):
 
 
 def _patch_mode(url, recorder):
-    return UriPath(url).with_transport(recorder, append_mode="patch")
+    return URIPath(url).with_transport(recorder, append_mode="patch")
 
 
 def test_http_append_patch_mode_existing_file_real_server(
@@ -445,7 +445,7 @@ def test_http_append_patch_mode_configured():
             return _MockHttpResponse(200, url=url)
 
     transport = FakeTransport(handler=answer)
-    p = UriPath("http://example.com/file.txt").with_transport(
+    p = URIPath("http://example.com/file.txt").with_transport(
         transport, append_mode="patch"
     )
 
@@ -474,7 +474,7 @@ def test_http_append_patch_mode_rejection():
         else:
             return _MockHttpResponse(200)
 
-    p = UriPath("http://example.com/file.txt").with_transport(
+    p = URIPath("http://example.com/file.txt").with_transport(
         FakeTransport(handler=answer), append_mode="patch"
     )
 
@@ -486,15 +486,15 @@ def test_http_append_patch_mode_rejection():
 
 def test_http_append_write_stream_marks_closed_on_failure():
     """Append stream must mark itself closed even on failed close()."""
-    from uripath.schemes.http import HttpAppendStream
+    from uripath.schemes.http import HTTPAppendStream
 
     # The GET for the initial content in rewrite mode finds no file; the PUT
     # that closes the stream fails.
     transport = FakeTransport(
         {("GET", "http://example.com/f.txt"): reply(404)}, default=reply(500)
     )
-    p = UriPath("http://example.com/f.txt").with_transport(transport)
-    stream = HttpAppendStream(p)
+    p = URIPath("http://example.com/f.txt").with_transport(transport)
+    stream = HTTPAppendStream(p)
     stream.write(b"x")
 
     with pytest.raises(OSError):
@@ -508,9 +508,9 @@ def test_http_append_write_stream_marks_closed_on_failure():
 
 def test_http_append_default_is_rewrite():
     """Default append_mode should be 'rewrite'."""
-    from uripath.schemes.http import HttpBackend
+    from uripath.schemes.http import HTTPBackend
 
-    assert HttpBackend(FakeTransport()).append_mode == "rewrite"
+    assert HTTPBackend(FakeTransport()).append_mode == "rewrite"
 
 
 # --- httpdav-scandir-stat-hint-fabricates-size ---
@@ -519,7 +519,7 @@ def test_http_append_default_is_rewrite():
 def test_listing_without_sizes_gives_no_fabricated_stat(http_server, fixture_tree):
     # The stdlib `<ul>` index carries neither sizes nor dates.
     (fixture_tree / "big.bin").write_bytes(b"x" * 12345)
-    root = UriPath(f"{http_server}/")
+    root = URIPath(f"{http_server}/")
     child = next(c for c in root.iterdir() if c.name == "big.bin")
     first = child.stat()
     assert first.st_size == 12345
@@ -534,7 +534,7 @@ def test_approximate_listing_size_is_not_a_stat_hint(site):
         '<a href="f.txt">f.txt</a>   01-Jan-1970 00:00  1.2K\n',
         '<a href="g.txt">g.txt</a>   01-Jan-1970 00:00  7\n',
     )
-    entries = dict(UriPath(site.url("/d/"))._scandir())
+    entries = dict(URIPath(site.url("/d/"))._scandir())
     assert entries["f.txt"].is_file() and not entries["f.txt"].size_known
     assert entries["g.txt"].st_size == 7 and entries["g.txt"].size_known
 
@@ -558,7 +558,7 @@ def test_listing_parser_marks_human_readable_sizes_approximate():
 def test_patch_append_offset_ignores_listing_hint(site, http_transport):
     site.index("/d/", '<a href="f.txt">f.txt</a>   01-Jan-1970 00:00  1228\n')
     site.serve("/d/f.txt", b"x" * 1000)
-    root = UriPath(site.url("/d/")).with_transport(http_transport, append_mode="patch")
+    root = URIPath(site.url("/d/")).with_transport(http_transport, append_mode="patch")
     child = next(root.iterdir())
     with child.open("ab") as f:
         f.write(b"hello!")

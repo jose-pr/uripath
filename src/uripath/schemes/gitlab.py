@@ -18,7 +18,7 @@ from ._gitrepo import (  # noqa: F401  (re-exported)
 )
 
 
-class GitLabPath(_RepoApiPath):
+class GitLabURIPath(_RepoApiPath):
     """`gitlab:` scheme: read-only access to a GitLab project's repository
     tree via the REST API v4 (project identified as URL-encoded
     `owner/repo`). A project in a subgroup is addressed with GitLab's own
@@ -81,7 +81,7 @@ class GitLabPath(_RepoApiPath):
             parent = self._from_parsed_parts(
                 self.source, "/".join(segments), self.query, self.fragment
             )
-        return super(GitLabPath, parent)._make_child_relpath(name, **kwargs)
+        return super(GitLabURIPath, parent)._make_child_relpath(name, **kwargs)
 
     @property
     def _project_id(self) -> str:

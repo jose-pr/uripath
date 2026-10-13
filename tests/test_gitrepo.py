@@ -1,6 +1,6 @@
 """Scheme-specific coverage for `github:`/`gitlab:` beyond the shared
 `ReadPathContract` wiring in test_contract.py: ref plumbing (including
-through `iterdir()`, which the base `Uri._make_child_relpath` would
+through `iterdir()`, which the base `URI._make_child_relpath` would
 otherwise silently drop -- see `_gitrepo.py`'s `_RepoApiPath._make_child_relpath`),
 error translation (404/401/403/rate-limit), owner/repo/ref parsing, the
 GitHub Enterprise API-base split, and GitLab's dir-vs-file stat
@@ -17,11 +17,11 @@ pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
 from http_fakes import FakeTransport, reply
 from uripath.schemes._gitrepo import BaseRepoBackend
-from uripath.schemes.github import GitHubPath, RepoBackend
+from uripath.schemes.github import GitHubURIPath, RepoBackend
 from uripath.schemes.http import HTTPTransport
-from uripath.schemes.git import GitHubGitPath, GitLabGitPath, GitPath
-from uripath.schemes.gitlab import GitLabPath
-from uripath import UriPath
+from uripath.schemes.git import GitHubGitURIPath, GitLabGitURIPath, GitURIPath
+from uripath.schemes.gitlab import GitLabURIPath
+from uripath import URIPath
 
 
 def _github(server, path="", **kwargs):
@@ -30,7 +30,7 @@ def _github(server, path="", **kwargs):
     uri = f"github://github.com/{owner}/{repo}"
     if path:
         uri += f"/{path}"
-    return GitHubPath(uri, backend=backend, **kwargs)
+    return GitHubURIPath(uri, backend=backend, **kwargs)
 
 
 def _gitlab(server, path="", **kwargs):
@@ -39,59 +39,59 @@ def _gitlab(server, path="", **kwargs):
     uri = f"gitlab://gitlab.com/{owner}/{repo}"
     if path:
         uri += f"/{path}"
-    return GitLabPath(uri, backend=backend, **kwargs)
+    return GitLabURIPath(uri, backend=backend, **kwargs)
 
 
 # --- owner/repo/ref parsing (no network) -----------------------------
 
 
 def test_owner_repo_repo_path_parsing():
-    p = GitHubPath("github://github.com/acme/widgets/src/pkg/mod.py")
+    p = GitHubURIPath("github://github.com/acme/widgets/src/pkg/mod.py")
     assert p.owner == "acme"
     assert p.repo == "widgets"
     assert p.repo_path == "src/pkg/mod.py"
 
 
 def test_ref_from_query():
-    p = GitHubPath("github://github.com/acme/widgets/a.txt?ref=v1.2.3")
+    p = GitHubURIPath("github://github.com/acme/widgets/a.txt?ref=v1.2.3")
     assert p.ref == "v1.2.3"
 
 
 def test_ref_defaults_to_none():
-    p = GitHubPath("github://github.com/acme/widgets/a.txt")
+    p = GitHubURIPath("github://github.com/acme/widgets/a.txt")
     assert p.ref is None
 
 
 def test_github_enterprise_api_base():
-    p = GitHubPath("github://ghe.internal/acme/widgets")
+    p = GitHubURIPath("github://ghe.internal/acme/widgets")
     assert p._api_base == "https://ghe.internal/api/v3"
 
 
 def test_github_public_api_base():
-    p = GitHubPath("github://github.com/acme/widgets")
+    p = GitHubURIPath("github://github.com/acme/widgets")
     assert p._api_base == "https://api.github.com"
 
 
 def test_gitlab_api_base_always_v4():
-    p = GitLabPath("gitlab://gitlab.example.com/acme/widgets")
+    p = GitLabURIPath("gitlab://gitlab.example.com/acme/widgets")
     assert p._api_base == "https://gitlab.example.com/api/v4"
 
 
 def test_git_scheme_dispatches_by_public_host():
-    assert type(UriPath("git://github.com/acme/widgets")) is GitHubPath
-    assert type(UriPath("git://WWW.GitHub.COM/acme/widgets")) is GitHubPath
-    assert type(UriPath("git://gitlab.com/acme/widgets")) is GitLabPath
-    assert type(UriPath("git+github://github.com/acme/widgets")) is GitHubGitPath
-    assert type(UriPath("git+gitlab://gitlab.com/acme/widgets")) is GitLabGitPath
+    assert type(URIPath("git://github.com/acme/widgets")) is GitHubURIPath
+    assert type(URIPath("git://WWW.GitHub.COM/acme/widgets")) is GitHubURIPath
+    assert type(URIPath("git://gitlab.com/acme/widgets")) is GitLabURIPath
+    assert type(URIPath("git+github://github.com/acme/widgets")) is GitHubGitURIPath
+    assert type(URIPath("git+gitlab://gitlab.com/acme/widgets")) is GitLabGitURIPath
 
 
 def test_git_scheme_explicit_hosts_use_provider_api_bases():
     assert (
-        UriPath("git+github://ghe.internal/acme/widgets")._api_base
+        URIPath("git+github://ghe.internal/acme/widgets")._api_base
         == "https://ghe.internal/api/v3"
     )
     assert (
-        UriPath("git+gitlab://gitlab.internal/acme/widgets")._api_base
+        URIPath("git+gitlab://gitlab.internal/acme/widgets")._api_base
         == "https://gitlab.internal/api/v4"
     )
 
@@ -99,20 +99,20 @@ def test_git_scheme_explicit_hosts_use_provider_api_bases():
 @pytest.mark.parametrize("uri", ["git://ghe.internal/acme/widgets", "git:"])
 def test_git_scheme_raises_for_ambiguous_hosts(uri):
     with pytest.raises(ValueError) as excinfo:
-        UriPath(uri)
+        URIPath(uri)
     message = str(excinfo.value)
     assert "git+github:" in message
     assert "git+gitlab:" in message
 
 
 def test_token_from_userinfo():
-    p = GitHubPath("github://mytoken@github.com/acme/widgets")
+    p = GitHubURIPath("github://mytoken@github.com/acme/widgets")
     assert p.backend.token == "mytoken"
 
 
 def test_backend_kwarg_wins_over_userinfo():
     backend = RepoBackend(token="explicit")
-    p = GitHubPath("github://ignored@github.com/acme/widgets", backend=backend)
+    p = GitHubURIPath("github://ignored@github.com/acme/widgets", backend=backend)
     assert p.backend.token == "explicit"
 
 
@@ -175,7 +175,7 @@ def test_github_symlink_entry_treated_as_file(serve_http):
 
     with serve_http(_Handler) as base_url:
         backend = RepoBackend(api_base=base_url)
-        p = GitHubPath("github://github.com/acme/widgets", backend=backend)
+        p = GitHubURIPath("github://github.com/acme/widgets", backend=backend)
         entries = dict(p._scandir())
         assert not entries["link"].is_dir()
         assert entries["link"].st_size == 4
@@ -204,21 +204,21 @@ def test_gitlab_nested_directory_stat(gitlab_api_server):
 
 def test_git_scheme_ref_survives_iterdir_child(github_api_server):
     backend = RepoBackend(api_base=github_api_server[0])
-    root = UriPath("git://github.com/acme/widgets?ref=other-branch", backend=backend)
+    root = URIPath("git://github.com/acme/widgets?ref=other-branch", backend=backend)
     child = next(p for p in root.iterdir() if p.name == "a.txt")
-    assert type(child) is GitHubPath
+    assert type(child) is GitHubURIPath
     assert child.ref == "other-branch"
     assert child.read_bytes() == b"a-on-other-branch"
 
 
 def test_git_scheme_token_auth_works():
-    p = UriPath("git://TOKEN@github.com/acme/widgets")
+    p = URIPath("git://TOKEN@github.com/acme/widgets")
     assert p.backend.token == "TOKEN"
 
 
 def test_gitpath_direct_constructor_initializes_provider_instance():
-    p = GitPath("git://github.com/acme/widgets/a.txt?ref=dev")
-    assert type(p) is GitHubPath
+    p = GitURIPath("git://github.com/acme/widgets/a.txt?ref=dev")
+    assert type(p) is GitHubURIPath
     assert p.owner == "acme"
     assert p.repo == "widgets"
     assert p.ref == "dev"
@@ -262,21 +262,21 @@ def status_server(serve_http):
 
 def test_github_404_raises_file_not_found(status_server):
     backend = RepoBackend(api_base=f"{status_server}/404")
-    p = GitHubPath("github://github.com/acme/widgets", backend=backend)
+    p = GitHubURIPath("github://github.com/acme/widgets", backend=backend)
     with pytest.raises(FileNotFoundError):
         p.stat()
 
 
 def test_github_403_without_rate_limit_headers_raises_permission_error(status_server):
     backend = RepoBackend(api_base=f"{status_server}/403")
-    p = GitHubPath("github://github.com/acme/widgets", backend=backend)
+    p = GitHubURIPath("github://github.com/acme/widgets", backend=backend)
     with pytest.raises(PermissionError):
         p.stat()
 
 
 def test_github_rate_limit_raises_clear_oserror(status_server):
     backend = RepoBackend(api_base=f"{status_server}/ratelimited")
-    p = GitHubPath("github://github.com/acme/widgets", backend=backend)
+    p = GitHubURIPath("github://github.com/acme/widgets", backend=backend)
     with pytest.raises(OSError) as excinfo:
         p.stat()
     assert excinfo.value.errno == errno.EAGAIN
@@ -298,7 +298,7 @@ def test_github_rate_limit_raises_clear_oserror(status_server):
     ],
 )
 def test_api_base_keeps_port_and_brackets(uri, expected):
-    assert UriPath(uri)._api_base == expected
+    assert URIPath(uri)._api_base == expected
 
 
 def test_repo_backend_headers_merge_with_request_headers():
@@ -343,7 +343,7 @@ def test_gitlab_root_stat_asks_the_server(gitlab_api_server):
         "gitlab://gitlab.com/acme",
         "gitlab://gitlab.com/acme/widgets?ref=no-such-ref",
     ):
-        p = GitLabPath(uri, backend=backend)
+        p = GitLabURIPath(uri, backend=backend)
         assert not p.exists(), uri
         assert not p.is_dir(), uri
 
@@ -361,21 +361,23 @@ def test_gitlab_trailing_slash_directory_stat(gitlab_api_server):
 def test_gitlab_subgroup_project_via_separator(gitlab_api_server):
     base_url, _owner, _repo = gitlab_api_server
     backend = RepoBackend(api_base=f"{base_url}/api/v4")
-    p = GitLabPath("gitlab://gitlab.com/acme/team/widgets/-/sub/c.py", backend=backend)
+    p = GitLabURIPath(
+        "gitlab://gitlab.com/acme/team/widgets/-/sub/c.py", backend=backend
+    )
     assert (p.owner, p.repo, p.repo_path) == ("acme/team", "widgets", "sub/c.py")
     assert p.read_bytes() == b"c"
     assert p.stat().st_size == 1
 
-    root = GitLabPath("gitlab://gitlab.com/acme/team/widgets/-", backend=backend)
+    root = GitLabURIPath("gitlab://gitlab.com/acme/team/widgets/-", backend=backend)
     assert root.is_dir()
     sub = next(c for c in root.iterdir() if c.name == "sub")
     assert sub.as_uri() == "gitlab://gitlab.com/acme/team/widgets/-/sub"
     assert sorted(c.name for c in sub.iterdir()) == ["c.py", "nested"]
 
     # Without the separator the first two segments stay owner/repo.
-    two = GitLabPath("gitlab://gitlab.com/acme/widgets/sub/c.py", backend=backend)
+    two = GitLabURIPath("gitlab://gitlab.com/acme/widgets/sub/c.py", backend=backend)
     assert (two.owner, two.repo, two.repo_path) == ("acme", "widgets", "sub/c.py")
-    sep = GitLabPath("gitlab://gitlab.com/acme/widgets/-/sub/c.py", backend=backend)
+    sep = GitLabURIPath("gitlab://gitlab.com/acme/widgets/-/sub/c.py", backend=backend)
     assert (sep.owner, sep.repo, sep.repo_path) == ("acme", "widgets", "sub/c.py")
 
 
@@ -555,7 +557,7 @@ def test_github_primary_and_secondary_rate_limits_raise_eagain(
     rate_limit_server, api, detail
 ):
     backend = RepoBackend(api_base=f"{rate_limit_server}/{api}")
-    p = GitHubPath("github://github.com/acme/widgets/a.txt", backend=backend)
+    p = GitHubURIPath("github://github.com/acme/widgets/a.txt", backend=backend)
     with pytest.raises(BlockingIOError) as excinfo:
         p.read_bytes()
     assert excinfo.value.errno == errno.EAGAIN
@@ -567,7 +569,7 @@ def test_gitlab_429_raises_eagain(rate_limit_server):
     backend = RepoBackend(
         api_base=f"{rate_limit_server}/429/RateLimit-Remaining=0/Retry-After=5"
     )
-    p = GitLabPath("gitlab://gitlab.com/acme/widgets", backend=backend)
+    p = GitLabURIPath("gitlab://gitlab.com/acme/widgets", backend=backend)
     with pytest.raises(BlockingIOError) as excinfo:
         p.stat()
     assert excinfo.value.errno == errno.EAGAIN
@@ -576,7 +578,7 @@ def test_gitlab_429_raises_eagain(rate_limit_server):
 
 def test_plain_403_is_still_permission_error(rate_limit_server):
     backend = RepoBackend(api_base=f"{rate_limit_server}/403")
-    p = GitLabPath("gitlab://gitlab.com/acme/widgets", backend=backend)
+    p = GitLabURIPath("gitlab://gitlab.com/acme/widgets", backend=backend)
     with pytest.raises(PermissionError):
         p.stat()
 
@@ -589,20 +591,20 @@ def test_plain_403_is_still_permission_error(rate_limit_server):
 )
 def test_git_scheme_ip_literal_host_raises_value_error(uri):
     with pytest.raises(ValueError, match="git\\+github"):
-        UriPath(uri)
+        URIPath(uri)
 
 
 def test_git_scheme_with_source_keeps_provider_and_backend():
     from uripath import Source
 
     backend = RepoBackend(token="t")
-    p = UriPath("git://github.com/acme/widgets/a.txt", backend=backend)
+    p = URIPath("git://github.com/acme/widgets/a.txt", backend=backend)
     same = p.with_source(p.source)
-    assert type(same) is GitHubPath
+    assert type(same) is GitHubURIPath
     assert same.as_uri() == p.as_uri()
     assert same.backend is backend
     moved = p.with_source(Source("git", None, "gitlab.com", None))
-    assert type(moved) is GitLabPath
+    assert type(moved) is GitLabURIPath
     assert moved.as_uri() == "git://gitlab.com/acme/widgets/a.txt"
     assert moved.backend is not backend
     with pytest.raises(ValueError):
@@ -635,7 +637,7 @@ def test_gitlab_custom_backend_without_cache_reads(gitlab_api_server, fixture_tr
                 )
 
     backend = _Plain()
-    p = GitLabPath(f"gitlab://gitlab.com/{owner}/{repo}/a.txt", backend=backend)
+    p = GitLabURIPath(f"gitlab://gitlab.com/{owner}/{repo}/a.txt", backend=backend)
     assert p.read_bytes() == (fixture_tree / "a.txt").read_bytes()
     assert p.read_bytes() == (fixture_tree / "a.txt").read_bytes()
     # No memoization without a cache: the default branch is asked each time.
@@ -659,7 +661,7 @@ def test_ref_with_escaped_ampersand_reaches_the_api_whole():
             )
 
     backend = _Recording()
-    p = GitHubPath(
+    p = GitHubURIPath(
         "github://github.com/acme/widgets/a.txt?ref=feat%26x", backend=backend
     )
     assert p.ref == "feat&x"
@@ -721,7 +723,7 @@ def test_github_listing_skips_names_that_are_not_one_component():
         {"name": name, "type": "dir", "size": 0, "sha": "0"}
         for name in ["sub", *_NOT_ONE_COMPONENT]
     ] + [{"name": "ok.txt", "type": "file", "size": 3, "sha": "1"}]
-    root = GitHubPath("github://github.com/o/r/dir", backend=_CannedBackend(payload))
+    root = GitHubURIPath("github://github.com/o/r/dir", backend=_CannedBackend(payload))
     listing = dict(root._scandir())
     assert sorted(listing) == ["ok.txt", "sub"]
     assert listing["sub"].is_dir()
@@ -731,7 +733,7 @@ def test_github_listing_skips_names_that_are_not_one_component():
 def test_gitlab_listing_skips_names_that_are_not_one_component():
     payload = [{"name": name, "type": "tree"} for name in ["sub", *_NOT_ONE_COMPONENT]]
     payload.append({"name": "ok.txt", "type": "blob"})
-    root = GitLabPath("gitlab://gitlab.com/o/r/dir", backend=_CannedBackend(payload))
+    root = GitLabURIPath("gitlab://gitlab.com/o/r/dir", backend=_CannedBackend(payload))
     listing = dict(root._scandir())
     assert sorted(listing) == ["ok.txt", "sub"]
     assert listing["sub"].is_dir()
@@ -740,5 +742,5 @@ def test_gitlab_listing_skips_names_that_are_not_one_component():
 
 def test_gitlab_directory_holding_only_unsafe_names_is_still_a_directory():
     payload = [{"name": "..", "type": "tree"}]
-    root = GitLabPath("gitlab://gitlab.com/o/r/dir", backend=_CannedBackend(payload))
+    root = GitLabURIPath("gitlab://gitlab.com/o/r/dir", backend=_CannedBackend(payload))
     assert list(root._scandir()) == []

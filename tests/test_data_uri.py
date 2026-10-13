@@ -2,62 +2,62 @@
 
 import pytest
 
-from uripath import UriPath
-from uripath.schemes.data import DataUri
+from uripath import URIPath
+from uripath.schemes.data import DataURIPath
 
 
 def test_scheme_dispatch():
-    p = UriPath("data:text/plain,hello")
-    assert isinstance(p, DataUri)
+    p = URIPath("data:text/plain,hello")
+    assert isinstance(p, DataURIPath)
 
 
 def test_base64_decodes_content():
-    p = UriPath("data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==")
+    p = URIPath("data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==")
     assert p.read_bytes() == b"Hello, World!"
     assert p.read_text() == "Hello, World!"
 
 
 def test_percent_encoded_decodes_content():
-    p = UriPath("data:text/plain,Hello%2C%20World%21")
+    p = URIPath("data:text/plain,Hello%2C%20World%21")
     assert p.read_text() == "Hello, World!"
 
 
 def test_mediatype_explicit():
-    p = UriPath("data:image/png;base64,AAAA")
+    p = URIPath("data:image/png;base64,AAAA")
     assert p.mediatype == "image/png"
 
 
 def test_mediatype_default_when_omitted():
-    p = UriPath("data:,hello")
+    p = URIPath("data:,hello")
     assert p.mediatype == "text/plain;charset=US-ASCII"
 
 
 def test_mediatype_with_params_and_base64():
-    p = UriPath("data:text/plain;charset=utf-8;base64,aGk=")
+    p = URIPath("data:text/plain;charset=utf-8;base64,aGk=")
     assert p.mediatype == "text/plain;charset=utf-8"
     assert p.read_text() == "hi"
 
 
 def test_stat_size_matches_decoded_content():
-    p = UriPath("data:text/plain;base64,SGVsbG8=")  # "Hello"
+    p = URIPath("data:text/plain;base64,SGVsbG8=")  # "Hello"
     assert p.stat().st_size == 5
 
 
 def test_exists_is_file_not_dir():
-    p = UriPath("data:text/plain,hi")
+    p = URIPath("data:text/plain,hi")
     assert p.exists()
     assert p.is_file()
     assert not p.is_dir()
 
 
 def test_iterdir_raises_not_a_directory():
-    p = UriPath("data:text/plain,hi")
+    p = URIPath("data:text/plain,hi")
     with pytest.raises(NotADirectoryError):
         list(p.iterdir())
 
 
 def test_missing_comma_raises_file_not_found():
-    p = UriPath("data:text/plain;base64")
+    p = URIPath("data:text/plain;base64")
     with pytest.raises(FileNotFoundError):
         p.read_bytes()
 
@@ -72,7 +72,7 @@ def test_missing_comma_raises_file_not_found():
     ],
 )
 def test_write_operations_raise_not_implemented(op):
-    p = UriPath("data:text/plain,hi")
+    p = URIPath("data:text/plain,hi")
     with pytest.raises(NotImplementedError):
         op(p)
 
@@ -93,13 +93,13 @@ def test_write_operations_raise_not_implemented(op):
     ],
 )
 def test_a_question_mark_in_a_data_payload_is_payload(url, content):
-    path = UriPath(url)
+    path = URIPath(url)
     assert path.read_bytes() == content
     assert path.stat().st_size == len(content)
 
 
 def test_a_data_payload_with_a_query_reads_the_whole_text():
-    path = UriPath("data:,a?b")
+    path = URIPath("data:,a?b")
     assert path.read_text() == "a?b"
     assert path.query == "b"
     assert path.as_uri() == "data:,a?b"

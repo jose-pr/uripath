@@ -1,4 +1,4 @@
-"""List files on a remote FTP server using FtpPath.
+"""List files on a remote FTP server using FTPURIPath.
 Requires credentials -- guarded under `if __name__ == "__main__"` so importing
 this module is always safe, and skipped (prints setup instructions, exit 0) unless
 FTP_EXAMPLE_HOST is set.
@@ -16,10 +16,10 @@ import os
 import sys
 from urllib.parse import quote
 
-from uripath import UriPath
+from uripath import URIPath
 
 
-def list_ftp(remote: UriPath):
+def list_ftp(remote: URIPath):
     # str() of a URI path drops the password, so printing it is safe.
     print(f"Listing FTP directory: {remote}")
     for child in remote.iterdir():
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     remote_path = os.environ.get("FTP_EXAMPLE_REMOTE_PATH", "/")
 
     userinfo = _userinfo(user, password)
-    remote = UriPath(f"ftp://{userinfo}{host}{remote_path}")
+    remote = URIPath(f"ftp://{userinfo}{host}{remote_path}")
 
     try:
         list_ftp(remote)

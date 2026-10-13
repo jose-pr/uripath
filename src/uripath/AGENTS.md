@@ -13,7 +13,7 @@ exception types are those of `pathlib.Path`, and every deliberate difference is
 listed, with its rationale, at <https://jose-pr.github.io/uripath/divergences/>.
 
 Names are imported from the module named in the heading of the section that
-documents them; the root `uripath` exports `Uri`, `UriPath` and `UriLike`. A
+documents them; the root `uripath` exports `URI`, `URIPath` and `URILike`. A
 module or name that starts with an underscore is private: where this file names
 one (`uripath.schemes._gitrepo`, `uripath.schemes.archive._base`) it names the
 public names to use from it, and nothing else there is contract. The schemes
@@ -30,10 +30,10 @@ The URI layer builds on `Path` and `Pathname` of `pathlib_next`: the method
 surface of `Path` (`read_text()`, `iterdir()`, `glob()`, `walk()`, `copy()`,
 `move()`, `rm()`, ...) is that of the `pathlib-next` header.
 
-### `Uri`
+### `URI`
 
 ```python
-class Uri(Pathname):
+class URI(Pathname):
     def __init__(self, *uris, **options): ...
     source: Source
     path: str
@@ -64,22 +64,22 @@ class Uri(Pathname):
 ```
 
 Pure RFC 3986 URI, parsed lazily. Arguments
-(`str`, `bytes`, `Uri`, `pathlib`/`pathlib_next` paths, `os.PathLike`;
+(`str`, `bytes`, `URI`, `pathlib`/`pathlib_next` paths, `os.PathLike`;
 `None` and `""` are the empty URI, anything else is a `TypeError` naming its
 type) join right to left like `joinpath` (an absolute one restarts); this is not RFC
-3986 reference resolution (`Uri("http://h/d") / "x"` is `http://h/d/x`),
+3986 reference resolution (`URI("http://h/d") / "x"` is `http://h/d/x`),
 but the dot segments of the joined path are removed as RFC 3986 5.2.4
-says: `Uri("http://h/d/", "../x")`, `Uri("http://h/d/") / "../x"`,
-`Uri("http://h/d/") / Uri("../x")` and `Uri("http://h/d/../x")` are all
-`http://h/x`, and `Uri("http://h/d/x") / ".."` is `http://h/d/`. A `..`
+says: `URI("http://h/d/", "../x")`, `URI("http://h/d/") / "../x"`,
+`URI("http://h/d/") / URI("../x")` and `URI("http://h/d/../x")` are all
+`http://h/x`, and `URI("http://h/d/x") / ".."` is `http://h/d/`. A `..`
 that would pass the root of an absolute path is dropped; a relative path
-keeps its leading `..` (`Uri("a") / "../../x"` is `../x`). A
+keeps its leading `..` (`URI("a") / "../../x"` is `../x`). A
 percent-encoded dot segment (`%2e%2e`) is removed after decoding. An
 absolute local path **object** (`pathlib.Path`, `LocalPath`) becomes
 `file:`; a relative one joins like a `PurePath`. A `str` argument is always
-URI text: wrap a path string (`LocalPath(s)`), because `UriPath("/abs/x")`
+URI text: wrap a path string (`LocalPath(s)`), because `URIPath("/abs/x")`
 is a path with no scheme whose I/O raises `NotImplementedError` and
-`UriPath("C:/Temp/x")` has the scheme `c`.
+`URIPath("C:/Temp/x")` has the scheme `c`.
 
 - Properties: `source -> Source`, `path -> str` (percent-decoded),
   `query -> Query` (**percent-encoded as received**, sent unchanged; empty
@@ -87,7 +87,7 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   `parts -> (source, path, query, fragment)` (not path
   segments; use `segments`), `normalized_path`, `segments`, `parent`
   (`http://h/a` → `http://h/`; a trailing `/` is kept, so
-  `Uri("http://h/d/").name == ""`).
+  `URI("http://h/d/").name == ""`).
 - Methods: `as_uri(sanitize=False)`, `with_source()`, `with_path()`,
   `with_segments()`, `with_query(str | mapping | pairs)` (a `str` is taken as
   already encoded), `with_fragment()`; `with_name`/`with_suffix`/`with_stem`
@@ -101,8 +101,8 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   (`Source.is_local()`), `as_posix()` (`user@host:path` when a host is
   present).
 - `stem` and `suffix` are those of `name` (the last segment of the decoded
-  path; the query and the fragment are not part of it). `UriLike` =
-  `str | Uri | os.PathLike`, what the constructor and the join accept.
+  path; the query and the fragment are not part of it). `URILike` =
+  `str | URI | os.PathLike`, what the constructor and the join accept.
 - `str()`/`repr()` drop the password (`ftp://u:pw@h/p` → `ftp://u@h/p`);
   `as_uri(sanitize=False)` keeps it. Non-ASCII hosts render as IDNA. A
   query or fragment is printed as it is: a token carried there shows in
@@ -114,17 +114,17 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   written `[fe80::1%25eth0]` (a bare `%` is read too). A name that holds a
   lone surrogate (a Windows file name can) renders as its UTF-8 bytes, so
   `str()`, `hash()` and `==` work on it.
-- `==`/`hash` use the URI text; equal to another `Uri` or a URI string,
+- `==`/`hash` use the URI text; equal to another `URI` or a URI string,
   never to a non-URI `Pathname`.
 - `__fspath__()` — the path for a `file:` URI on this machine (a named host
   on Windows is a UNC path) or for a scheme with `_host_filesystem_path =
   True` (a scheme whose path is meaningful on **its** host); otherwise
   `NotImplementedError`. `host_fspath()` — the latter only, never local.
 
-### `UriPath`
+### `URIPath`
 
 ```python
-class UriPath(Uri, Path):
+class URIPath(URI, Path):
     def __init__(
         self, *args, schemesmap=None, findclass=False, **kwargs,
     ): ...
@@ -133,7 +133,7 @@ class UriPath(Uri, Path):
     @classmethod
     def schemes(cls) -> tuple[str, ...]: ...
     @classmethod
-    def scheme_class(cls, name) -> type[UriPath]: ...
+    def scheme_class(cls, name) -> type[URIPath]: ...
     backend
     def with_backend(self, backend): ...
     def _initbackend(self): ...
@@ -142,8 +142,8 @@ class UriPath(Uri, Path):
     def _reduce_options(self) -> dict: ...
 ```
 
-`Uri` + `Path`. The bare class (or `findclass=True`)
-returns the subclass registered for the scheme, or plain `UriPath` for an
+`URI` + `Path`. The bare class (or `findclass=True`)
+returns the subclass registered for the scheme, or plain `URIPath` for an
 unknown scheme (its I/O raises `NotImplementedError`). Keywords other than
 `schemesmap` and `findclass` are options of the path: `backend=` (see `backend`
 below) and those the scheme class reads. Resolution: classes
@@ -151,9 +151,9 @@ already imported → built-in `uripath.schemes.*` module → entry point
 in group `uripath.schemes`, and an entry point never takes a built-in
 name. An explicit `schemesmap` is the only map consulted. It is an allow-list of classes for dispatch, not a sandbox:
 the path keeps it and every class chosen after construction uses it -- a
-join with a `Uri`/`UriPath` argument, `with_source()`, a `copy()`/`move()`
+join with a `URI`/`URIPath` argument, `with_source()`, a `copy()`/`move()`
 `str` destination and the outer URI of a `zip:`/`tar:`/`archive:` path (a
-scheme the map omits gives a plain `UriPath`, whose I/O raises
+scheme the map omits gives a plain `URIPath`, whose I/O raises
 `NotImplementedError`) -- but it restricts nothing an already-built path or
 class does.
 
@@ -166,7 +166,7 @@ class does.
   class registers itself when the entry point is loaded. A name another
   class holds, or a built-in name (whether or not its module is imported
   yet), raises `ValueError` at the class statement, naming the holder and
-  registering none of the class's names; `class MyPath(UriPath,
+  registering none of the class's names; `class MyPath(URIPath,
   replace=True)` takes the names it lists from whatever held them. The same
   class statement run again (same `__module__` and `__qualname__`, as
   `importlib.reload()` or a function called twice does) is the same class:
@@ -184,18 +184,18 @@ class does.
 - `backend` — per-instance connection state from `_initbackend()` (base:
   `None`), built on first use. A derived path (`/`, `joinpath()`,
   `parent`, `parents`, `with_name()`, `with_suffix()`, `with_query()`,
-  `relative_to()`, `UriPath(base, x)`, a `Uri`/`PurePath` join) never
+  `relative_to()`, `URIPath(base, x)`, a `URI`/`PurePath` join) never
   builds one -- so it never imports an I/O library either -- and takes the
   backend its source path already holds, or none. Paths derived from one
   another on one endpoint share one slot for the backend they derive for
   themselves: the first of them to need one calls `_initbackend()` (under a
   lock, so two threads build one) and the rest then use that object, so 20
   children of a fresh root open one connection. A path built separately
-  (`UriPath(url)` twice), one on another endpoint, the sourceless result of
+  (`URIPath(url)` twice), one on another endpoint, the sourceless result of
   `relative_to()` and a path that holds a supplied backend are not in it.
   `with_backend(backend)` returns a copy using `backend`. A backend is only
   shared within one endpoint (scheme, userinfo, host, port): a join,
-  `with_source()` or `UriPath(base, url)` onto another endpoint takes none
+  `with_source()` or `URIPath(base, url)` onto another endpoint takes none
   and builds a fresh one on first use, so credentials and sessions never
   follow. When several joined paths hold one, the rightmost whose endpoint
   is the result's is taken; the sourceless result of `relative_to()` holds
@@ -258,15 +258,15 @@ class Source(NamedTuple):
 
 `NamedTuple`,
 falsy when all fields are empty; indexes by position, slice or field name.
-`as_str(sanitize=True)` is the composer `Uri.as_uri()` uses (`file:` for an
+`as_str(sanitize=True)` is the composer `URI.as_uri()` uses (`file:` for an
 empty host; an invalid scheme or port is a `ValueError`); `str()`/`repr()`
 redact the password, and the whole userinfo for `github:`/`gitlab:`/`git:`
 (the fields keep it). `Source.from_str(source, strict=True)` reads the
-authority as `Uri` does (`ValueError` for a path/query/fragment when
+authority as `URI` does (`ValueError` for a path/query/fragment when
 strict, naming the component and never the input),
 `parsed_userinfo() -> (user, password)` (`""` when absent; `userinfo`
 stays the decoded `user:password` text),
-`get_scheme_cls(schemesmap=None) -> type[UriPath]`, `keys()` (the field
+`get_scheme_cls(schemesmap=None) -> type[URIPath]`, `keys()` (the field
 names, so `dict(source)` works), `is_local()` —
 `localhost`/empty host or an address of this machine (IP literal, or any
 A/AAAA answer via `netimps`); the answer depends on the host alone and is
@@ -296,7 +296,7 @@ pairs, `to_dict(*, single=False)`. `Query.ENCODING` (`"utf-8"`) and
 
 ### For scheme implementers (`uripath`, `uripath.source`)
 
-The names a `UriPath` subclass overrides or calls beyond `Uri` and `UriPath`
+The names a `URIPath` subclass overrides or calls beyond `URI` and `URIPath`
 above, in one place: the built-in schemes use all of them, so they are
 contract (the hooks of `pathlib_next.Path` they also use are listed under "For
 path implementers" in the `pathlib-next` header). Each helper also keeps an
@@ -305,7 +305,7 @@ underscore spelling that is the same object (`_same_authority`,
 `_SAFE_PATH`, `_ERRORS`).
 
 ```python
-class Uri(Pathname):
+class URI(Pathname):
     def _init(self, source, path, query, fragment, **kwargs): ...
     def _from_parsed_parts(self, source, path, query, fragment, /, **kwargs): ...
     @classmethod
@@ -316,16 +316,16 @@ class Uri(Pathname):
     def _parse_uri(cls, uri) -> tuple[Source, str, Query, str]: ...
     def _load_parts(self): ...
     def _make_child_relpath(self, name, **kwargs) -> Self: ...
-    def _join_decoded(self, key) -> Uri: ...
+    def _join_decoded(self, key) -> URI: ...
     def _is_absolute_decoded(self, path) -> bool: ...
-    def _rename_target(self, target) -> Uri: ...
+    def _rename_target(self, target) -> URI: ...
     def _same_location(self, other) -> bool: ...
     _initiated
     _raw_uris
     _source
     _query
 
-class UriPath(Uri, Path):
+class URIPath(URI, Path):
     def _init(self, source, path, query, fragment, /, backend=None, **kwargs): ...
     def _make_child_relpath(self, name, stat_hint=None, **kwargs) -> Self: ...
     def _pop_stat_hint(self) -> FileStat | None: ...
@@ -361,7 +361,7 @@ Building and deriving a path:
 - `_init(source, path, query, fragment, **kwargs)` — stores the decoded
   components; every constructor, join and `with_*()` ends here, and it may run
   again on a live instance. An override sets its own state, then calls
-  `super()._init()`. `UriPath._init` also takes `backend=`, a backend the
+  `super()._init()`. `URIPath._init` also takes `backend=`, a backend the
   caller supplied.
 - `_from_parsed_parts(source, path, query, fragment, /, **kwargs)` — a
   same-type instance from decoded components with no parsing (a `rename()`
@@ -384,8 +384,8 @@ Building and deriving a path:
   through `_make_child_relpath()`, dot segments resolved as RFC 3986 5.2.4
   says; an absolute key restarts at the root of the same source.
   `_is_absolute_decoded(path)` says whether a string restarts a join (a leading
-  `/`; `FileUri` also a drive path).
-- `_rename_target(target)` — a `rename()` destination as a `Uri`: a `str` is a
+  `/`; `FileURIPath` also a drive path).
+- `_rename_target(target)` — a `rename()` destination as a `URI`: a `str` is a
   decoded path, resolved against `self.parent`. Raises `NotImplementedError`
   when `_same_location()` says a native rename cannot reach it, which makes
   `move()` copy. `_same_location(other)` is True for the same endpoint
@@ -440,37 +440,37 @@ Composing text:
 
 ## Built-in schemes (`uripath.schemes`)
 
-Every class is dispatched by `UriPath(...)`; `uripath.schemes`
-re-exports `FileUri`, `DataUri`, `HttpPath`, `DavPath`, `FtpPath`, `GitHubPath`,
-`GitLabPath`, `GitPath`, `ZipUri` and `TarUri` lazily. Backends are passed
-as `UriPath(uri, backend=...)` or `path.with_backend(...)`.
+Every class is dispatched by `URIPath(...)`; `uripath.schemes`
+re-exports `FileURIPath`, `DataURIPath`, `HTTPURIPath`, `DAVURIPath`, `FTPURIPath`, `GitHubURIPath`,
+`GitLabURIPath`, `GitURIPath`, `ZipURIPath` and `TarURIPath` lazily. Backends are passed
+as `URIPath(uri, backend=...)` or `path.with_backend(...)`.
 
-### `FileUri` — `file:` (`uripath.schemes.file`)
+### `FileURIPath` — `file:` (`uripath.schemes.file`)
 
 ```python
-class FileUri(UriPath):
+class FileURIPath(URIPath):
     filepath
 ```
 
 `file:///abs`, `file:rel`,
 `file://localhost/C:/x`. `filepath -> LocalPath`; all I/O delegates to it
 (listing reuses `LocalPath`'s scandir). `rename()` accepts local targets
-only and returns a `FileUri`. No `symlink_to()`/`readlink()`. On Windows a
+only and returns a `FileURIPath`. No `symlink_to()`/`readlink()`. On Windows a
 drive is the anchor: `parents` ends at the drive root (`file:/C:/`) and
 equals the repeated `parent`, dot segments never climb above it, and a
 `str` join key or `copy()`/`move()`/`rename()` destination reads `\` as a
 separator (`C:\Temp\x` is an absolute path). A path with a named host is a
 UNC path there, whose anchor is the share: `file://server/share/a/b` has the
 ancestors `file://server/share/a` and `file://server/share/`, and the share
-root is its own parent. A `FileUri` argument holding a drive
-(`base / UriPath("file:///D:/f")`) restarts the join, as a `str` key does.
+root is its own parent. A `FileURIPath` argument holding a drive
+(`base / URIPath("file:///D:/f")`) restarts the join, as a `str` key does.
 Elsewhere a backslash is a filename character and the root of a host is the
 end of the chain, and every other scheme splits on `/` only.
 
-### `DataUri` — `data:` (`uripath.schemes.data`)
+### `DataURIPath` — `data:` (`uripath.schemes.data`)
 
 ```python
-class DataUri(UriPath):
+class DataURIPath(URIPath):
     mediatype: str
 ```
 
@@ -481,10 +481,10 @@ what follows it are payload (`data:,a?b` reads `a?b`), while a `#` starts the
 fragment. Read-only single file: `open("r")` only,
 `stat().st_size` is the decoded size, listing → `NotADirectoryError`.
 
-### `HttpPath` — `http:`, `https:` (`uripath.schemes.http`)
+### `HTTPURIPath` — `http:`, `https:` (`uripath.schemes.http`)
 
 ```python
-class HttpPath(UriPath):
+class HTTPURIPath(URIPath):
     def with_transport(
         self, transport, *, headers=None, timeout=(10, 60),
         write_method="PUT", append_mode="rewrite",
@@ -495,7 +495,7 @@ class HttpPath(UriPath):
     ): ...
     def stat(self, *, follow_symlinks=True, walk_up_last_modified=False): ...
 
-class HttpBackend:
+class HTTPBackend:
     def __init__(
         self, transport=None, *, headers=None, timeout=(10, 60),
         write_method="PUT", append_mode="rewrite",
@@ -506,8 +506,8 @@ class HttpBackend:
     ): ...
     def close(self): ...
 
-class HttpWriteStream(BytesIO): ...
-class HttpAppendStream(BytesIO): ...
+class HTTPWriteStream(BytesIO): ...
+class HTTPAppendStream(BytesIO): ...
 
 DEFAULT_TIMEOUT = (10, 60)
 MAX_LISTING_BYTES = 8388608
@@ -630,11 +630,11 @@ class HTTPResponse:
   session, ...)` is the same over a `requests.Session`; that transport is
   provided by `uripath-http-requests`, and without it the call raises
   `ImportError` naming it. Without either, a path's backend builds the
-  built-in transport on first use (`HttpBackend.close()` or leaving its
+  built-in transport on first use (`HTTPBackend.close()` or leaving its
   `with` block closes a transport the backend built); the environment variable
   `PATHLIB_NEXT_HTTP_TRANSPORT` (`builtin` or `requests`) names that default
-  for the process. `HttpBackend` is a class, no longer a named
-  tuple: `HttpBackend(transport=None, *, headers=None, timeout, write_method,
+  for the process. `HTTPBackend` is a class, no longer a named
+  tuple: `HTTPBackend(transport=None, *, headers=None, timeout, write_method,
   append_mode)`.
 - **What the backend does for every transport.** It follows redirects, adds
   credentials and default headers (`User-Agent: pathlib-next`, `Accept: */*`),
@@ -697,12 +697,12 @@ class HTTPResponse:
   listed.
 - `open("r")` streams `GET` with `Accept-Encoding: identity`; the mode is
   matched exactly, so `"r+"`, `"w+"` and `"a+"` raise `NotImplementedError`.
-  `"w"`/`"x"` (an `HttpWriteStream`)
+  `"w"`/`"x"` (an `HTTPWriteStream`)
   buffer and send `write_method` on close. `"x"` first calls `stat()`: found
   → `FileExistsError`, a failure other than not-found raises with nothing
   sent; the upload then carries `If-None-Match: *`, and a 412 reply →
   `FileExistsError` (a server that ignores the header leaves the window
-  between probe and upload open). `"a"` (an `HttpAppendStream`):
+  between probe and upload open). `"a"` (an `HTTPAppendStream`):
   `append_mode="rewrite"` (GET + full
   re-upload, not atomic) or `"patch"` (`PATCH` with `Content-Range` from the
   `HEAD` size; a `HEAD` reply without `Content-Length` → `OSError(EIO)`
@@ -718,14 +718,14 @@ class HTTPResponse:
   writes), other → `OSError(EIO)` with the status. A transport's
   `TimeoutError` and `ConnectionError` are re-raised naming the path, with
   no cause. Text that came from the server and goes into a message (a reason
-  phrase, a `Location`, a rate-limit header, the `href` of a failed `DavPath`
+  phrase, a `Location`, a rate-limit header, the `href` of a failed `DAVURIPath`
   member) is shown with control, line-separator and bidirectional characters
   escaped (`\x1b` for ESC) and cut to 120 characters (200 for a URL).
 
-### `DavPath` — `dav:`, `davs:` (`uripath.schemes.dav`)
+### `DAVURIPath` — `dav:`, `davs:` (`uripath.schemes.dav`)
 
 ```python
-class DavPath(HttpPath):
+class DAVURIPath(HTTPURIPath):
     def stat(self, *, follow_symlinks=True, walk_up_last_modified=False): ...
 ```
 
@@ -738,7 +738,7 @@ href, resolved against the collection, names the same host and a direct
 child, and a `getcontentlength` that is not a plain number is unknown (`0`).
 `open("r")` on a collection → `IsADirectoryError`;
 `"w"`/`"x"` send `write_method` (default `PUT`) on close (`"x"` as for
-`HttpPath`, probing with `PROPFIND`); `"a"` unsupported, so `append_mode`
+`HTTPURIPath`, probing with `PROPFIND`); `"a"` unsupported, so `append_mode`
 has no effect. `mkdir()` = `MKCOL`
 (missing parent → `FileNotFoundError`). `unlink()` refuses a collection;
 `rmdir()` checks emptiness first; `rm(recursive=True)` is one recursive
@@ -746,16 +746,16 @@ has no effect. `mkdir()` = `MKCOL`
 `Overwrite: F` (existing target → `FileExistsError`), no credentials in
 `Destination`, which carries the target's own query (never the source's)
 and no fragment. 423 → `PermissionError`. `PROPFIND`, `PUT`, `MKCOL`, `DELETE`
-and `MOVE` follow the `HttpPath` redirect rule above (a listing is scoped to
+and `MOVE` follow the `HTTPURIPath` redirect rule above (a listing is scoped to
 the URL that answered it). No `chmod()`.
 
-### `FtpPath` — `ftp:`, `ftps:` (`uripath.schemes.ftp`)
+### `FTPURIPath` — `ftp:`, `ftps:` (`uripath.schemes.ftp`)
 
 ```python
 DEFAULT_TIMEOUT = 30.0
 IDLE_PROBE_SECONDS = 1.0
 
-class FtpBackend(BaseFtpBackend):
+class FTPURIBackend(BaseFTPURIBackend):
     timeout
     ssl_context
     verify
@@ -763,26 +763,28 @@ class FtpBackend(BaseFtpBackend):
         self, timeout=30.0, ssl_context=None, verify=True,
     ) -> None: ...
 
-class BaseFtpBackend:
+class BaseFTPURIBackend:
     def client(self, source, tls) -> _ftplib.FTP: ...
 ```
 
-- `FtpBackend` — `timeout`
+- `FTPURIBackend` — `timeout`
   bounds connect, replies and transfers (`None` = forever). `ftps:` is
   explicit TLS with `PROT P`; the certificate and host name are verified
   with `ssl.create_default_context()`; `ssl_context` (e.g.
   `ssl.create_default_context(cafile=...)`) wins over `verify`;
   `verify=False` accepts any certificate. Data connections reuse the TLS
   session. No user in the URI → anonymous login.
-- `BaseFtpBackend.client()` — override to supply
-  connections.
-- Paths without `backend=` share one default `FtpBackend()`. Connections
+- `BaseFTPURIBackend.client()` — override to supply
+  connections. These two classes are not `pathlib_next.ftp.FTPBackend` and
+  `BaseFTPBackend`: those belong to one host, these connect to the `Source` of
+  whichever path asks.
+- Paths without `backend=` share one default `FTPURIBackend()`. Connections
   are cached per (backend, source, tls, thread) (LRU of 128, closed on
   eviction, and closed when their thread ends). A connection that carried
   a command within the last `schemes.ftp.IDLE_PROBE_SECONDS` (1 second, the
   `pathlib_next.ftp` constant) is used as it is; one idle for longer, or not
   yet used, is probed with `NOOP` and replaced when dead.
-- `FtpPath` is a `UriPath` over `pathlib_next.ftp.FTPPath`: the listing,
+- `FTPURIPath` is a `URIPath` over `pathlib_next.ftp.FTPPath`: the listing,
   stat, reads, writes, `rename()`, `chmod()` and `_utime()` are those
   described under "What a path does" in the FTP section, and an `OSError`
   names the URI. Its URI-only parts are the endpoint (the `Source` and the
@@ -791,10 +793,10 @@ class BaseFtpBackend:
   sent in every command that takes a path, never an empty argument (which a
   server reads as its working directory).
 
-### `GitHubPath` — `github://[TOKEN@]host/owner/repo/path?ref=REF` (`uripath.schemes.github`, `uripath.schemes._gitrepo`)
+### `GitHubURIPath` — `github://[TOKEN@]host/owner/repo/path?ref=REF` (`uripath.schemes.github`, `uripath.schemes._gitrepo`)
 
 ```python
-class GitHubPath(UriPath):
+class GitHubURIPath(URIPath):
     owner: str
     repo: str
     repo_path: str
@@ -859,10 +861,10 @@ write method raise `NotImplementedError`.
   HTML still reads, with the header). That rule has not been checked
   against the live service.
 
-### `GitLabPath` — `gitlab://[TOKEN@]host[:port]/owner/repo/path` (`uripath.schemes.gitlab`)
+### `GitLabURIPath` — `gitlab://[TOKEN@]host[:port]/owner/repo/path` (`uripath.schemes.gitlab`)
 
 ```python
-class GitLabPath(UriPath):
+class GitLabURIPath(URIPath):
     owner: str
     repo: str
     repo_path: str
@@ -878,20 +880,20 @@ paginated (100 per page); a blob entry is a type-only hint
 request per directory; the `stat()` of a file is a `HEAD` of the files
 endpoint reading `X-Gitlab-Size` (a reply without it, or a refused `HEAD`, is
 followed by a `GET` of the file's metadata); `st_mtime` is `0`. Replies of the wrong shape are
-`OSError(EIO)` as for `GitHubPath`.
+`OSError(EIO)` as for `GitHubURIPath`.
 
-### `GitPath` — `git:` (`uripath.schemes.git`)
+### `GitURIPath` — `git:` (`uripath.schemes.git`)
 
 ```python
-class GitPath(UriPath): ...
-class GitHubGitPath(GitHubPath): ...
-class GitLabGitPath(GitLabPath): ...
+class GitURIPath(URIPath): ...
+class GitHubGitURIPath(GitHubURIPath): ...
+class GitLabGitURIPath(GitLabURIPath): ...
 ```
 
 `git://github.com/...` constructs a
-`GitHubPath`, `git://gitlab.com/...` a `GitLabPath`; any other host →
-`ValueError`. `git+github:` (`GitHubGitPath`) and `git+gitlab:`
-(`GitLabGitPath`) pin the provider for any host.
+`GitHubURIPath`, `git://gitlab.com/...` a `GitLabURIPath`; any other host →
+`ValueError`. `git+github:` (`GitHubGitURIPath`) and `git+gitlab:`
+(`GitLabGitURIPath`) pin the provider for any host.
 
 ### Archives — `zip:`, `tar:`, `archive:` (`uripath.schemes.archive`, `uripath.schemes.archive._base`)
 
@@ -899,24 +901,24 @@ class GitLabGitPath(GitLabPath): ...
 MEMBER_SPOOL_BYTES = 16777216
 MAX_LINKS = 40
 
-class ArchiveUri(UriPath):
+class ArchiveURIPath(URIPath):
     def refresh(self) -> None: ...
     def batch(self) -> ContextManager[None]: ...
     def readlink(self) -> LinkTarget: ...
 class LinkTarget(PurePosixPath):
     path: str
-class ZipUri(ArchiveUri): ...
-class TarUri(ArchiveUri): ...
-ArchiveZipUri = ZipUri
-ArchiveTarUri = TarUri
+class ZipURIPath(ArchiveURIPath): ...
+class TarURIPath(ArchiveURIPath): ...
+ArchiveZipURIPath = ZipURIPath
+ArchiveTarURIPath = TarURIPath
 ```
 
-`ZipUri` (`zip:`), `TarUri` (`tar:`),
-`ArchiveUri` (`archive:`, detects the format from the outer name
+`ZipURIPath` (`zip:`), `TarURIPath` (`tar:`),
+`ArchiveURIPath` (`archive:`, detects the format from the outer name
 `.zip`/`.jar` vs `.tar`/`.tgz`/`.tar.*`, else a `PK` magic sniff),
-`ArchiveZipUri` (`archive+zip:`), `ArchiveTarUri` (`archive+tar:`). The last
-two are second scheme names of `ZipUri` and `TarUri`, and the class names
-are aliases of those (`ArchiveZipUri is ZipUri`); a path prints and pickles
+`ArchiveZipURIPath` (`archive+zip:`), `ArchiveTarURIPath` (`archive+tar:`). The last
+two are second scheme names of `ZipURIPath` and `TarURIPath`, and the class names
+are aliases of those (`ArchiveZipURIPath is ZipURIPath`); a path prints and pickles
 with the scheme it was written with.
 
 - `archive:` settles the format on first use, not when the path is built:
@@ -934,11 +936,11 @@ with the scheme it was written with.
   `%XX` (`caf%E9.txt`), so such a path prints, hashes, compares and parses
   back to the same member.
 - One shared handle per archive (keyed by the real local path, or the outer
-  URI), released when no path references it. `ArchiveUri.refresh()` forgets
+  URI), released when no path references it. `ArchiveURIPath.refresh()` forgets
   what is held of the outer, so the next use reads it again; the rest is
   described under `ArchivePath`.
-- `ArchiveUri` is a `UriPath` over `pathlib_next.archive.ArchivePath` (`ZipUri`
-  over `ZipPath`, `TarUri` over `TarPath`) on the shared handle of its outer:
+- `ArchiveURIPath` is a `URIPath` over `pathlib_next.archive.ArchivePath` (`ZipURIPath`
+  over `ZipPath`, `TarURIPath` over `TarPath`) on the shared handle of its outer:
   member names, the archive root, links, cost, writes, `batch()`, the removal
   and the damage errors are those described under "Archives
   (`pathlib_next.archive`)", with an `OSError` naming the URI.
@@ -957,15 +959,15 @@ them:
 | the `requests` HTTP transport | `uripath-http-requests` | `pip install uripath-http-requests` |
 
 A path of one of the schemes builds, joins, compares and prints without its
-distribution, and is listed by `UriPath.schemes()`. Every operation that needs
+distribution, and is listed by `URIPath.schemes()`. Every operation that needs
 the server (`stat()`, `exists()`, `open()`, `iterdir()`, a write, `rename()`,
 `chmod()`, ...) raises `ImportError`, with a message that names the scheme and
 the install command and never the URI (it can carry a password). So does
-`UriPath.scheme_class(name)`. The installed distribution registers its own
+`URIPath.scheme_class(name)`. The installed distribution registers its own
 class for the name, through an entry point of the group `uripath.schemes`, and
 that class is used.
 
-For the `requests` transport, `HttpPath.with_session()`, a
+For the `requests` transport, `HTTPURIPath.with_session()`, a
 `RepoBackend(session=...)` or `RepoBackend(**requests_args)` and
 `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise `ImportError` naming
 `uripath-http-requests`.
@@ -986,7 +988,7 @@ operations raise `NotImplementedError`. Network errors map to pathlib types
 chained (their text can carry credentials).
 
 `InsecureTransportWarning` is the warning a `RepoBackend` gives before it
-sends an `Authorization` header over plain `http://` (see `GitHubPath`).
+sends an `Authorization` header over plain `http://` (see `GitHubURIPath`).
 
 ## Command line
 
@@ -1003,7 +1005,7 @@ exit status and never raises `SystemExit`; `stdin` and `stdout` are binary
 streams, `stderr` is a text or a binary stream (defaults: the process's), and
 the usage and help text of the parser go to the process's own stderr and stdout;
 `build_parser()` returns the `argparse` parser. An argument with `://`, or with a
-scheme some class registers (`data:`, `zip:`, ...), is a `UriPath`; everything
+scheme some class registers (`data:`, `zip:`, ...), is a `URIPath`; everything
 else (including `C:/x` and `notes:draft`) is a `LocalPath`. `-` is stdin/stdout
 where bytes are read or written.
 

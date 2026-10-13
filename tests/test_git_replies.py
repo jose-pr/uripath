@@ -15,10 +15,10 @@ pytestmark = pytest.mark.usefixtures("http_transport_kind")
 import http.server
 
 from http_fakes import is_client_error
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes._gitrepo import RepoBackend
-from uripath.schemes.github import GitHubPath
-from uripath.schemes.gitlab import GitLabPath
+from uripath.schemes.github import GitHubURIPath
+from uripath.schemes.gitlab import GitLabURIPath
 
 
 class _Api:
@@ -66,14 +66,14 @@ def api(serve_http):
 
 
 def _github(api, name="dir/f.txt", query=""):
-    return UriPath(
+    return URIPath(
         f"github://github.com/o/r/{name}{query}",
         backend=RepoBackend(api_base=api.base),
     )
 
 
 def _gitlab(api, name="dir/f.txt", query="?ref=main"):
-    return UriPath(
+    return URIPath(
         f"gitlab://gitlab.com/o/r/{name}{query}",
         backend=RepoBackend(api_base=api.base + "/api/v4"),
     )
@@ -430,6 +430,6 @@ def test_gitlab_stat_of_a_missing_file_is_not_found_after_one_head_and_one_tree(
 # --- the two providers list through _scandir only ---
 
 
-@pytest.mark.parametrize("cls", [GitHubPath, GitLabPath])
+@pytest.mark.parametrize("cls", [GitHubURIPath, GitLabURIPath])
 def test_provider_listing_is_scandir_alone(cls):
     assert "_listdir" not in vars(cls)

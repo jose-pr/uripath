@@ -9,8 +9,8 @@ from ..source import is_drive
 from ._delegate import DelegatingPath
 
 
-class FileUri(DelegatingPath):
-    """`file:` scheme: a `UriPath` wrapping a `LocalPath` (`filepath`),
+class FileURIPath(DelegatingPath):
+    """`file:` scheme: a `URIPath` wrapping a `LocalPath` (`filepath`),
     delegating all I/O to it."""
 
     __SCHEMES = ("file",)
@@ -129,8 +129,8 @@ class FileUri(DelegatingPath):
     @classmethod
     def _format_parsed_parts(cls, source, path, query, fragment, /, sanitize=True):
         if _os.name == "nt" and is_drive(path.partition("/")[0]):
-            # Render "C:/x" as "file:/C:/x", the spelling `Uri` itself
-            # parses it to, so `Uri(p) == UriPath(p)` for a local path.
+            # Render "C:/x" as "file:/C:/x", the spelling `URI` itself
+            # parses it to, so `URI(p) == URIPath(p)` for a local path.
             path = "/" + path
         return super()._format_parsed_parts(
             source, path, query, fragment, sanitize=sanitize
@@ -166,10 +166,10 @@ class FileUri(DelegatingPath):
 
     def rename(self, target: FsPathLike | str):
         # Through `_rename_target()` like every scheme: a relative str is a sibling rename
-        # (not relative to the process cwd), a local path is accepted, and a remote Uri
+        # (not relative to the process cwd), a local path is accepted, and a remote URI
         # raises NotImplementedError so move() copies.
         dest = self._rename_target(target)
-        if not isinstance(dest, FileUri):
+        if not isinstance(dest, FileURIPath):
             dest = self._from_parsed_parts(
                 dest.source or self.source, dest.path, None, None
             )

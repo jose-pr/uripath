@@ -14,7 +14,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from uripath import UriPath
+from uripath import URIPath
 
 
 def _zip_bytes(members):
@@ -92,7 +92,7 @@ def site():
 
 @pytest.mark.parametrize("scheme", ["archive", "archive+zip", "zip", "tar"])
 def test_building_printing_joining_and_pickling_a_path_send_no_request(site, scheme):
-    path = UriPath(f"{scheme}:{site.url}/noext!/d/n")
+    path = URIPath(f"{scheme}:{site.url}/noext!/d/n")
     text = (
         repr(path),
         str(path),
@@ -102,7 +102,7 @@ def test_building_printing_joining_and_pickling_a_path_send_no_request(site, sch
         path.with_name("x"),
         path / "y",
         path.parent / "z",
-        path == UriPath(f"{scheme}:{site.url}/noext!/d/n"),
+        path == URIPath(f"{scheme}:{site.url}/noext!/d/n"),
         hash(path),
         copy.copy(path),
         copy.deepcopy(path),
@@ -115,7 +115,7 @@ def test_building_printing_joining_and_pickling_a_path_send_no_request(site, sch
 
 
 def test_the_first_read_of_an_undecided_zip_fetches_the_outer_once(site):
-    path = UriPath(f"archive:{site.url}/noext!/m")
+    path = URIPath(f"archive:{site.url}/noext!/m")
     assert path.read_bytes() == b"M"
     assert site.log == ["GET /noext"]
     assert (path.parent / "d" / "n").read_bytes() == b"N"
@@ -123,13 +123,13 @@ def test_the_first_read_of_an_undecided_zip_fetches_the_outer_once(site):
 
 
 def test_the_first_read_of_an_undecided_tar_fetches_the_outer_once(site):
-    path = UriPath(f"archive:{site.url}/tarnoext!/m")
+    path = URIPath(f"archive:{site.url}/tarnoext!/m")
     assert path.read_bytes() == b"T"
     assert site.log == ["GET /tarnoext"]
 
 
 def test_an_undecided_archive_that_is_not_there_costs_one_request(site):
-    path = UriPath(f"archive:{site.url}/gone!/m")
+    path = URIPath(f"archive:{site.url}/gone!/m")
     assert not path.exists()
     assert site.log == ["GET /gone"]
     with pytest.raises(FileNotFoundError):
@@ -137,29 +137,29 @@ def test_an_undecided_archive_that_is_not_there_costs_one_request(site):
 
 
 def test_a_format_named_by_the_scheme_or_the_extension_is_fetched_once(site):
-    assert UriPath(f"zip:{site.url}/a.zip!/m").read_bytes() == b"M"
+    assert URIPath(f"zip:{site.url}/a.zip!/m").read_bytes() == b"M"
     assert site.log == ["GET /a.zip"]
     site.log.clear()
-    assert UriPath(f"archive:{site.url}/a.zip!/m").read_bytes() == b"M"
+    assert URIPath(f"archive:{site.url}/a.zip!/m").read_bytes() == b"M"
     assert site.log == ["GET /a.zip"]
 
 
 def test_a_failure_to_read_the_outer_decides_nothing_for_the_next_try(site):
     site.failing = True
-    path = UriPath(f"archive:{site.url}/noext!/m")
+    path = URIPath(f"archive:{site.url}/noext!/m")
     with pytest.raises(OSError):
         path.read_bytes()
     site.failing = False
     assert path.read_bytes() == b"M"
-    assert path.backend is UriPath(f"zip:{site.url}/noext!/m").backend
+    assert path.backend is URIPath(f"zip:{site.url}/noext!/m").backend
 
 
 def test_an_undecided_local_archive_is_read_by_what_it_holds(tmp_path):
     archive = tmp_path / "blob"
     archive.write_bytes(_zip_bytes({"m": b"local"}))
-    path = UriPath(f"archive:{archive.as_uri()}!/m")
+    path = URIPath(f"archive:{archive.as_uri()}!/m")
     assert path.read_bytes() == b"local"
-    assert path.backend is UriPath(f"zip:{archive.as_uri()}!/m").backend
+    assert path.backend is URIPath(f"zip:{archive.as_uri()}!/m").backend
 
 
 # --- a path pickled and loaded again reaches the same handle --------------------------
@@ -170,7 +170,7 @@ def test_an_undecided_local_archive_is_read_by_what_it_holds(tmp_path):
 def test_a_loaded_path_shares_the_handle_the_original_holds(tmp_path, scheme, protocol):
     archive = tmp_path / "a.zip"
     archive.write_bytes(_zip_bytes({"m": b"M"}))
-    path = UriPath(f"{scheme}:{archive.as_uri()}!/m")
+    path = URIPath(f"{scheme}:{archive.as_uri()}!/m")
     again = pickle.loads(pickle.dumps(path, protocol))
     assert again == path and str(again) == str(path)
     assert again.backend is path.backend
@@ -183,8 +183,8 @@ def test_a_tar_path_and_a_nested_archive_path_share_their_handles_after_a_pickle
 ):
     outer = tmp_path / "o.tar"
     outer.write_bytes(_tar_bytes({"inner.zip": _zip_bytes({"x": b"X"}), "m": b"M"}))
-    plain = UriPath(f"tar:{outer.as_uri()}!/m")
-    nested = UriPath(f"zip:tar:{outer.as_uri()}!/inner.zip!/x")
+    plain = URIPath(f"tar:{outer.as_uri()}!/m")
+    nested = URIPath(f"zip:tar:{outer.as_uri()}!/inner.zip!/x")
     for path in (plain, nested):
         again = pickle.loads(pickle.dumps(path))
         assert again == path
@@ -196,8 +196,8 @@ def test_a_tar_path_and_a_nested_archive_path_share_their_handles_after_a_pickle
 
 
 def test_refresh_makes_a_remote_archive_that_changed_readable(site):
-    path = UriPath(f"zip:{site.url}/a.zip!/m")
-    other = UriPath(f"zip:{site.url}/a.zip!/")
+    path = URIPath(f"zip:{site.url}/a.zip!/m")
+    other = URIPath(f"zip:{site.url}/a.zip!/")
     assert path.read_bytes() == b"M"
     site.files["/a.zip"] = _zip_bytes({"m": b"CHANGED", "new": b"N"})
     # The bytes of a remote outer are kept while any path to it lives.
@@ -210,7 +210,7 @@ def test_refresh_makes_a_remote_archive_that_changed_readable(site):
 
 
 def test_refresh_of_an_undecided_archive_nothing_read_yet_sends_nothing(site):
-    path = UriPath(f"archive:{site.url}/noext!/m")
+    path = URIPath(f"archive:{site.url}/noext!/m")
     path.refresh()
     assert site.log == []
     assert path.read_bytes() == b"M"
@@ -222,7 +222,7 @@ def test_refresh_of_an_undecided_archive_nothing_read_yet_sends_nothing(site):
 def test_refresh_of_a_local_archive_changes_nothing(tmp_path):
     archive = tmp_path / "a.zip"
     archive.write_bytes(_zip_bytes({"m": b"M"}))
-    path = UriPath(f"zip:{archive.as_uri()}!/m")
+    path = URIPath(f"zip:{archive.as_uri()}!/m")
     assert path.read_bytes() == b"M"
     path.refresh()
     assert path.read_bytes() == b"M"
@@ -233,9 +233,9 @@ def test_two_paths_built_for_one_archive_are_on_one_filesystem(tmp_path, scheme)
     archive = tmp_path / "a.zip"
     with zipfile.ZipFile(archive, "w") as handle:
         handle.writestr("a.txt", "A")
-    first = UriPath(f"{scheme}:{archive.as_uri()}!/") / "a.txt"
-    second = UriPath(f"{scheme}:{archive.as_uri()}!/") / "a.txt"
-    other_spelling = UriPath(f"zip:{archive.as_uri()}!/") / "a.txt"
+    first = URIPath(f"{scheme}:{archive.as_uri()}!/") / "a.txt"
+    second = URIPath(f"{scheme}:{archive.as_uri()}!/") / "a.txt"
+    other_spelling = URIPath(f"zip:{archive.as_uri()}!/") / "a.txt"
 
     assert first._same_filesystem(second) and second._same_filesystem(first)
     assert first._same_filesystem(other_spelling)
@@ -251,13 +251,13 @@ def test_paths_of_two_archives_are_on_two_filesystems(tmp_path):
         archive = tmp_path / name
         with zipfile.ZipFile(archive, "w") as handle:
             handle.writestr("a.txt", "A")
-        paths.append(UriPath(f"archive:{archive.as_uri()}!/") / "a.txt")
+        paths.append(URIPath(f"archive:{archive.as_uri()}!/") / "a.txt")
 
     assert not paths[0]._same_filesystem(paths[1])
 
 
 def test_an_archive_that_cannot_be_read_is_on_no_other_filesystem(tmp_path):
-    missing = UriPath(f"archive:{(tmp_path / 'missing').as_uri()}!/") / "a.txt"
-    again = UriPath(f"archive:{(tmp_path / 'missing').as_uri()}!/") / "a.txt"
+    missing = URIPath(f"archive:{(tmp_path / 'missing').as_uri()}!/") / "a.txt"
+    again = URIPath(f"archive:{(tmp_path / 'missing').as_uri()}!/") / "a.txt"
 
     assert not missing._same_filesystem(again)

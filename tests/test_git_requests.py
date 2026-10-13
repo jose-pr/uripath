@@ -8,7 +8,7 @@ import warnings
 import pytest
 
 from http_fakes import FakeTransport, reply
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes._gitrepo import (
     BaseRepoBackend,
     InsecureTransportWarning,
@@ -32,7 +32,7 @@ class _NoRequests(BaseRepoBackend):
 
 
 def _github(uri):
-    return UriPath(uri, backend=_NoRequests())
+    return URIPath(uri, backend=_NoRequests())
 
 
 # --- a token is not shown ---
@@ -50,7 +50,7 @@ def _github(uri):
     ],
 )
 def test_no_display_form_of_a_provider_path_shows_the_token(uri):
-    path = UriPath(uri)
+    path = URIPath(uri)
     for shown in (
         str(path),
         repr(path),
@@ -66,7 +66,7 @@ def test_no_display_form_of_a_provider_path_shows_the_token(uri):
 
 
 def test_other_schemes_keep_their_user_in_as_posix():
-    assert UriPath("sftp://alice:pw@h/x").as_posix() == "alice@h:/x"
+    assert URIPath("sftp://alice:pw@h/x").as_posix() == "alice@h:/x"
 
 
 # --- owner, repository and path are one URL component each ---
@@ -144,13 +144,13 @@ def test_github_tree_url_refuses_a_ref_that_is_a_dot_segment():
 
 @pytest.mark.parametrize("path_text", ["..", "a/..", "./x"])
 def test_gitlab_dot_segment_cannot_reach_the_file_url(path_text):
-    path = UriPath("gitlab://gitlab.com/o/r", backend=_NoRequests(f"{API}/api/v4"))
+    path = URIPath("gitlab://gitlab.com/o/r", backend=_NoRequests(f"{API}/api/v4"))
     with pytest.raises(ValueError):
         path._file_url(path_text)
 
 
 def test_gitlab_file_url_is_one_encoded_segment():
-    path = UriPath("gitlab://gitlab.com/o/r", backend=_NoRequests(f"{API}/api/v4"))
+    path = URIPath("gitlab://gitlab.com/o/r", backend=_NoRequests(f"{API}/api/v4"))
     assert path._file_url("a b/c#d.txt", "/raw") == (
         f"{API}/api/v4/projects/o%2Fr/repository/files/a%20b%2Fc%23d.txt/raw"
     )

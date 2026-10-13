@@ -8,7 +8,7 @@ Where a backend lacks a primitive, the operation raises
 `NotImplementedError`; `move()` falls back to copy + delete when `rename()` is
 unavailable or the target is elsewhere.
 
-`UriPath("scheme://...")` returns the class registered for the scheme. None of
+`URIPath("scheme://...")` returns the class registered for the scheme. None of
 the schemes below needs a third-party client library. `sftp:`, `s3:`, `gs:`
 and `az:` are provided by other distributions (see "Other distributions").
 
@@ -16,16 +16,16 @@ and `az:` are provided by other distributions (see "Other distributions").
 
 | Implementation | Read | Write | Append | List | mkdir | Delete | rename | chmod |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `file:` (`FileUri`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `data:` (`DataUri`) | Yes | No | No | No | No | No | No | No |
-| `zip:` (`ZipUri`) | Yes | Local `file:` archive | No | Yes | Local archive | Local archive | Local archive | No |
-| `tar:` (`TarUri`) | Yes | No | No | Yes | No | No | No | No |
+| `file:` (`FileURIPath`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `data:` (`DataURIPath`) | Yes | No | No | No | No | No | No | No |
+| `zip:` (`ZipURIPath`) | Yes | Local `file:` archive | No | Yes | Local archive | Local archive | Local archive | No |
+| `tar:` (`TarURIPath`) | Yes | No | No | Yes | No | No | No | No |
 | `archive:` / `archive+zip:` / `archive+tar:` | As `zip:` or `tar:` for the detected or pinned format |  |  |  |  |  |  |  |
-| `ftp:` / `ftps:` (`FtpPath`) | Yes | Yes | Yes (`APPE`) | Yes | Yes | Yes | Yes | `SITE CHMOD`, if the server has it |
-| `http:` / `https:` (`HttpPath`) | Yes | Yes (`PUT`) | Yes (rewrite or `PATCH`) | Yes (HTML index) | No | Yes (`DELETE`) | No | No |
-| `dav:` / `davs:` (`DavPath`) | Yes | Yes | No | Yes (`PROPFIND`) | Yes (`MKCOL`) | Yes | Yes (`MOVE`) | No |
-| `github:` (`GitHubPath`) | Yes | No | No | Yes | No | No | No | No |
-| `gitlab:` (`GitLabPath`) | Yes | No | No | Yes | No | No | No | No |
+| `ftp:` / `ftps:` (`FTPURIPath`) | Yes | Yes | Yes (`APPE`) | Yes | Yes | Yes | Yes | `SITE CHMOD`, if the server has it |
+| `http:` / `https:` (`HTTPURIPath`) | Yes | Yes (`PUT`) | Yes (rewrite or `PATCH`) | Yes (HTML index) | No | Yes (`DELETE`) | No | No |
+| `dav:` / `davs:` (`DAVURIPath`) | Yes | Yes | No | Yes (`PROPFIND`) | Yes (`MKCOL`) | Yes | Yes (`MOVE`) | No |
+| `github:` (`GitHubURIPath`) | Yes | No | No | Yes | No | No | No | No |
+| `gitlab:` (`GitLabURIPath`) | Yes | No | No | Yes | No | No | No | No |
 | `git:` / `git+github:` / `git+gitlab:` | As `github:`/`gitlab:` |  |  |  |  |  |  |  |
 
 `stat()` works everywhere. `st_mtime` is real on every implementation except
@@ -47,7 +47,7 @@ implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
   or archive raises `NotImplementedError`, and `move()` copies and
   deletes instead. A `str` target is a path (not URI syntax); a relative one
   is a sibling.
-- **Backends** are passed as `UriPath(uri, backend=...)` or
+- **Backends** are passed as `URIPath(uri, backend=...)` or
   `path.with_backend(backend)`, and inherited by every derived path. Without
   one, paths derived from one another (`root / name`, `parent`, ...) share the
   one backend the first of them builds, so 20 children of a fresh root use one
@@ -55,15 +55,15 @@ implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
 
 ## Local files and data
 
-- **`file:`** (`FileUri`) wraps a `LocalPath` (`filepath`) and delegates all
+- **`file:`** (`FileURIPath`) wraps a `LocalPath` (`filepath`) and delegates all
   I/O to it. `rename()` accepts local targets only.
-- **`data:`** (`DataUri`, RFC 2397) keeps the whole content in the URI
+- **`data:`** (`DataURIPath`, RFC 2397) keeps the whole content in the URI
   (`data:[<mediatype>][;base64],<data>`): a read-only single file with a
   `mediatype` property.
 
 ## HTTP and WebDAV
 
-- **`http(s):`** (`HttpPath`) reads with `GET` (uncompressed) and `stat()`s
+- **`http(s):`** (`HTTPURIPath`) reads with `GET` (uncompressed) and `stat()`s
   with `HEAD`, falling back to `GET` on 405 and following a redirect once, at
   its `Location`; a final URL whose path ends in `/` is a directory. Listing
   parses Apache/nginx-style HTML indexes; a non-HTML
@@ -112,7 +112,7 @@ implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
     `ValueError`, raised before anything is sent.
   - The mode of `open()` is matched exactly: `"r+"`, `"w+"` and `"a+"` raise
     `NotImplementedError`.
-- **`dav(s):`** (`DavPath`) is WebDAV (RFC 4918) over the equivalent
+- **`dav(s):`** (`DAVURIPath`) is WebDAV (RFC 4918) over the equivalent
   `http(s):` URL, with the same `with_transport()`. `PROPFIND` gives real
   directory metadata, `MKCOL`/`PUT`/`DELETE`/`MOVE` full writes. A reply that
   is not a `multistatus` document, or that names neither the collection nor
@@ -153,16 +153,18 @@ exception, so every transport behaves alike.
 
 ## FTP
 
-**`ftp(s):`** (`FtpPath`) uses stdlib `ftplib`, through
+**`ftp(s):`** (`FTPURIPath`) uses stdlib `ftplib`, through
 [`pathlib_next.ftp.FTPPath`](https://jose-pr.github.io/pathlib-next/api/ftp/), which needs no URI: `FTPPath("/pub/x",
 host="h", user="u", tls=True)` is the same tree without a `ftp://` string.
 
-- `FtpBackend(timeout=30.0, ssl_context=None, verify=True)` configures it.
+- `FTPURIBackend(timeout=30.0, ssl_context=None, verify=True)` configures it.
   Sockets time out after 30 seconds by default (`timeout=None` waits forever).
+  It opens a connection for whichever server a path names, which is why it
+  is not `pathlib_next.ftp.FTPBackend`: that one belongs to a single host.
 - **`ftps:` verifies the server certificate and host name** before logging in
   and reuses the TLS session on data connections. For a private CA pass
-  `FtpBackend(ssl_context=ssl.create_default_context(cafile=...))`;
-  `FtpBackend(verify=False)` turns verification off.
+  `FTPURIBackend(ssl_context=ssl.create_default_context(cafile=...))`;
+  `FTPURIBackend(verify=False)` turns verification off.
 - Paths built without `backend=` share one default backend, with one cached
   connection per server and thread, closed when the thread ends. A connection
   idle for more than `IDLE_PROBE_SECONDS` (1 second) is probed with `NOOP`

@@ -1,5 +1,5 @@
 """I/O parity with pathlib for the generic `Path` implementations: `touch()`
-(no default chmod, no truncation, FileUri umask/mtime) and
+(no default chmod, no truncation, FileURIPath umask/mtime) and
 `copy(preserve_metadata=True)` (only a backend-reported mode is applied).
 """
 
@@ -11,7 +11,7 @@ from capabilities import requires_posix_modes
 
 import pathlib_next
 from pathlib_next.mempath import MemPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next import FileStat
 from pathlib_next.sync import PathSyncer
 
@@ -40,11 +40,11 @@ class _FlakyStatMemPath(MemPath):
         return super().stat(follow_symlinks=follow_symlinks)
 
 
-# --- FileUri.touch delegates to pathlib ------------------------------------
+# --- FileURIPath.touch delegates to pathlib ------------------------------------
 
 
 def _file_uri(path):
-    return UriPath(pathlib_next.LocalPath(path))
+    return URIPath(pathlib_next.LocalPath(path))
 
 
 def test_fileuri_touch_does_not_chmod(tmp_path, monkeypatch):
@@ -57,7 +57,7 @@ def test_fileuri_touch_does_not_chmod(tmp_path, monkeypatch):
 
     monkeypatch.setattr(pathlib_next.LocalPath, "chmod", spy)
     uri = _file_uri(tmp_path / "new.txt")
-    assert type(uri).__name__ == "FileUri"
+    assert type(uri).__name__ == "FileURIPath"
     uri.touch()
     uri2 = _file_uri(tmp_path / "new2.txt")
     uri2.touch(exist_ok=False)

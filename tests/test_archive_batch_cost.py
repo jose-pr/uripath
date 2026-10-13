@@ -18,7 +18,7 @@ pytest.importorskip("uritools")
 from test_archive_batch import _fields, _members, _write_zip
 
 from pathlib_next import LocalPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next.archive import _snapshot as _base
 from pathlib_next.archive._zip import _ZipBackend
 from pathlib_next.archive._zipentries import _NO_LINK
@@ -76,14 +76,14 @@ def test_a_thousand_renames_derive_the_member_list_a_constant_number_of_times(
     tmp_path, derived
 ):
     archive = _many(tmp_path / "a.zip")
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with root.batch():
         for i in range(MEMBERS):
             (root / f"d{i % 10}" / f"f{i}.txt").rename(f"g{i}.txt")
     assert len(derived) <= DERIVATIONS
     expected = tmp_path / "b.zip"
     _many(expected)
-    UriPath(_zip_uri(expected)).backend._rewrite(
+    URIPath(_zip_uri(expected)).backend._rewrite(
         rename={f"d{i % 10}/f{i}.txt": f"d{i % 10}/g{i}.txt" for i in range(MEMBERS)}
     )
     assert _shape(archive) == _shape(expected)
@@ -93,14 +93,14 @@ def test_a_thousand_deletes_derive_the_member_list_a_constant_number_of_times(
     tmp_path, derived
 ):
     archive = _many(tmp_path / "a.zip")
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with root.batch():
         for i in range(MEMBERS):
             (root / f"d{i % 10}" / f"f{i}.txt").unlink()
     assert len(derived) <= DERIVATIONS
     expected = tmp_path / "b.zip"
     _many(expected)
-    UriPath(_zip_uri(expected)).backend._rewrite(
+    URIPath(_zip_uri(expected)).backend._rewrite(
         exclude={f"d{i % 10}/f{i}.txt" for i in range(MEMBERS)},
         # every directory is left with nothing: each keeps its own entry
         overwrite={f"d{n}/": b"" for n in range(10)},
@@ -115,7 +115,7 @@ def test_a_thousand_overwrites_derive_the_member_list_a_constant_number_of_times
     tmp_path, derived
 ):
     archive = _many(tmp_path / "a.zip")
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with root.batch():
         for i in range(MEMBERS):
             (root / f"d{i % 10}" / f"f{i}.txt").write_bytes(b"y" * 60)
@@ -128,7 +128,7 @@ def test_a_thousand_new_members_derive_the_member_list_a_constant_number_of_time
     tmp_path, derived
 ):
     archive = _many(tmp_path / "a.zip", 10)
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with root.batch():
         for i in range(MEMBERS):
             (root / "d1" / f"n{i}.txt").write_bytes(b"n")
@@ -145,7 +145,7 @@ def test_a_sync_that_changes_existing_members_derives_the_member_list_a_constant
         (source / f"d{i % 10}").mkdir(parents=True, exist_ok=True)
         (source / f"d{i % 10}" / f"f{i}.txt").write_bytes(b"x" * 50)
     archive = _write_zip(tmp_path / "a.zip", [("seed.txt", b"seed")])
-    target = UriPath(_zip_uri(archive, "tree"))
+    target = URIPath(_zip_uri(archive, "tree"))
     PathSyncer().sync(LocalPath(source), target)
     for i in range(count):
         (source / f"d{i % 10}" / f"f{i}.txt").write_bytes(b"y" * 60)
@@ -170,7 +170,7 @@ def test_a_change_to_a_name_the_archive_spells_twice_derives_it_again_and_is_one
     )
     for path, batched in ((one_by_one, False), (archive, True)):
         del derived[:]
-        root = UriPath(_zip_uri(path))
+        root = URIPath(_zip_uri(path))
         with root.batch() if batched else _Nothing():
             (root / "d" / "y.txt").write_bytes(b"y2")
             (root / "d" / "x.txt").rename("z.txt")
@@ -317,14 +317,14 @@ def test_a_run_of_mixed_changes_in_a_batch_is_the_run_one_at_a_time(
 ):
     alone = _tree_archive(tmp_path / "alone.zip")
     inside = _tree_archive(tmp_path / "inside.zip")
-    recorded = _generate(random.Random(seed), UriPath(_zip_uri(alone)), 120)
+    recorded = _generate(random.Random(seed), URIPath(_zip_uri(alone)), 120)
     assert sum(1 for _c, outcome, _l in recorded if outcome == "done") > 60
     assert (
         len({change[0] for change, outcome, _l in recorded if outcome == "done"}) >= 7
     )
 
     del derived[:]
-    root = UriPath(_zip_uri(inside))
+    root = URIPath(_zip_uri(inside))
     backend = root.backend
     checks = 0
     with root.batch():

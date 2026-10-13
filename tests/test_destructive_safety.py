@@ -27,12 +27,12 @@ LocalPath = pathlib_next.LocalPath
 
 @requires_uri_extra
 def test_copy_http_404_source_leaves_local_target_intact(http_server, tmp_path):
-    from uripath import UriPath
+    from uripath import URIPath
 
     target = LocalPath(tmp_path / "cache.json")
     target.write_text("GOOD CACHE")
     with pytest.raises(FileNotFoundError):
-        UriPath(http_server + "/no-such-file.json").copy(target, overwrite=True)
+        URIPath(http_server + "/no-such-file.json").copy(target, overwrite=True)
     assert target.read_text() == "GOOD CACHE"
 
 
@@ -89,9 +89,9 @@ def _as_another_class(kind, path):
     if kind == "stdlib":
         return pathlib.Path(path)
     pytest.importorskip("uritools")
-    from uripath import UriPath
+    from uripath import URIPath
 
-    return UriPath(path)
+    return URIPath(path)
 
 
 @pytest.mark.parametrize("kind", ["subclass", "stdlib", "file-uri"])
@@ -153,20 +153,20 @@ def _victim(tmp_path):
 
 def test_file_uri_rm_recursive_does_not_descend_into_junction(tmp_path):
     pytest.importorskip("uritools")
-    from uripath import UriPath
+    from uripath import URIPath
 
     victim = _victim(tmp_path)
     tree = tmp_path / "tree"
     tree.mkdir()
     _junction_or_skip(tree / "j", victim)
-    UriPath(LocalPath(tree)).rm(recursive=True)
+    URIPath(LocalPath(tree)).rm(recursive=True)
     assert not tree.exists()
     assert (victim / "keep.txt").read_text() == "V"
 
 
 def test_file_uri_rm_recursive_does_not_follow_directory_symlink(tmp_path):
     pytest.importorskip("uritools")
-    from uripath import UriPath
+    from uripath import URIPath
 
     outside = tmp_path / "outside"
     outside.mkdir()
@@ -179,7 +179,7 @@ def test_file_uri_rm_recursive_does_not_follow_directory_symlink(tmp_path):
     except (OSError, NotImplementedError) as error:
         pytest.skip(f"directory symlink unavailable: {error}")
 
-    UriPath(LocalPath(tree)).rm(recursive=True)
+    URIPath(LocalPath(tree)).rm(recursive=True)
 
     assert (outside / "precious.txt").read_text() == "P"
     assert not os.path.lexists(tree / "link")
@@ -187,7 +187,7 @@ def test_file_uri_rm_recursive_does_not_follow_directory_symlink(tmp_path):
 
 def test_file_uri_scandir_reports_symlink_not_directory(tmp_path):
     pytest.importorskip("uritools")
-    from uripath import UriPath
+    from uripath import URIPath
 
     (tmp_path / "real").mkdir()
     try:
@@ -195,7 +195,7 @@ def test_file_uri_scandir_reports_symlink_not_directory(tmp_path):
     except (OSError, NotImplementedError) as error:
         pytest.skip(f"directory symlink unavailable: {error}")
 
-    stats = dict(UriPath(LocalPath(tmp_path))._scandir())
+    stats = dict(URIPath(LocalPath(tmp_path))._scandir())
     assert stats["link"].is_symlink()
     assert not stats["link"].is_dir()
     assert stats["real"].is_dir()

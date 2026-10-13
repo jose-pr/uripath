@@ -47,7 +47,7 @@ class Query(str):
     dict/list of pairs and decoded back with `to_dict()`/iteration.
 
     The string is always the percent-encoded form: a `str` argument is
-    taken as already encoded and kept byte for byte (it is what `Uri.query`
+    taken as already encoded and kept byte for byte (it is what `URI.query`
     holds, as received), a mapping or pair sequence is encoded here, and
     `decode()`/`to_dict()` decode each name and value exactly once.
 

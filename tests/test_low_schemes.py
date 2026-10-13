@@ -11,7 +11,7 @@ import zipfile
 import pytest
 
 from http_fakes import spy_on_sends
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes.archive import _split_archive_path
 
 # --- ftparchive-nested-archives ------------------------------------------------
@@ -61,51 +61,51 @@ def test_split_counts_one_separator_per_nested_archive_scheme(path, archive, inn
 
 
 def test_nested_zip_member_reads(nested_zip):
-    p = UriPath(f"zip:zip:{nested_zip.as_uri()}!/inner.zip!/x.txt")
+    p = URIPath(f"zip:zip:{nested_zip.as_uri()}!/inner.zip!/x.txt")
     assert p.read_bytes() == b"inner-x"
     assert p.path == "x.txt"
 
 
 def test_nested_uri_round_trips_through_as_uri(nested_zip):
-    member = UriPath(f"zip:{nested_zip.as_uri()}!/inner.zip")
-    p = UriPath(f"zip:{member.as_uri()}!/x.txt")
+    member = URIPath(f"zip:{nested_zip.as_uri()}!/inner.zip")
+    p = URIPath(f"zip:{member.as_uri()}!/x.txt")
     assert p.read_bytes() == b"inner-x"
-    assert UriPath(p.as_uri()).read_bytes() == b"inner-x"
+    assert URIPath(p.as_uri()).read_bytes() == b"inner-x"
 
 
 def test_nested_archive_lists_and_escapes_bang_slash_names(nested_zip):
-    root = UriPath(f"zip:zip:{nested_zip.as_uri()}!/inner.zip!/")
+    root = URIPath(f"zip:zip:{nested_zip.as_uri()}!/inner.zip!/")
     assert sorted(c.name for c in root.iterdir()) == ["d!", "x.txt"]
     y = root / "d!" / "y.txt"
     assert "d%21/y.txt" in y.as_uri()
     assert y.read_bytes() == b"bang"
-    assert UriPath(y.as_uri()).read_bytes() == b"bang"
+    assert URIPath(y.as_uri()).read_bytes() == b"bang"
 
 
 def test_single_level_member_with_bang_slash_round_trips(tmp_path):
     outer = tmp_path / "a.zip"
     with zipfile.ZipFile(outer, "w") as archive:
         archive.writestr("d!/y.txt", b"bang")
-    y = UriPath(f"zip:{outer.as_uri()}!/d!/y.txt")
+    y = URIPath(f"zip:{outer.as_uri()}!/d!/y.txt")
     assert y.read_bytes() == b"bang"
-    assert UriPath(y.as_uri()).read_bytes() == b"bang"
+    assert URIPath(y.as_uri()).read_bytes() == b"bang"
 
 
 def test_nested_tar_inside_zip_and_autodetect(nested_zip):
-    t = UriPath(f"tar:zip:{nested_zip.as_uri()}!/lib/inner.tar!/t.txt")
+    t = URIPath(f"tar:zip:{nested_zip.as_uri()}!/lib/inner.tar!/t.txt")
     assert t.read_bytes() == b"tar"
-    detected = UriPath(f"archive:zip:{nested_zip.as_uri()}!/inner.zip!/x.txt")
+    detected = URIPath(f"archive:zip:{nested_zip.as_uri()}!/inner.zip!/x.txt")
     assert detected.read_bytes() == b"inner-x"
 
 
 def test_nested_archive_is_read_only(nested_zip):
-    p = UriPath(f"zip:zip:{nested_zip.as_uri()}!/inner.zip!/new.txt")
+    p = URIPath(f"zip:zip:{nested_zip.as_uri()}!/inner.zip!/new.txt")
     with pytest.raises(NotImplementedError):
         p.write_bytes(b"no")
 
 
 def test_outer_archive_still_reads(nested_zip):
-    assert UriPath(f"zip:{nested_zip.as_uri()}!/top.txt").read_bytes() == b"top"
+    assert URIPath(f"zip:{nested_zip.as_uri()}!/top.txt").read_bytes() == b"top"
 
 
 # --- HTTP ------------------------------------------------------------------
@@ -148,7 +148,7 @@ def test_iterdir_on_a_non_html_file_raises_without_reading_it(
     )
     with serve_http(_handler(routes)) as base:
         with pytest.raises(NotADirectoryError) as excinfo:
-            list(UriPath(f"{base}/big.bin").iterdir())
+            list(URIPath(f"{base}/big.bin").iterdir())
     assert excinfo.value.errno == errno.ENOTDIR
     assert excinfo.value.filename == f"{base}/big.bin"
     # The slash form is asked for first (a 404 here), then the path as given:
@@ -158,8 +158,8 @@ def test_iterdir_on_a_non_html_file_raises_without_reading_it(
 
 def test_iterdir_on_a_text_file_of_the_real_server_raises(http_server):
     with pytest.raises(NotADirectoryError):
-        list(UriPath(f"{http_server}/a.txt").iterdir())
-    assert sorted(c.name for c in UriPath(f"{http_server}/sub/").iterdir()) == [
+        list(URIPath(f"{http_server}/a.txt").iterdir())
+    assert sorted(c.name for c in URIPath(f"{http_server}/sub/").iterdir()) == [
         "c.py",
         "nested",
     ]
@@ -175,7 +175,7 @@ def test_html_page_links_to_other_hosts_are_not_children(serve_http):
     )
     routes = {"/page.html": (200, {"Content-Type": "text/html"}, page)}
     with serve_http(_handler(routes)) as base:
-        assert list(UriPath(f"{base}/page.html").iterdir()) == []
+        assert list(URIPath(f"{base}/page.html").iterdir()) == []
 
 
 # --- httpdav-listing-scope-uses-title -------------------------------------------
@@ -193,7 +193,7 @@ def test_listing_behind_a_prefix_is_scoped_by_the_request_url(serve_http):
     )
     routes = {"/mirror/pub/": (200, {"Content-Type": "text/html"}, listing)}
     with serve_http(_handler(routes)) as base:
-        children = {c.name: c for c in UriPath(f"{base}/mirror/pub/").iterdir()}
+        children = {c.name: c for c in URIPath(f"{base}/mirror/pub/").iterdir()}
     assert sorted(children) == ["a.txt", "sub"]
     assert children["sub"].is_dir()
 
@@ -209,7 +209,7 @@ def test_table_listing_skips_foreign_and_non_child_hrefs(serve_http):
     )
     routes = {"/d/": (200, {"Content-Type": "text/html; charset=utf-8"}, listing)}
     with serve_http(_handler(routes)) as base:
-        assert [c.name for c in UriPath(f"{base}/d/").iterdir()] == ["a.txt"]
+        assert [c.name for c in URIPath(f"{base}/d/").iterdir()] == ["a.txt"]
 
 
 def test_parser_without_base_url_keeps_title_scoping():
@@ -242,7 +242,7 @@ def _reply(status):
 
 def test_put_409_missing_parent_is_file_not_found(serve_http):
     with serve_http(_handler({}, PUT=_reply(409))) as base:
-        p = UriPath(f"{base}/nodir/f.txt")
+        p = URIPath(f"{base}/nodir/f.txt")
         with pytest.raises(FileNotFoundError) as excinfo:
             p.write_bytes(b"x")
     assert excinfo.value.errno == errno.ENOENT
@@ -253,21 +253,21 @@ def test_410_gone_is_file_not_found_and_errors_carry_errno(serve_http):
     routes = {"/gone": (410, {}, b""), "/secret": (403, {}, b"")}
     with serve_http(_handler(routes)) as base:
         with pytest.raises(FileNotFoundError) as gone:
-            UriPath(f"{base}/gone").read_bytes()
+            URIPath(f"{base}/gone").read_bytes()
         with pytest.raises(FileNotFoundError) as missing:
-            UriPath(f"{base}/nothing").read_bytes()
+            URIPath(f"{base}/nothing").read_bytes()
         with pytest.raises(PermissionError) as denied:
-            UriPath(f"{base}/secret").read_bytes()
+            URIPath(f"{base}/secret").read_bytes()
     assert gone.value.errno == missing.value.errno == errno.ENOENT
     assert missing.value.filename == f"{base}/nothing"
     assert denied.value.errno == errno.EACCES
 
 
 def test_dav_statuses_carry_errno_and_filename(serve_http):
-    from uripath.schemes.dav import DavPath
+    from uripath.schemes.dav import DAVURIPath
 
     with serve_http(_handler({}, MKCOL=_reply(409))) as base:
-        p = DavPath(base.replace("http:", "dav:") + "/nodir/new")
+        p = DAVURIPath(base.replace("http:", "dav:") + "/nodir/new")
         with pytest.raises(FileNotFoundError) as excinfo:
             p.mkdir()
     assert excinfo.value.errno == errno.ENOENT
@@ -326,10 +326,10 @@ def _propfind(self):
 
 
 def test_dav_reads_every_successful_propstat(serve_http):
-    from uripath.schemes.dav import DavPath
+    from uripath.schemes.dav import DAVURIPath
 
     with serve_http(_handler({}, PROPFIND=_propfind)) as base:
-        docs = DavPath(base.replace("http:", "dav:") + "/docs/")
+        docs = DAVURIPath(base.replace("http:", "dav:") + "/docs/")
         st = docs.stat()
         assert st.is_dir()
         assert st.st_mtime > 0

@@ -8,8 +8,8 @@ import pytest
 
 from http_fakes import FakeTransport, reply
 from http_wire import Reply, Wire, response
-from uripath import UriPath
-from uripath.schemes.http import HttpBackend
+from uripath import URIPath
+from uripath.schemes.http import HTTPBackend
 
 AUTH = {"Authorization": "Bearer TOKEN-1"}
 
@@ -32,7 +32,7 @@ def test_authorization_goes_with_a_redirect_that_stays_on_the_origin(http_transp
         )
 
     with Wire(script) as wire:
-        backend = HttpBackend(http_transport, headers=AUTH)
+        backend = HTTPBackend(http_transport, headers=AUTH)
         reply_ = backend.request("GET", wire.url + "/start")
         assert reply_.read() == b"ok"
     assert [sent_authorization(r) for r in wire.requests] == ["Bearer TOKEN-1"] * 2
@@ -45,7 +45,7 @@ def test_authorization_is_dropped_by_a_redirect_to_another_port(http_transport):
             return redirect(elsewhere.url + "/landing")
 
         with Wire(script) as wire:
-            backend = HttpBackend(http_transport, headers={**AUTH, "X-Api-Key": "K"})
+            backend = HTTPBackend(http_transport, headers={**AUTH, "X-Api-Key": "K"})
             backend.request("GET", wire.url + "/start").read()
     assert sent_authorization(wire.requests[0]) == "Bearer TOKEN-1"
     (landing,) = elsewhere.requests
@@ -58,7 +58,7 @@ def test_authorization_is_dropped_by_a_redirect_to_another_port(http_transport):
 def test_authorization_from_url_userinfo_is_dropped_the_same_way(http_transport):
     with Wire() as elsewhere:
         with Wire(lambda r: redirect(elsewhere.url + "/landing")) as wire:
-            backend = HttpBackend(http_transport)
+            backend = HTTPBackend(http_transport)
             backend.request(
                 "GET", f"http://alice:s3cr3t@127.0.0.1:{wire.port}/s"
             ).read()
@@ -78,7 +78,7 @@ def test_authorization_does_not_come_back_when_a_redirect_returns_to_the_origin(
                 return response(body=b"home")
 
             wire.script = script
-            backend = HttpBackend(http_transport, headers=AUTH)
+            backend = HTTPBackend(http_transport, headers=AUTH)
             backend.request("GET", wire.url + "/start").read()
     assert sent_authorization(wire.requests[0]) == "Bearer TOKEN-1"
     assert sent_authorization(wire.requests[1]) is None
@@ -93,7 +93,7 @@ def test_a_303_becomes_a_get_and_a_307_keeps_the_method(http_transport):
         return response(body=b"there")
 
     with Wire(script) as wire:
-        backend = HttpBackend(http_transport)
+        backend = HTTPBackend(http_transport)
         backend.request("OPTIONS", wire.url + "/see").read()
         backend.request("OPTIONS", wire.url + "/again").read()
     assert [(r.method, r.target) for r in wire.requests] == [
@@ -106,7 +106,7 @@ def test_a_303_becomes_a_get_and_a_307_keeps_the_method(http_transport):
 
 def test_a_redirect_loop_stops_after_thirty_redirects(http_transport):
     with Wire(lambda r: redirect("/loop")) as wire:
-        backend = HttpBackend(http_transport)
+        backend = HTTPBackend(http_transport)
         with pytest.raises(OSError) as excinfo:
             backend.request("GET", wire.url + "/loop")
     assert len(wire.requests) == 31
@@ -126,7 +126,7 @@ def test_a_location_that_is_not_an_http_url_is_a_refused_redirect(
     http_transport, location
 ):
     with Wire(lambda r: redirect(location)) as wire:
-        backend = HttpBackend(http_transport)
+        backend = HTTPBackend(http_transport)
         with pytest.raises(OSError) as excinfo:
             backend.request("GET", wire.url + "/start")
     assert excinfo.value.errno == errno.EIO
@@ -140,14 +140,14 @@ def test_userinfo_in_a_location_is_not_sent(http_transport):
     with Wire() as elsewhere:
         target = f"http://mallory:LEAKED@127.0.0.1:{elsewhere.port}/landing"
         with Wire(lambda r: redirect(target)) as wire:
-            HttpBackend(http_transport).request("GET", wire.url + "/s").read()
+            HTTPBackend(http_transport).request("GET", wire.url + "/s").read()
     assert elsewhere.requests[0].target == "/landing"
     assert sent_authorization(elsewhere.requests[0]) is None
 
 
 def test_allow_redirects_false_returns_the_redirect(http_transport):
     with Wire(lambda r: redirect("/there")) as wire:
-        reply_ = HttpBackend(http_transport).request(
+        reply_ = HTTPBackend(http_transport).request(
             "GET", wire.url + "/start", allow_redirects=False
         )
         assert (reply_.status, reply_.headers["Location"]) == (302, "/there")
@@ -181,20 +181,20 @@ def test_authorization_follows_only_a_redirect_that_keeps_scheme_host_and_port(
     location, kept
 ):
     transport = fake_redirecting(location)
-    HttpBackend(transport, headers=AUTH).request("GET", "http://h:443/x").read()
+    HTTPBackend(transport, headers=AUTH).request("GET", "http://h:443/x").read()
     assert len(transport.sent) == 2
     assert ("Authorization" in transport.sent[1].headers) is kept
 
 
 def test_a_header_with_a_line_break_is_refused_before_any_transport_call():
     transport = FakeTransport(default=reply(200))
-    backend = HttpBackend(transport, headers={"X-A": "1\r\nX-B: 2"})
+    backend = HTTPBackend(transport, headers={"X-A": "1\r\nX-B: 2"})
     with pytest.raises(ValueError):
         backend.request("GET", "http://h/x")
     with pytest.raises(ValueError):
-        HttpBackend(transport).request("GET", "http://h/x", headers={"X-A": "1\n2"})
+        HTTPBackend(transport).request("GET", "http://h/x", headers={"X-A": "1\n2"})
     with pytest.raises(ValueError):
-        HttpBackend(transport).request("GET", "http://h/x\r\nX-A: 1")
+        HTTPBackend(transport).request("GET", "http://h/x\r\nX-A: 1")
     assert transport.sent == []
 
 
@@ -218,7 +218,7 @@ def test_a_location_the_url_check_refuses_is_oserror_never_valueerror(
         "HTTP/1.1 302 Found\r\nLocation: " + location + "\r\nContent-Length: 0\r\n\r\n"
     ).encode("utf-8")
     with Wire(lambda r: Reply(raw)) as wire:
-        path = UriPath(wire.url + "/f")
+        path = URIPath(wire.url + "/f")
         try:
             outcome = getattr(path, operation)()
             if operation == "iterdir":
@@ -244,5 +244,5 @@ def test_a_walk_over_a_refused_location_ends_with_the_oserror_it_catches(
     ).encode("utf-8")
     with Wire(lambda r: Reply(raw)) as wire:
         # `walk()` and `exists()` meet OSError as an unreadable directory.
-        assert list(UriPath(wire.url + "/d/").walk()) == []
-        assert UriPath(wire.url + "/d/").exists() is False
+        assert list(URIPath(wire.url + "/d/").walk()) == []
+        assert URIPath(wire.url + "/d/").exists() is False

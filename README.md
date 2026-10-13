@@ -6,8 +6,8 @@
 [![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://jose-pr.github.io/uripath/)
 [![CI](https://img.shields.io/github/actions/workflow/status/jose-pr/uripath/test.yml)](https://github.com/jose-pr/uripath/actions/workflows/test.yml)
 
-**One `pathlib`-style API for URIs.** `UriPath("https://...")`, `UriPath("zip:...")`
-and `UriPath("ftp://...")` return the class registered for the scheme, and each
+**One `pathlib`-style API for URIs.** `URIPath("https://...")`, `URIPath("zip:...")`
+and `URIPath("ftp://...")` return the class registered for the scheme, and each
 has the method names, signatures and exception types of `pathlib.Path`: write
 code once and run it against a local file, an archive member, an FTP or WebDAV
 server, a web directory or a GitHub or GitLab repository. It builds on
@@ -18,14 +18,14 @@ server, a web directory or a GitHub or GitLab repository. It builds on
 
 | Scheme (class) | Read | Write | List | Stat | mkdir | Delete | rename |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `file:` (`FileUri`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `data:` (`DataUri`, RFC 2397) | Yes | No | No | Yes | No | No | No |
-| `zip:` (`ZipUri`) | Yes | Local `file:` archive only | Yes | Yes | Local archive only | Local archive only | Local archive only |
-| `tar:` (`TarUri`, incl. gz/bz2/xz) | Yes | No | Yes | Yes | No | No | No |
+| `file:` (`FileURIPath`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `data:` (`DataURIPath`, RFC 2397) | Yes | No | No | Yes | No | No | No |
+| `zip:` (`ZipURIPath`) | Yes | Local `file:` archive only | Yes | Yes | Local archive only | Local archive only | Local archive only |
+| `tar:` (`TarURIPath`, incl. gz/bz2/xz) | Yes | No | Yes | Yes | No | No | No |
 | `archive:`, `archive+zip:`, `archive+tar:` | As `zip:`/`tar:` for the detected or pinned format | | | | | | |
-| `ftp:` / `ftps:` (`FtpPath`) | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
-| `http:` / `https:` (`HttpPath`) | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
-| `dav:` / `davs:` (`DavPath`, WebDAV) | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
+| `ftp:` / `ftps:` (`FTPURIPath`) | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
+| `http:` / `https:` (`HTTPURIPath`) | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
+| `dav:` / `davs:` (`DAVURIPath`, WebDAV) | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
 | `github:` / `gitlab:` / `git:` | Yes | No | Yes | Yes | No | No | No |
 
 Every scheme gets `glob()`, `walk()`, `copy()`/`move()`, `rm()` and `PathSyncer`
@@ -33,11 +33,11 @@ from the `pathlib-next` base classes. The per-scheme notes (timeouts,
 certificate verification, authentication, limits) are in
 [Schemes](https://jose-pr.github.io/uripath/guides/schemes/).
 
-- **Pure URI algebra**: `Uri` parses, joins and compares URIs with no I/O and
+- **Pure URI algebra**: `URI` parses, joins and compares URIs with no I/O and
   no scheme class needed; `Source` and `Query` are its authority and query.
 - **HTTP on the standard library**: `http:`, `dav:`, `github:`, `gitlab:` and
   `git:` send through a replaceable transport built on `http.client`.
-- **Extensible**: subclass `UriPath` and declare `__SCHEMES` for a new scheme,
+- **Extensible**: subclass `URIPath` and declare `__SCHEMES` for a new scheme,
   or register it through a `uripath.schemes` entry point.
 - **Other distributions** provide what needs a third-party library: `sftp:`
   (`uripath-sftp`), `s3:`, `gs:` and `az:` (`uripath-objstore`) and the
@@ -57,16 +57,16 @@ There are no extras.
 
 ## Quick start
 
-**Any URI**: `UriPath` returns the class registered for the scheme:
+**Any URI**: `URIPath` returns the class registered for the scheme:
 
 ```python
-from uripath import UriPath
+from uripath import URIPath
 
-report = UriPath("file:data/report.txt")                    # FileUri
+report = URIPath("file:data/report.txt")                    # FileURIPath
 report.parent.mkdir(parents=True, exist_ok=True)
 report.write_text("hello")
 print(report.read_text())
-print(UriPath("data:text/plain;base64,aGVsbG8=").read_text())  # DataUri
+print(URIPath("data:text/plain;base64,aGVsbG8=").read_text())  # DataURIPath
 ```
 
 **Archive members**: `<scheme>:<archive-uri>!/<member>`, where the archive
@@ -74,12 +74,12 @@ itself is any URI (`file:`, `http:`, `ftp:`, ...):
 
 ```python
 import zipfile
-from uripath import UriPath
+from uripath import URIPath
 
 with zipfile.ZipFile("backup.zip", "w") as archive:
     archive.writestr("etc/config.ini", "[main]\n")
 
-member = UriPath("zip:file:backup.zip!/etc/config.ini")
+member = URIPath("zip:file:backup.zip!/etc/config.ini")
 print(member.read_text())
 print([child.name for child in member.parent.iterdir()])
 ```
@@ -88,27 +88,27 @@ print([child.name for child in member.parent.iterdir()])
 
 <!-- example: skip: reads from remote hosts -->
 ```python
-from uripath import UriPath
+from uripath import URIPath
 
-for child in UriPath("https://example.com/data/").iterdir():
+for child in URIPath("https://example.com/data/").iterdir():
     print(child.name, child.stat().st_size)
 
-print(UriPath("ftp://user@host/pub/README").read_text())
-print(UriPath("github://github.com/owner/repo/README.md?ref=main").read_text())
+print(URIPath("ftp://user@host/pub/README").read_text())
+print(URIPath("github://github.com/owner/repo/README.md?ref=main").read_text())
 ```
 
 **Copy and sync across schemes**, with the `pathlib-next` syncer:
 
 ```python
 from pathlib_next.sync import PathSyncer
-from uripath import UriPath
+from uripath import URIPath
 
-source = UriPath("file:site")
+source = URIPath("file:site")
 (source / "css").mkdir(parents=True)
 (source / "index.html").write_text("<h1>hi</h1>")
 
-PathSyncer(remove_missing=True).sync(source, UriPath("file:site-copy"))
-print(sorted(p.name for p in UriPath("file:site-copy").iterdir()))
+PathSyncer(remove_missing=True).sync(source, URIPath("file:site-copy"))
+print(sorted(p.name for p in URIPath("file:site-copy").iterdir()))
 ```
 
 ## Command line
@@ -143,7 +143,7 @@ flag is described in the
 
 | Module | Purpose |
 | --- | --- |
-| `uripath` | `Uri`, `UriPath`, `UriLike`, `DerivedBackend`, `same_authority` |
+| `uripath` | `URI`, `URIPath`, `URILike`, `DerivedBackend`, `same_authority` |
 | `uripath.source` | `Source` (scheme, userinfo, host, port) and its helpers |
 | `uripath.query` | `Query` |
 | `uripath.schemes` | The built-in schemes: `file`, `data`, `archive` (`zip`, `tar`), `ftp`, `http`, `dav`, `github`, `gitlab`, `git` |
@@ -153,11 +153,11 @@ an agent-oriented API summary ships inside the package as `uripath/AGENTS.md`.
 
 ## Extending
 
-Subclass `UriPath` and declare `__SCHEMES` for a new URI scheme; it is
+Subclass `URIPath` and declare `__SCHEMES` for a new URI scheme; it is
 dispatched as soon as its module is imported, or through a `uripath.schemes`
 entry point. A scheme name belongs to one class: a second claim raises unless
-the class statement says `replace=True`, and `UriPath.schemes()` /
-`UriPath.scheme_class(name)` read the registry. Worked examples:
+the class statement says `replace=True`, and `URIPath.schemes()` /
+`URIPath.scheme_class(name)` read the registry. Worked examples:
 [Extending](https://jose-pr.github.io/uripath/guides/extending/). The pytest
 contracts that verify a scheme are in `pathlib_next.testing`.
 

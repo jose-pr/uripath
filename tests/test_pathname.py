@@ -2,7 +2,7 @@
 that route through Pathname's generic (non-pathlib-inherited) code: a plain
 Pathname (PosixPathname -- LocalPath itself is excluded here since pathlib's
 own PurePath wins those methods via MRO, see test_parity_pure.py instead),
-Uri, and MemPath.
+URI, and MemPath.
 """
 
 import pathlib
@@ -12,9 +12,9 @@ import pytest
 
 from pathlib_next.fspath import PosixPathname
 from pathlib_next.mempath import MemPath
-from uripath import Uri
+from uripath import URI
 
-IMPLS = [PosixPathname, Uri, MemPath]
+IMPLS = [PosixPathname, URI, MemPath]
 
 
 @pytest.mark.parametrize("cls", IMPLS)
@@ -101,7 +101,7 @@ def test_parent_and_parents(cls):
     # Stdlib's own `parents` (which PosixPathname inherits) gained slices and
     # negative indices in 3.10. Only that combination may refuse them: a
     # blanket try/except also hid a regression in the generic
-    # `_PathnameParents` used by Uri and MemPath.
+    # `_PathnameParents` used by URI and MemPath.
     stdlib_39_parents = cls is PosixPathname and sys.version_info < (3, 10)
 
     # Slicing
@@ -151,7 +151,7 @@ def test_parents_of_a_rooted_path_end_at_the_root(cls):
     ],
 )
 def test_match_is_right_anchored_per_segment(cls, path, pattern, expected):
-    # PosixPathname resolves stdlib's match (MRO); Uri and MemPath the
+    # PosixPathname resolves stdlib's match (MRO); URI and MemPath the
     # generic Pathname.match -- both routes must agree with pathlib.
     assert pathlib.PurePosixPath(path).match(pattern) is expected
     assert cls(path).match(pattern) is expected
@@ -166,7 +166,7 @@ def test_has_glob_pattern(cls):
 
 @pytest.mark.parametrize("cls", IMPLS)
 def test_match_b6_b7(cls):
-    # B6: reversed isinstance() args used to crash Uri/MemPath's match().
+    # B6: reversed isinstance() args used to crash URI/MemPath's match().
     # B7: WILCARD_PATTERN.match (anchored) missed "foo*"-style trailing
     # wildcards during has_glob_pattern's internal use.
     p = cls("dir/foo.txt")
@@ -252,7 +252,7 @@ def test_is_relative_to_negative_str_and_object_agree_with_stdlib(cls, path, oth
 # --- ordering --------------------------------------------------------------
 
 
-@pytest.mark.parametrize("cls", [MemPath, Uri])
+@pytest.mark.parametrize("cls", [MemPath, URI])
 def test_ordering_agrees_with_equality(cls):
     a, b = cls("/a/b"), cls("/a/c")
     same = cls("/a/b")
@@ -264,7 +264,7 @@ def test_ordering_agrees_with_equality(cls):
 
 def test_ordering_is_unavailable_between_unrelated_types():
     memory = MemPath("/a")
-    for other in (PosixPathname("/a"), Uri("file:///a"), "/a", 1):
+    for other in (PosixPathname("/a"), URI("file:///a"), "/a", 1):
         for compare in (
             lambda x, y: x < y,
             lambda x, y: x <= y,
@@ -277,7 +277,7 @@ def test_ordering_is_unavailable_between_unrelated_types():
 
 
 def test_uris_sort_by_their_text_so_the_host_counts():
-    uris = [Uri("http://b/a"), Uri("http://a/z"), Uri("http://a/b?q=1")]
+    uris = [URI("http://b/a"), URI("http://a/z"), URI("http://a/b?q=1")]
     assert [u.as_uri() for u in sorted(uris)] == [
         "http://a/b?q=1",
         "http://a/z",

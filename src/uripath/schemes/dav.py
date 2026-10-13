@@ -9,7 +9,7 @@ import xml.etree.ElementTree as _ET
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
 from pathlib_next.providers import check_follow
-from .. import Uri
+from .. import URI
 from ..source import compose_uri
 from . import _httpdate
 from . import http as http_module
@@ -17,7 +17,7 @@ from ._http._headers import peer_text
 from .http import (
     _EXCLUSIVE_CREATE,
     _IDENTITY_ENCODING,
-    HttpPath,
+    HTTPURIPath,
     _UploadStream,
     _drop_body,
     _path_error,
@@ -144,10 +144,10 @@ def _raise_for_multistatus(resp, path) -> None:
     raise OSError(_errno.EIO, message)
 
 
-class _DavWriteStream(_UploadStream):
-    def __init__(self, path: "DavPath", exclusive: bool = False):
+class _DAVWriteStream(_UploadStream):
+    def __init__(self, path: "DAVURIPath", exclusive: bool = False):
         super().__init__(path)
-        # `exclusive` (mode "x"): see `HttpWriteStream`.
+        # `exclusive` (mode "x"): see `HTTPWriteStream`.
         self._exclusive = exclusive
         self._ready = True
 
@@ -164,13 +164,13 @@ class _DavWriteStream(_UploadStream):
         )
 
 
-class DavPath(HttpPath):
+class DAVURIPath(HTTPURIPath):
     """`dav:`/`davs:` scheme: WebDAV (RFC 4918) over HTTP(S). Extends
-    `HttpPath` with PROPFIND (stat/listdir -- real directory metadata,
-    replacing `HttpPath`'s HTML-index scraping) and PUT/DELETE/MKCOL/MOVE
+    `HTTPURIPath` with PROPFIND (stat/listdir -- real directory metadata,
+    replacing `HTTPURIPath`'s HTML-index scraping) and PUT/DELETE/MKCOL/MOVE
     (full write support). Requests go to the equivalent `http:`/`https:`
     URL (`_wire_uri()`); `as_uri()` still reports `dav:`/`davs:`. Reuses
-    `HttpPath`'s `HttpBackend` (transport + settings) -- no new dependency.
+    `HTTPURIPath`'s `HTTPBackend` (transport + settings) -- no new dependency.
 
     `rmdir()` enforces pathlib's "must be empty" contract with a depth-1
     PROPFIND before DELETE (WebDAV `DELETE` is recursive by spec, RFC 4918,
@@ -183,7 +183,7 @@ class DavPath(HttpPath):
     __slots__ = ()
 
     def _wire_uri(self) -> str:
-        # Keeps the userinfo: `HttpBackend.request` strips it from the URL it sends and
+        # Keeps the userinfo: `HTTPBackend.request` strips it from the URL it sends and
         # turns it into `auth=`. Direct string assembly, not uricompose(), as this runs on
         # every request and every part is this instance's own parsed state (`_compose_uri`).
         scheme = "https" if self.source.scheme == "davs" else "http"
@@ -351,7 +351,7 @@ class DavPath(HttpPath):
             raise NotImplementedError(f"open(mode={mode!r})")
         if mode == "x":
             self._ensure_missing()
-        return _DavWriteStream(self, exclusive=mode == "x")
+        return _DAVWriteStream(self, exclusive=mode == "x")
 
     def _mkdir(self, mode):
         self._dav_request(
@@ -406,7 +406,7 @@ class DavPath(HttpPath):
         /,
         recursive: bool = False,
         missing_ok: bool = False,
-        ignore_error: "bool | _ty.Callable[[Exception, DavPath], bool]" = False,
+        ignore_error: "bool | _ty.Callable[[Exception, DAVURIPath], bool]" = False,
         *,
         follow_symlinks=False,
         follow_binds=False,
@@ -440,7 +440,7 @@ class DavPath(HttpPath):
             if not onerror(error, self):
                 raise
 
-    def rename(self, target: "DavPath | Uri | str"):
+    def rename(self, target: "DAVURIPath | URI | str"):
         target = self._rename_target(target)
         # The new path carries the target's own query, not this path's: a
         # signature or token in the query is good for the source only.

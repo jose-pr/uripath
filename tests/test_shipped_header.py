@@ -306,8 +306,8 @@ def test_the_header_has_blocks_for_the_package():
             "relative_to",
         ),
         (
-            "class UriPath(Uri, Path):",
-            "class UriPath(Uri, Elsewhere):",
+            "class URIPath(URI, Path):",
+            "class URIPath(URI, Elsewhere):",
             "Elsewhere is not a base",
         ),
         (

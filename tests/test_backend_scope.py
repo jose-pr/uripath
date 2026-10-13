@@ -17,10 +17,10 @@ import threading
 import pytest
 
 from pathlib_next.path._relation import _same_file
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 
 from http_fakes import on_current_transport
-from uripath.schemes.http import HttpPath
+from uripath.schemes.http import HTTPURIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -92,28 +92,28 @@ def _read(path):
 
 
 def _crossings():
-    """Ways to reach the other server from `base`. `other` is a plain `Uri`
-    for it; a route may also spell it as a `str` or a `UriPath`."""
+    """Ways to reach the other server from `base`. `other` is a plain `URI`
+    for it; a route may also spell it as a `str` or a `URIPath`."""
     return {
-        "base / Uri": lambda base, other: base / other,
-        "base / UriPath": lambda base, other: base / UriPath(other.as_uri()),
+        "base / URI": lambda base, other: base / other,
+        "base / URIPath": lambda base, other: base / URIPath(other.as_uri()),
         "parent / str": lambda base, other: (base / other).parent / "f",
-        "(base / Uri) / str": lambda base, other: (base / other) / "x",
-        "(base / UriPath) / str": lambda base, other: (
-            (base / UriPath(other.as_uri())) / "x"
+        "(base / URI) / str": lambda base, other: (base / other) / "x",
+        "(base / URIPath) / str": lambda base, other: (
+            (base / URIPath(other.as_uri())) / "x"
         ),
-        "(base / Uri) / str with a trailing slash": lambda base, other: (
+        "(base / URI) / str with a trailing slash": lambda base, other: (
             (base / other) / "x/"
         ),
-        "(base / Uri) / absolute str": lambda base, other: (base / other) / "/abs",
-        "joinpath(Uri, str)": lambda base, other: base.joinpath(other, "x"),
-        "UriPath(base, str) / str": lambda base, other: (
-            UriPath(base, other.as_uri()) / "x"
+        "(base / URI) / absolute str": lambda base, other: (base / other) / "/abs",
+        "joinpath(URI, str)": lambda base, other: base.joinpath(other, "x"),
+        "URIPath(base, str) / str": lambda base, other: (
+            URIPath(base, other.as_uri()) / "x"
         ),
-        "HttpPath(base, str) / str": lambda base, other: (
-            HttpPath(base, other.as_uri()) / "x"
+        "HTTPURIPath(base, str) / str": lambda base, other: (
+            HTTPURIPath(base, other.as_uri()) / "x"
         ),
-        "UriPath(base, Uri) / str": lambda base, other: UriPath(base, other) / "x",
+        "URIPath(base, URI) / str": lambda base, other: URIPath(base, other) / "x",
         "with_name": lambda base, other: ((base / other) / "f").with_name("z"),
         "with_suffix": lambda base, other: ((base / other) / "f").with_suffix(".t"),
         "_make_child_relpath": lambda base, other: (
@@ -130,8 +130,8 @@ def _crossings():
 @pytest.mark.parametrize("route", list(_crossings()))
 def test_a_session_never_reaches_another_server(two_servers, route):
     a, b = two_servers
-    base = _with(UriPath(f"{a.url}/api/d/f.txt"), Authorization="Bearer SECRET-FOR-A")
-    other = Uri(f"{b.url}/other/d/")
+    base = _with(URIPath(f"{a.url}/api/d/f.txt"), Authorization="Bearer SECRET-FOR-A")
+    other = URI(f"{b.url}/other/d/")
 
     crossed = _crossings()[route](base, other)
     assert crossed.source.port == int(b.url.rsplit(":", 1)[1])
@@ -144,13 +144,13 @@ def test_a_session_never_reaches_another_server(two_servers, route):
 
 def test_a_session_still_follows_a_join_on_its_own_server(two_servers):
     a, _ = two_servers
-    base = _with(UriPath(f"{a.url}/api/"), **{"X-Session": "mine"})
+    base = _with(URIPath(f"{a.url}/api/"), **{"X-Session": "mine"})
     for path in (
         base / "x",
         base / "sub" / "x",
         base.joinpath("sub", "x"),
-        base / Uri("x"),
-        UriPath(base, "x"),
+        base / URI("x"),
+        URIPath(base, "x"),
         (base / "sub/x").parent / "y",
         (base / "x").with_name("y"),
         base._coerce_target("y"),
@@ -166,8 +166,8 @@ def test_the_mirroring_idiom_keeps_the_destination_session(two_servers):
     file on another endpoint: the destination's own session must be used,
     not an ambient default and not the source's."""
     a, b = two_servers
-    src_root = _with(UriPath(f"{a.url}/api/"), Authorization="Bearer SECRET-FOR-A")
-    dst_root = _with(UriPath(f"{b.url}/mirror/"), **{"X-Session": "dst"})
+    src_root = _with(URIPath(f"{a.url}/api/"), Authorization="Bearer SECRET-FOR-A")
+    dst_root = _with(URIPath(f"{b.url}/mirror/"), **{"X-Session": "dst"})
     src = src_root / "sub" / "f.txt"
     rel = src.relative_to(src_root)
     assert rel._backend is None
@@ -175,7 +175,7 @@ def test_the_mirroring_idiom_keeps_the_destination_session(two_servers):
     routes = {
         "dst_root / rel": dst_root / rel,
         "dst_root.joinpath(rel)": dst_root.joinpath(rel),
-        "HttpPath(dst_root, rel)": HttpPath(dst_root, rel),
+        "HTTPURIPath(dst_root, rel)": HTTPURIPath(dst_root, rel),
         "(dst_root / rel).with_name": (dst_root / rel).with_name("g"),
         "(dst_root / rel.parent) / name": (dst_root / src.parent.relative_to(src_root))
         / "f.txt",
@@ -196,7 +196,7 @@ class _Backend:
         self.tag = tag
 
 
-class TaggedScopePath(UriPath):
+class TaggedScopePath(URIPath):
     """A scheme whose backend says which endpoint built it."""
 
     __SCHEMES = ("tagged-scope",)
@@ -218,26 +218,26 @@ def _tag(path):
 
 
 def test_the_backend_of_the_rightmost_segment_on_the_result_endpoint_wins():
-    a = UriPath("tagged-scope://a/d", backend=_Backend("supplied-a"))
-    b = UriPath("tagged-scope://b/d", backend=_Backend("supplied-b"))
-    assert _tag(UriPath(a, b)) == "supplied-b"
-    assert _tag(UriPath(b, a)) == "supplied-a"
-    assert _tag(UriPath(a, b, "x")) == "supplied-b"
+    a = URIPath("tagged-scope://a/d", backend=_Backend("supplied-a"))
+    b = URIPath("tagged-scope://b/d", backend=_Backend("supplied-b"))
+    assert _tag(URIPath(a, b)) == "supplied-b"
+    assert _tag(URIPath(b, a)) == "supplied-a"
+    assert _tag(URIPath(a, b, "x")) == "supplied-b"
     # A later segment of another endpoint does not displace the one whose
     # endpoint the result has.
-    assert _tag(UriPath(b, "tagged-scope://b/e", Uri("x"))) == "supplied-b"
-    assert _tag(UriPath(a, Uri("tagged-scope://c/e"))) == "derived-c"
+    assert _tag(URIPath(b, "tagged-scope://b/e", URI("x"))) == "supplied-b"
+    assert _tag(URIPath(a, URI("tagged-scope://c/e"))) == "derived-c"
 
 
 def test_a_sourceless_relative_path_carries_no_backend():
-    root = UriPath("tagged-scope://a/root", backend=_Backend("supplied-a"))
+    root = URIPath("tagged-scope://a/root", backend=_Backend("supplied-a"))
     rel = (root / "x" / "y").relative_to(root)
     assert rel._backend is None
     assert TaggedScopePath.built == []
-    other = UriPath("tagged-scope://b/root", backend=_Backend("supplied-b"))
+    other = URIPath("tagged-scope://b/root", backend=_Backend("supplied-b"))
     assert _tag(other / rel) == "supplied-b"
     assert _tag((other / rel) / "z") == "supplied-b"
-    assert _tag(UriPath(other, rel)) == "supplied-b"
+    assert _tag(URIPath(other, rel)) == "supplied-b"
 
 
 def test_a_path_built_with_an_explicit_backend_keeps_it_even_without_a_source():
@@ -251,22 +251,22 @@ def test_a_path_built_with_an_explicit_backend_keeps_it_even_without_a_source():
 
 
 def test_a_userinfo_or_port_difference_is_another_endpoint():
-    base = UriPath("tagged-scope://user@a:1/d", backend=_Backend("supplied"))
+    base = URIPath("tagged-scope://user@a:1/d", backend=_Backend("supplied"))
     for other in (
         "tagged-scope://a:1/d",
         "tagged-scope://user@a:2/d",
         "tagged-scope://user@a/d",
         "tagged-scope://other@a:1/d",
     ):
-        assert _tag(base / Uri(other)) == "derived-a", other
-    assert _tag(base / Uri("tagged-scope://USER@a:1/d")) != "supplied"
-    assert _tag(base / Uri("tagged-scope://user@A:1/d")) == "supplied"
+        assert _tag(base / URI(other)) == "derived-a", other
+    assert _tag(base / URI("tagged-scope://USER@a:1/d")) != "supplied"
+    assert _tag(base / URI("tagged-scope://user@A:1/d")) == "supplied"
 
 
 def test_with_source_and_destinations_follow_the_same_rule():
-    a = UriPath("tagged-scope://a/d/f", backend=_Backend("supplied-a"))
+    a = URIPath("tagged-scope://a/d/f", backend=_Backend("supplied-a"))
     assert _tag(a.with_source(a.source)) == "supplied-a"
-    assert _tag(a.with_source(UriPath("tagged-scope://b/").source)) == "derived-b"
+    assert _tag(a.with_source(URIPath("tagged-scope://b/").source)) == "derived-b"
     assert _tag(a._coerce_target("tagged-scope://a/e")) == "supplied-a"
     assert _tag(a._coerce_target("tagged-scope://b/e")) == "derived-b"
     assert _tag(a._coerce_target("g")) == "supplied-a"
@@ -276,7 +276,7 @@ def test_with_source_and_destinations_follow_the_same_rule():
 
 
 def test_deriving_a_path_builds_no_backend():
-    p = UriPath("tagged-scope://a/x/y.txt")
+    p = URIPath("tagged-scope://a/x/y.txt")
     derived = [
         p.parent,
         p.parent.parent,
@@ -289,10 +289,10 @@ def test_deriving_a_path_builds_no_backend():
         p.with_path("/other"),
         p.relative_to(p.parent),
         p / "k",
-        p / Uri("k"),
+        p / URI("k"),
         p / pathlib.PurePosixPath("k"),
-        p.joinpath("k", Uri("m")),
-        UriPath(p, "k"),
+        p.joinpath("k", URI("m")),
+        URIPath(p, "k"),
         TaggedScopePath(p, "k"),
         p._make_child_relpath("k"),
         p._coerce_target("k"),
@@ -306,9 +306,9 @@ def test_deriving_a_path_builds_no_backend():
 
 
 def test_a_derived_path_shares_the_backend_that_exists():
-    p = UriPath("tagged-scope://a/x/y.txt")
+    p = URIPath("tagged-scope://a/x/y.txt")
     built = p.backend
-    for q in (p.parent, p.with_name("z"), p / "k", p / Uri("k"), UriPath(p, "k")):
+    for q in (p.parent, p.with_name("z"), p / "k", p / URI("k"), URIPath(p, "k")):
         assert q._backend is built
         assert q.backend is built
     assert TaggedScopePath.built == ["a"]
@@ -321,17 +321,17 @@ _PURE_OPERATIONS = [
     "p.with_suffix('.t')",
     "p.with_query('a=1')",
     "p.relative_to('/a')",
-    "p / Uri('y')",
+    "p / URI('y')",
     "p / PurePosixPath('y')",
     "p / 'y'",
-    "UriPath(p, 'y')",
+    "URIPath(p, 'y')",
 ]
 
 
 # --- a derived backend is recorded on the path ------------------------------
 
 
-class DictScopePath(UriPath):
+class DictScopePath(URIPath):
     """A scheme whose backend is a plain dict: not weakly referenceable
     through a registry of backends, and equal to any other empty one."""
 
@@ -370,7 +370,7 @@ class DictScopePath(UriPath):
 def test_a_derived_backend_that_is_a_dict_still_reads_as_derived():
     DictScopePath.store.clear()
     DictScopePath.store["/d/f.txt"] = b"precious"
-    a, b = UriPath("dict-scope://h/d/f.txt"), UriPath("dict-scope://h/d/f.txt")
+    a, b = URIPath("dict-scope://h/d/f.txt"), URIPath("dict-scope://h/d/f.txt")
     assert a.backend == b.backend == {}
     assert a.backend is not b.backend
     assert a._supplied_backend() is None
@@ -385,8 +385,8 @@ def test_a_derived_backend_that_is_a_dict_still_reads_as_derived():
 
 def test_a_supplied_dict_backend_is_never_taken_for_derived():
     one, two = {}, {}
-    a = UriPath("dict-scope://h/d/f.txt", backend=one)
-    b = UriPath("dict-scope://h/d/f.txt", backend=two)
+    a = URIPath("dict-scope://h/d/f.txt", backend=one)
+    b = URIPath("dict-scope://h/d/f.txt", backend=two)
     assert a._supplied_backend() is one
     assert (a.parent / "f.txt")._supplied_backend() is one
     assert not a._same_filesystem(b)
@@ -394,7 +394,7 @@ def test_a_supplied_dict_backend_is_never_taken_for_derived():
 
 
 def test_a_backend_inherited_from_a_derived_path_is_still_derived():
-    p = UriPath("dict-scope://h/d/f.txt")
+    p = URIPath("dict-scope://h/d/f.txt")
     p.backend
     child = p.parent / "g"
     assert child._backend is p._backend

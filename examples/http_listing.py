@@ -15,10 +15,10 @@ Run directly:
 import os
 import sys
 
-from uripath import UriPath
+from uripath import URIPath
 
 
-def list_and_stat(root: UriPath):
+def list_and_stat(root: URIPath):
     # str() of a URI path drops any password in the URL, so printing it is safe.
     print(f"Listing {root}")
     for child in root.iterdir():
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         )
         raise SystemExit(0)
 
-    root = UriPath(url)
+    root = URIPath(url)
     try:
         list_and_stat(root)
     except Exception as error:

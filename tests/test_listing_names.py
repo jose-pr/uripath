@@ -51,9 +51,9 @@ def make_tree(request, tmp_path):
     `victim/precious.txt`, which it must never touch."""
     if request.param == "file-uri":
         pytest.importorskip("uritools")
-        from uripath.schemes.file import FileUri
+        from uripath.schemes.file import FileURIPath
 
-        base = FileUri
+        base = FileURIPath
     else:
         base = LocalPath
 

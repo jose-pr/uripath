@@ -7,8 +7,8 @@ import pytest
 
 from http_fakes import on_current_transport
 from http_wire import Wire, make_authority, response
-from uripath import UriPath
-from uripath.schemes.http import HttpPath, HTTPTransport
+from uripath import URIPath
+from uripath.schemes.http import HTTPURIPath, HTTPTransport
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -45,9 +45,9 @@ def credentialed(wire, how):
     the userinfo of its URL."""
     if how == "header":
         return on_current_transport(
-            UriPath(wire.url + "/f"), headers={"Authorization": TOKEN}
+            URIPath(wire.url + "/f"), headers={"Authorization": TOKEN}
         )
-    return on_current_transport(UriPath(f"http://user:s3cr3t@127.0.0.1:{wire.port}/f"))
+    return on_current_transport(URIPath(f"http://user:s3cr3t@127.0.0.1:{wire.port}/f"))
 
 
 def _open_exclusively(path):
@@ -83,7 +83,7 @@ def test_a_redirect_to_another_origin_does_not_carry_authorization(
 def test_a_patch_mode_append_asks_the_other_origin_without_authorization(origins):
     home, away = origins
     path = on_current_transport(
-        UriPath(home.url + "/f"),
+        URIPath(home.url + "/f"),
         headers={"Authorization": TOKEN},
         append_mode="patch",
     )
@@ -105,7 +105,7 @@ def test_a_redirect_within_the_origin_keeps_authorization(http_transport):
 
     with Wire(script) as wire:
         path = on_current_transport(
-            UriPath(wire.url + "/d"), headers={"Authorization": TOKEN}
+            URIPath(wire.url + "/d"), headers={"Authorization": TOKEN}
         )
         assert path.stat().is_dir()
     assert [r.target for r in wire.requests] == ["/d", "/d/"]
@@ -123,7 +123,7 @@ def test_a_second_redirect_back_to_the_origin_does_not_bring_it_back(http_transp
 
             wire.script = script
             path = on_current_transport(
-                UriPath(wire.url + "/start"), headers={"Authorization": TOKEN}
+                URIPath(wire.url + "/start"), headers={"Authorization": TOKEN}
             )
             path.stat()
     assert [r.header("Authorization") for r in wire.requests] == [TOKEN, None]
@@ -138,7 +138,7 @@ def test_a_redirect_from_https_to_plain_http_does_not_carry_authorization(tmp_pa
         )
         with Wire(secure_script, tls=authority.server_context()) as secure:
             transport = HTTPTransport(ssl_context=authority.client_context())
-            path = HttpPath(secure.url + "/f").with_transport(
+            path = HTTPURIPath(secure.url + "/f").with_transport(
                 transport, headers={"Authorization": TOKEN}
             )
             try:
@@ -151,7 +151,7 @@ def test_a_redirect_from_https_to_plain_http_does_not_carry_authorization(tmp_pa
 
 
 def test_the_git_apis_send_their_token_to_their_own_origin_only():
-    from uripath.schemes.github import GitHubPath, RepoBackend
+    from uripath.schemes.github import GitHubURIPath, RepoBackend
 
     raw = {
         "X-GitHub-Media-Type": "github.v3; param=raw",
@@ -164,7 +164,7 @@ def test_the_git_apis_send_their_token_to_their_own_origin_only():
 
         with Wire(home_script) as home:
             backend = RepoBackend(token="T0KEN", api_base=home.url)
-            path = GitHubPath("github://github.com/o/r/f.txt", backend=backend)
+            path = GitHubURIPath("github://github.com/o/r/f.txt", backend=backend)
             assert path.exists()
             assert path.read_bytes() == b"abc"
     assert home.requests[0].header("Authorization") == "Bearer T0KEN"

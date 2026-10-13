@@ -18,10 +18,10 @@ import textwrap
 import pytest
 
 import uripath
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes import _elsewhere
 from uripath.schemes.gitlab import RepoBackend
-from uripath.schemes.http import HttpBackend, HttpPath
+from uripath.schemes.http import HTTPBackend, HTTPURIPath
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 
@@ -81,14 +81,14 @@ OPERATIONS = {
 @pytest.mark.parametrize("scheme", CASES)
 def test_a_path_of_a_scheme_provided_elsewhere_builds_joins_compares_and_prints(scheme):
     url = CASES[scheme][0]
-    path = UriPath(url)
+    path = URIPath(url)
     assert type(path) is _elsewhere.ProvidedElsewhere
     assert path.source.scheme == scheme
     assert path.name == "file.txt"
     child = path.parent / "other.txt"
     assert child.parent == path.parent
     assert child.name == "other.txt"
-    assert path == UriPath(url) and hash(path) == hash(UriPath(url))
+    assert path == URIPath(url) and hash(path) == hash(URIPath(url))
     assert path != child
     assert "s3cr3t" not in str(path) and "s3cr3t" not in repr(path)
 
@@ -98,7 +98,7 @@ def test_a_path_of_a_scheme_provided_elsewhere_builds_joins_compares_and_prints(
 def test_an_operation_that_needs_the_server_names_what_to_install(scheme, operation):
     url, message = CASES[scheme]
     with pytest.raises(ImportError) as raised:
-        OPERATIONS[operation](UriPath(url))
+        OPERATIONS[operation](URIPath(url))
     assert str(raised.value) == message
     assert "s3cr3t" not in str(raised.value)
 
@@ -106,25 +106,25 @@ def test_an_operation_that_needs_the_server_names_what_to_install(scheme, operat
 @pytest.mark.parametrize("scheme", CASES)
 def test_the_scheme_class_of_a_scheme_provided_elsewhere_names_what_to_install(scheme):
     with pytest.raises(ImportError) as raised:
-        UriPath.scheme_class(scheme.upper())
+        URIPath.scheme_class(scheme.upper())
     assert str(raised.value) == CASES[scheme][1]
 
 
 @pytest.mark.parametrize("scheme", CASES)
 def test_a_scheme_provided_elsewhere_is_listed(scheme):
-    assert scheme in UriPath.schemes()
+    assert scheme in URIPath.schemes()
 
 
 def test_a_scheme_nobody_provides_is_still_a_value_error():
     with pytest.raises(ValueError, match="no URI scheme 'nosuchscheme'"):
-        UriPath.scheme_class("nosuchscheme")
+        URIPath.scheme_class("nosuchscheme")
 
 
 def test_a_path_of_a_scheme_provided_elsewhere_pickles_and_copies():
     import copy
     import pickle
 
-    path = UriPath("s3://bucket/dir/file.txt")
+    path = URIPath("s3://bucket/dir/file.txt")
     for twin in (
         pickle.loads(pickle.dumps(path)),
         copy.copy(path),
@@ -144,16 +144,16 @@ def test_an_installed_distribution_takes_the_scheme(tmp_path):
         b"[uripath.schemes]\nsftp = elsewhere_plugin:Provided\n"
     )
     (tmp_path / "elsewhere_plugin.py").write_bytes(
-        b"from uripath import UriPath\n"
-        b"class Provided(UriPath):\n"
+        b"from uripath import URIPath\n"
+        b"class Provided(URIPath):\n"
         b"    __SCHEMES = ('sftp',)\n"
     )
     code = textwrap.dedent("""
-        from uripath import UriPath
-        path = UriPath("sftp://host/dir/file.txt")
+        from uripath import URIPath
+        path = URIPath("sftp://host/dir/file.txt")
         print(type(path).__name__)
-        print(UriPath.scheme_class("sftp").__name__)
-        print(type(UriPath("s3://bucket/key")).__name__)
+        print(URIPath.scheme_class("sftp").__name__)
+        print(type(URIPath("s3://bucket/key")).__name__)
         """)
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(
@@ -175,7 +175,7 @@ def test_an_installed_distribution_takes_the_scheme(tmp_path):
 
 def test_with_session_names_the_distribution_that_provides_the_transport():
     with pytest.raises(ImportError) as raised:
-        HttpPath("http://h/x").with_session(object(), write_method="POST")
+        HTTPURIPath("http://h/x").with_session(object(), write_method="POST")
     assert str(raised.value) == REQUESTS_MESSAGE
     assert raised.value.name == "uripath_http_requests"
 
@@ -191,12 +191,12 @@ def test_the_requests_transport_asked_for_by_the_environment_names_the_distribut
     monkeypatch,
 ):
     monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", "requests")
-    with HttpBackend() as backend:
+    with HTTPBackend() as backend:
         with pytest.raises(ImportError) as raised:
             backend.transport
     assert str(raised.value) == REQUESTS_MESSAGE
     # the choice is reported where a request is sent, not where a path is built
-    path = UriPath("http://127.0.0.1:1/x")
+    path = URIPath("http://127.0.0.1:1/x")
     assert path.name == "x"
     with pytest.raises(ImportError, match="uripath-http-requests"):
         path.stat()

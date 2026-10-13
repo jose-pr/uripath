@@ -13,9 +13,9 @@ import typing
 import pytest
 
 from http_fakes import on_current_transport
-from uripath import UriPath
-from uripath.schemes.dav import DavPath, _DavWriteStream
-from uripath.schemes.http import HttpAppendStream, HttpPath, HttpWriteStream
+from uripath import URIPath
+from uripath.schemes.dav import DAVURIPath, _DAVWriteStream
+from uripath.schemes.http import HTTPAppendStream, HTTPURIPath, HTTPWriteStream
 
 # (connect, read) seconds: a reply is waited for generously, except when a
 # test makes the server stall, which needs a read timeout short enough to hit.
@@ -173,7 +173,7 @@ def _path(wire, scheme, name, **session_args):
     out after `STALL_TIMEOUT` when a rule stalls the server, else `TIMEOUT`."""
     url = f"{scheme}{wire.base[len('http'):]}{name}"
     timeout = STALL_TIMEOUT if _stall in wire.rules.values() else TIMEOUT
-    return on_current_transport(UriPath(url), **{"timeout": timeout, **session_args})
+    return on_current_transport(URIPath(url), **{"timeout": timeout, **session_args})
 
 
 def _stall(handler):
@@ -235,7 +235,7 @@ def test_patch_append_open_whose_size_probe_fails_sends_no_upload(wire, failure)
     assert wire.files["/log.txt"] == b"line1\nline2\n"
 
 
-@pytest.mark.parametrize("stream", [HttpWriteStream, HttpAppendStream, _DavWriteStream])
+@pytest.mark.parametrize("stream", [HTTPWriteStream, HTTPAppendStream, _DAVWriteStream])
 def test_stream_whose_constructor_never_ran_sends_nothing_on_close(wire, stream):
     unfinished = stream.__new__(stream)
     unfinished.write(b"half")
@@ -499,7 +499,7 @@ def test_a_followed_redirect_ignores_userinfo_in_its_location(wire):
 
 def test_a_followed_redirect_keeps_the_request_credentials(wire):
     url = f"http://user:hunter2@127.0.0.1:{wire.port}/r307/f.bin"
-    on_current_transport(UriPath(url), timeout=TIMEOUT).write_bytes(b"NEW")
+    on_current_transport(URIPath(url), timeout=TIMEOUT).write_bytes(b"NEW")
     first, second = wire.log
     assert first.headers["Authorization"] == second.headers["Authorization"]
     assert first.headers["Authorization"].startswith("Basic ")
@@ -507,7 +507,7 @@ def test_a_followed_redirect_keeps_the_request_credentials(wire):
 
 def test_a_refused_redirect_names_the_url_without_credentials(wire):
     url = f"http://user:hunter2@127.0.0.1:{wire.port}/r302/f.bin"
-    path = on_current_transport(UriPath(url), timeout=TIMEOUT)
+    path = on_current_transport(URIPath(url), timeout=TIMEOUT)
     with pytest.raises(OSError) as excinfo:
         path.write_bytes(b"NEW")
     assert "hunter2" not in str(excinfo.value)

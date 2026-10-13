@@ -1,13 +1,13 @@
 """Unit-only WebDAV tests: a fake transport plugged into the real
-`HttpBackend`, no real server. Covers PROPFIND-based stat/listdir and
+`HTTPBackend`, no real server. Covers PROPFIND-based stat/listdir and
 PUT/DELETE/MKCOL/MOVE.
 """
 
 import pytest
 
 from http_fakes import FakeTransport, reply
-from uripath.schemes.http import HttpBackend, HTTPResponse
-from uripath.schemes.dav import DavPath
+from uripath.schemes.http import HTTPBackend, HTTPResponse
+from uripath.schemes.dav import DAVURIPath
 
 
 def _FakeResponse(status_code=200, content=b"", headers=None):
@@ -30,7 +30,7 @@ class _FakeSession(FakeTransport):
 
 
 def _dav(uri, session=None):
-    return DavPath(uri, backend=HttpBackend(session or _FakeSession()))
+    return DAVURIPath(uri, backend=HTTPBackend(session or _FakeSession()))
 
 
 _MULTISTATUS_FILE = b"""<?xml version="1.0"?>
@@ -96,7 +96,7 @@ _MULTISTATUS_LISTING = b"""<?xml version="1.0"?>
 
 
 def test_scheme_dispatch():
-    assert isinstance(_dav("dav://host/docs/readme.txt"), DavPath)
+    assert isinstance(_dav("dav://host/docs/readme.txt"), DAVURIPath)
 
 
 def test_wire_uri_translates_scheme():
@@ -121,8 +121,8 @@ def test_session_headers_merge_with_request_headers():
     session.responses[("PROPFIND", "http://host/docs/readme.txt", "0")] = _FakeResponse(
         207, _MULTISTATUS_FILE
     )
-    backend = HttpBackend(session, headers={"X-Token": "t", "Depth": "infinity"})
-    DavPath("dav://host/docs/readme.txt", backend=backend).stat()
+    backend = HTTPBackend(session, headers={"X-Token": "t", "Depth": "infinity"})
+    DAVURIPath("dav://host/docs/readme.txt", backend=backend).stat()
     headers = session.calls[-1][2]["headers"]
     assert headers["X-Token"] == "t"
     assert headers["Depth"] == "0"

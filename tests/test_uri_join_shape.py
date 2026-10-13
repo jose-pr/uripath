@@ -7,10 +7,10 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from uripath import UriPath
+from uripath import URIPath
 
 
-class CountingPath(UriPath):
+class CountingPath(URIPath):
     """Counts the instances built through `_from_parsed_parts`."""
 
     __SCHEMES = ("countg5",)
@@ -38,7 +38,7 @@ class NamedPath(CountingPath):
 
 
 def test_a_str_join_builds_one_path_whatever_the_number_of_segments():
-    base = UriPath("countg5://h/root")
+    base = URIPath("countg5://h/root")
     CountingPath.built = 0
     joined = base / "a/b/c/d/e"
     assert CountingPath.built == 1
@@ -52,14 +52,14 @@ def test_a_str_join_builds_one_path_whatever_the_number_of_segments():
 
 
 def test_joinpath_builds_one_path_per_argument():
-    base = UriPath("countg5://h/root")
+    base = URIPath("countg5://h/root")
     CountingPath.built = 0
     assert base.joinpath("a/b", "c/d/e").as_uri() == "countg5://h/root/a/b/c/d/e"
     assert CountingPath.built == 2
 
 
 def test_a_scheme_that_builds_its_own_children_is_asked_for_every_name():
-    base = UriPath("namedg5://h/root")
+    base = URIPath("namedg5://h/root")
     NamedPath.asked.clear()
     assert (base / "a/b/c").as_uri() == "namedg5://h/root/a/b/c"
     assert NamedPath.asked == ["a", "b", "c"]
@@ -72,7 +72,7 @@ def test_a_listing_still_builds_each_child_through_the_child_hook(tmp_path):
     for name in ("one", "two"):
         (tmp_path / name).write_text("x")
     seen = []
-    base = UriPath(tmp_path.as_uri())
+    base = URIPath(tmp_path.as_uri())
 
     class Spy(type(base)):
         __slots__ = ()
@@ -87,8 +87,8 @@ def test_a_listing_still_builds_each_child_through_the_child_hook(tmp_path):
 
 
 def test_the_written_path_is_the_one_a_child_by_child_join_gives():
-    base = UriPath("countg5://h/root")
-    named = UriPath("namedg5://h/root")
+    base = URIPath("countg5://h/root")
+    named = URIPath("namedg5://h/root")
     for key in ("a", "a/b", "a//b", "a/", "a//", "/", "/a", "/a//b/", "a/b/c/d"):
         left = (base / key).path
         right = (named / key).path

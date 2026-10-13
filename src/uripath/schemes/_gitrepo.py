@@ -9,7 +9,7 @@ import urllib.parse as _urlparse
 import warnings as _warnings
 
 from pathlib_next import providers as _providers
-from .. import Source, UriPath
+from .. import Source, URIPath
 from ..source import compose_host
 from . import _elsewhere
 from ._http import HTTPResponse, TransportOwner
@@ -137,8 +137,8 @@ class BaseRepoBackend(object):
     GitHub/GitLab REST API. Subclass this to plug in custom auth/session
     handling; `RepoBackend` is the real transport-based implementation."""
 
-    # Weakly referenceable so `UriPath` can record which backends a path
-    # derived for itself (see `UriPath._supplied_backend()`).
+    # Weakly referenceable so `URIPath` can record which backends a path
+    # derived for itself (see `URIPath._supplied_backend()`).
     __slots__ = ("__weakref__",)
 
     @_providers.notimplemented
@@ -148,13 +148,13 @@ class BaseRepoBackend(object):
 
 class RepoBackend(TransportOwner, BaseRepoBackend):
     """The transport and the optional bearer `token` sent on every request
-    (mirrors `HttpBackend` in `http.py`). Unauthenticated works fine for
+    (mirrors `HTTPBackend` in `http.py`). Unauthenticated works fine for
     public repos, subject to the host's anonymous rate limit (60 req/h for
     github.com).
 
     `transport` is any object with a `send()` method as
     `HTTPTransport.send()`; without one the built-in `HTTPTransport` is built
-    on first use (see `HttpBackend`). `session=` (a `requests.Session`) and
+    on first use (see `HTTPBackend`). `session=` (a `requests.Session`) and
     `requests_args` (`verify=`, `proxies=`, ...) select the `requests`
     transport of `uripath-http-requests`; without it they raise `ImportError`.
     `headers` go with every request, under the request's own.
@@ -166,7 +166,7 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
     loopback warns (`InsecureTransportWarning`). Every request gets
     `timeout=DEFAULT_TIMEOUT` (`(10, 60)` seconds) unless `timeout` here or
     in the call says otherwise; `None` waits without limit. A `GET` follows
-    redirects as `HttpBackend` does, dropping the token when the host
+    redirects as `HTTPBackend` does, dropping the token when the host
     changes."""
 
     __slots__ = ("token", "api_base", "headers", "timeout", "cache")
@@ -190,7 +190,7 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         self.headers = dict(headers or {})
         self.timeout = timeout
         # Generic per-backend memoization slot for schemes that need it
-        # (GitLabPath's resolved default-branch lookup, see `_resolved_ref`)
+        # (GitLabURIPath's resolved default-branch lookup, see `_resolved_ref`)
         # -- shared across every path instance that shares this backend.
         self.cache = {}
 
@@ -247,12 +247,12 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         return resp
 
 
-class _RepoApiPath(UriPath):
+class _RepoApiPath(URIPath):
     """Shared base for `github:`/`gitlab:` (`<scheme>://host/owner/repo/path
     /in/repo?ref=<ref>`): read-only access to a git-hosting REST API. `ref`
     (branch/tag/SHA) is always optional, carried in the `?ref=` query string
     -- omitted, GitHub falls back server-side to the repo's default branch,
-    while GitLab's file endpoints need an explicit ref, so `GitLabPath`
+    while GitLab's file endpoints need an explicit ref, so `GitLabURIPath`
     resolves (and caches) the default branch once. `host` defaults to the
     public SaaS host; any other host is treated as a self-hosted instance.
     Auth: a bearer token via `with_backend(RepoBackend(token=...))`, or
@@ -393,10 +393,10 @@ class _RepoApiPath(UriPath):
         if source and source.scheme == "git" and "git" not in type(self)._schemes():
             # `git:` re-dispatches by host; the base implementation would
             # construct `git:` with no host, which always raised ValueError.
-            from .git._base import GitPath
+            from .git._base import GitURIPath
 
-            provider_cls = GitPath._provider_cls(source)
-            inst = UriPath.__new__(provider_cls)
+            provider_cls = GitURIPath._provider_cls(source)
+            inst = URIPath.__new__(provider_cls)
             backend, derived = self._backend_for(source)
             if backend is not None and isinstance(self, provider_cls):
                 inst._backend, inst._backend_derived = backend, derived

@@ -2,19 +2,19 @@ import unittest.mock as mock
 import pytest
 import importlib.metadata
 
-from uripath import UriPath
+from uripath import URIPath
 
 
 def test_plugin_dynamic_loading():
     # Verify "dummy" scheme is not registered initially
     with pytest.raises(ValueError):
-        UriPath.scheme_class("dummy")
+        URIPath.scheme_class("dummy")
 
     mock_ep = mock.Mock()
     mock_ep.name = "dummy"
 
     def mock_load():
-        class DummyPluginPath(UriPath):
+        class DummyPluginPath(URIPath):
             __SCHEMES = ("dummy",)
 
         return DummyPluginPath
@@ -28,15 +28,15 @@ def test_plugin_dynamic_loading():
 
     with mock.patch("importlib.metadata.entry_points", side_effect=mock_entry_points):
         # Accessing dummy:// path should trigger loading of dummy plugin
-        p = UriPath("dummy://host/path")
+        p = URIPath("dummy://host/path")
         assert type(p).__name__ == "DummyPluginPath"
-        assert type(p) is not UriPath
-        assert UriPath.scheme_class("dummy") is type(p)
+        assert type(p) is not URIPath
+        assert URIPath.scheme_class("dummy") is type(p)
 
 
 def test_plugin_non_matching_scheme():
     # Verify "otherdummy" scheme is not registered
-    assert "otherdummy" not in UriPath.schemes()
+    assert "otherdummy" not in URIPath.schemes()
 
     mock_ep = mock.Mock()
     mock_ep.name = "dummy2"
@@ -48,8 +48,8 @@ def test_plugin_non_matching_scheme():
 
     with mock.patch("importlib.metadata.entry_points", side_effect=mock_entry_points):
         # Accessing otherdummy:// should not load mock_ep since names don't match
-        p = UriPath("otherdummy://host/path")
-        assert type(p) is UriPath
+        p = URIPath("otherdummy://host/path")
+        assert type(p) is URIPath
         mock_ep.load.assert_not_called()
 
 
@@ -61,13 +61,13 @@ def test_plugin_non_matching_scheme():
 class TestLoadEntryPoint:
     def test_returns_false_on_empty_group(self):
         with mock.patch("importlib.metadata.entry_points", return_value=[]):
-            assert UriPath._load_entry_point("anything") is False
+            assert URIPath._load_entry_point("anything") is False
 
     def test_returns_false_when_no_name_match(self):
         ep = mock.Mock()
         ep.name = "other"
         with mock.patch("importlib.metadata.entry_points", return_value=[ep]):
-            assert UriPath._load_entry_point("missing_xyz") is False
+            assert URIPath._load_entry_point("missing_xyz") is False
         ep.load.assert_not_called()
 
     def test_calls_load_on_match_and_returns_true(self):
@@ -75,7 +75,7 @@ class TestLoadEntryPoint:
         ep.name = "mytestscheme"
         ep.load.return_value = object
         with mock.patch("importlib.metadata.entry_points", return_value=[ep]):
-            result = UriPath._load_entry_point("mytestscheme")
+            result = URIPath._load_entry_point("mytestscheme")
         assert result is True
         ep.load.assert_called_once()
 
@@ -92,15 +92,15 @@ class TestLoadBuiltinScheme:
     def test_known_stdlib_schemes_return_true(self, scheme):
         """Schemes whose dependencies this suite always installs (stdlib,
         plus `requests` for http/https) load successfully."""
-        assert UriPath._load_builtin_scheme(scheme) is True
+        assert URIPath._load_builtin_scheme(scheme) is True
 
     def test_unknown_scheme_returns_false(self):
-        assert UriPath._load_builtin_scheme("__no_such_scheme_xyz__") is False
+        assert URIPath._load_builtin_scheme("__no_such_scheme_xyz__") is False
 
     def test_import_error_returns_false(self):
         """If the target module raises ImportError, _load_builtin_scheme returns False."""
         with mock.patch("importlib.import_module", side_effect=ImportError("no dep")):
-            result = UriPath._load_builtin_scheme("ftp")
+            result = URIPath._load_builtin_scheme("ftp")
         assert result is False
 
 
@@ -111,28 +111,28 @@ class TestLoadBuiltinScheme:
 
 class TestGetSchemeCls:
     def test_known_scheme_returns_subclass(self):
-        from uripath.schemes.file import FileUri
+        from uripath.schemes.file import FileURIPath
         from uripath.source import Source
 
         source = Source("file", None, None, None)
         cls = source.get_scheme_cls()
-        assert issubclass(cls, UriPath)
+        assert issubclass(cls, URIPath)
 
     def test_unknown_scheme_falls_back_to_uripath(self):
         from uripath.source import Source
 
         source = Source("__totally_unknown__", None, None, None)
-        with mock.patch.object(UriPath, "_load_entry_point", return_value=False):
-            with mock.patch.object(UriPath, "_load_builtin_scheme", return_value=False):
+        with mock.patch.object(URIPath, "_load_entry_point", return_value=False):
+            with mock.patch.object(URIPath, "_load_builtin_scheme", return_value=False):
                 cls = source.get_scheme_cls()
-        assert cls is UriPath
+        assert cls is URIPath
 
 
 def test_every_builtin_scheme_is_in_both_fallback_registries():
     """Every `__SCHEMES` value a builtin scheme class declares must resolve
     through the entry points AND `_load_builtin_scheme` -- `ftps` was
-    declared by `FtpPath` but missing from both, so `UriPath("ftps://...")`
-    returned a do-nothing `UriPath` in a fresh process. The schemes another
+    declared by `FTPURIPath` but missing from both, so `URIPath("ftps://...")`
+    returned a do-nothing `URIPath` in a fresh process. The schemes another
     distribution provides are not built in and are left out."""
     try:
         eps = importlib.metadata.entry_points(group="uripath.schemes")
@@ -141,16 +141,16 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
     # The schemes package loads backends lazily: import every builtin module
     # first so the scheme map reflects all classes whose dependencies import.
     for ep in eps:
-        UriPath._load_builtin_scheme(ep.name)
+        URIPath._load_builtin_scheme(ep.name)
 
     from uripath.schemes import _elsewhere
 
     declared = {
         scheme
-        for scheme in UriPath.schemes()
+        for scheme in URIPath.schemes()
         if scheme not in _elsewhere.SCHEMES
-        and UriPath.scheme_class(scheme).__module__.startswith("uripath.schemes")
+        and URIPath.scheme_class(scheme).__module__.startswith("uripath.schemes")
     }
     assert "ftps" in declared
     assert sorted(declared - {ep.name for ep in eps}) == []
-    assert sorted(s for s in declared if not UriPath._load_builtin_scheme(s)) == []
+    assert sorted(s for s in declared if not URIPath._load_builtin_scheme(s)) == []

@@ -1,4 +1,4 @@
-"""The value behaviour of `Uri` and `Source`: the types of `query` and
+"""The value behaviour of `URI` and `Source`: the types of `query` and
 `fragment`, printing, construction errors, tuple access, caches that survive
 a second initialization, `with_path()`/`with_segments()` and the `data:`
 payload."""
@@ -12,7 +12,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 from uripath.query import Query
 from uripath.source import Source
 
@@ -22,15 +22,15 @@ from uripath.source import Source
 @pytest.mark.parametrize(
     "build",
     [
-        lambda: Uri("http://h/x"),
-        lambda: Uri("http://h/x") / "y",
-        lambda: Uri("http://h/x").parent,
-        lambda: UriPath("http://h/x"),
-        lambda: Uri("http://h/x").with_name("z"),
-        lambda: Uri("a/b"),
-        lambda: Uri(),
-        lambda: Uri("http://h/x").with_path("/q"),
-        lambda: "pre" / Uri("x"),
+        lambda: URI("http://h/x"),
+        lambda: URI("http://h/x") / "y",
+        lambda: URI("http://h/x").parent,
+        lambda: URIPath("http://h/x"),
+        lambda: URI("http://h/x").with_name("z"),
+        lambda: URI("a/b"),
+        lambda: URI(),
+        lambda: URI("http://h/x").with_path("/q"),
+        lambda: "pre" / URI("x"),
     ],
 )
 def test_a_uri_without_a_query_or_fragment_has_an_empty_one(build):
@@ -44,7 +44,7 @@ def test_a_uri_without_a_query_or_fragment_has_an_empty_one(build):
 
 
 def test_a_query_keeps_its_type_and_text_through_every_derivation():
-    uri = Uri("http://h/x?a=1%2B2&b=%26#frag")
+    uri = URI("http://h/x?a=1%2B2&b=%26#frag")
     assert isinstance(uri.query, Query)
     assert str(uri.query) == "a=1%2B2&b=%26"
     assert uri.fragment == "frag"
@@ -59,16 +59,16 @@ def test_a_query_keeps_its_type_and_text_through_every_derivation():
 
 
 def test_repr_of_a_uri_that_was_never_read_shows_the_uri():
-    assert repr(Uri("http://h/x")) == "Uri('http://h/x')"
-    assert repr(UriPath("http://u:pw@h/x")) == "HttpPath('http://u@h/x')"
-    assert repr(Uri()) == "Uri('')"
-    joined = Uri("http://h/d", "../x")
-    assert repr(joined) == "Uri('http://h/x')"
+    assert repr(URI("http://h/x")) == "URI('http://h/x')"
+    assert repr(URIPath("http://u:pw@h/x")) == "HTTPURIPath('http://u@h/x')"
+    assert repr(URI()) == "URI('')"
+    joined = URI("http://h/d", "../x")
+    assert repr(joined) == "URI('http://h/x')"
 
 
 def test_repr_of_a_uri_that_does_not_parse_still_prints():
-    broken = Uri("http://[::1/x")
-    assert "Uri" in repr(broken)
+    broken = URI("http://[::1/x")
+    assert "URI" in repr(broken)
     with pytest.raises(ValueError):
         broken.source
 
@@ -78,14 +78,14 @@ def test_repr_of_a_uri_that_does_not_parse_still_prints():
 
 def test_none_and_empty_text_are_the_empty_uri():
     for empty in (None, "", b""):
-        assert Uri(empty).as_uri() == ""
-        assert Uri("http://h/x", empty).as_uri() == "http://h/x"
+        assert URI(empty).as_uri() == ""
+        assert URI("http://h/x", empty).as_uri() == "http://h/x"
 
 
 @pytest.mark.parametrize("bad", [0, 5, 1.5, [], (), object(), True])
 def test_an_argument_of_the_wrong_type_names_its_own_type(bad):
     with pytest.raises(TypeError) as caught:
-        Uri(bad)
+        URI(bad)
     assert type(bad).__name__ in str(caught.value)
     assert "NoneType" not in str(caught.value)
 
@@ -116,14 +116,14 @@ def test_source_slices_like_the_tuple_it_is():
     "text", ["file:", "x:", "http://h", "//h", "http://u:p@h:1", "file://localhost"]
 )
 def test_from_str_reads_an_authority_as_a_uri_does(text):
-    assert Source.from_str(text) == Uri(text).source
+    assert Source.from_str(text) == URI(text).source
 
 
 # --- the caches -------------------------------------------------------------------------------
 
 
 def test_initializing_again_with_the_same_parts_keeps_the_caches():
-    uri = Uri("http://h/a/b.c")
+    uri = URI("http://h/a/b.c")
     assert uri.segments == ("", "a", "b.c")
     assert (uri.suffix, uri.stem) == (".c", "b")
     cached = (uri._segments_cache, uri._suffix_cache, uri._stem_cache)
@@ -133,7 +133,7 @@ def test_initializing_again_with_the_same_parts_keeps_the_caches():
 
 
 def test_initializing_again_with_other_parts_resets_every_cache():
-    uri = Uri("http://h/a/b.c")
+    uri = URI("http://h/a/b.c")
     uri.as_uri()
     uri.normalized_path
     uri.segments, uri.suffix, uri.stem
@@ -152,7 +152,7 @@ def test_a_cached_property_returns_what_it_computed_not_the_slot(monkeypatch):
         ("suffix", "_suffix_cache"),
         ("stem", "_stem_cache"),
     ):
-        fresh = Uri("http://h/a/b.c")
+        fresh = URI("http://h/a/b.c")
         fresh.path
         original = type(fresh).__setattr__
 
@@ -180,7 +180,7 @@ def test_threads_that_parse_the_same_uri_lazily_agree():
             errors.append(error)
 
     for _ in range(50):
-        uri = Uri("http://h/a/b.c")
+        uri = URI("http://h/a/b.c")
         barrier = threading.Barrier(4)
         threads = [threading.Thread(target=read, args=(uri, barrier)) for _ in range(4)]
         for thread in threads:
@@ -194,7 +194,7 @@ def test_threads_that_parse_the_same_uri_lazily_agree():
     "name", ["a.", "a.b", ".a", "a.b.", "..a", "a..b", "a.b.c", "...", "a.b..c"]
 )
 def test_suffix_and_stem_are_those_of_the_running_pathlib(name):
-    uri = Uri("http://h/d/" + name)
+    uri = URI("http://h/d/" + name)
     expected = pathlib.PurePosixPath("d") / name
     assert expected.name == name
     assert (uri.suffix, uri.stem) == (expected.suffix, expected.stem)
@@ -204,32 +204,32 @@ def test_suffix_and_stem_are_those_of_the_running_pathlib(name):
 
 
 def test_with_path_gives_a_relative_path_under_an_authority_its_slash():
-    uri = Uri("http://h/x")
+    uri = URI("http://h/x")
     for derived in (
         uri.with_path("y"),
         uri.with_segments("y"),
         uri.with_segments("y", "z"),
     ):
         assert derived.path.startswith("/")
-        assert str(derived) == repr(derived)[len("Uri('") : -2]
+        assert str(derived) == repr(derived)[len("URI('") : -2]
         hash(derived)
-        assert derived == Uri(derived.as_uri())
+        assert derived == URI(derived.as_uri())
     assert uri.with_path("y").as_uri() == "http://h/y"
     assert uri.with_segments("y", "z").as_uri() == "http://h/y/z"
     assert uri.with_path("").as_uri() == "http://h"
-    assert Uri("a/b").with_path("c").as_uri() == "c"
-    assert Uri("file:///x").with_path("y").as_uri() == "file:y"
-    assert UriPath("sftp://h/x").with_path("y").as_uri() == "sftp://h/y"
+    assert URI("a/b").with_path("c").as_uri() == "c"
+    assert URI("file:///x").with_path("y").as_uri() == "file:y"
+    assert URIPath("sftp://h/x").with_path("y").as_uri() == "sftp://h/y"
 
 
 def test_with_path_accepts_a_pure_path_object():
-    uri = Uri("http://h/x")
-    assert uri.with_path(Uri("a/b")).as_uri() == "http://h/a/b"
+    uri = URI("http://h/x")
+    assert uri.with_path(URI("a/b")).as_uri() == "http://h/a/b"
     assert uri.with_path(pathlib.PurePosixPath("a/b")).as_uri() == "http://h/a/b"
 
 
 def test_with_segments_keeps_the_root_marker_of_the_segments_spelling():
-    uri = Uri("http://h/x/y")
+    uri = URI("http://h/x/y")
     assert uri.with_segments("", "a", "b").as_uri() == "http://h/a/b"
     assert uri.with_segments("", "").as_uri() == "http://h/"
     assert uri.with_segments().as_uri() == "http://h"
@@ -247,18 +247,18 @@ def test_with_segments_keeps_the_root_marker_of_the_segments_spelling():
     ],
 )
 def test_with_segments_accepts_what_the_constructor_accepts(segment):
-    uri = Uri("http://h/x")
+    uri = URI("http://h/x")
     assert uri.with_segments(segment).as_uri() == "http://h/etc/hosts"
 
 
 def test_with_segments_refuses_what_is_not_a_path():
     with pytest.raises(TypeError):
-        Uri("http://h/x").with_segments(5)
+        URI("http://h/x").with_segments(5)
 
 
 def test_samefile_accepts_an_os_pathlike(tmp_path):
     (tmp_path / "f.txt").write_text("x")
-    path = UriPath((tmp_path / "f.txt").as_uri())
+    path = URIPath((tmp_path / "f.txt").as_uri())
     assert path.samefile(tmp_path / "f.txt") is True
     assert path.samefile(str(tmp_path / "f.txt")) is True
     (tmp_path / "g.txt").write_text("y")
@@ -269,20 +269,20 @@ def test_samefile_accepts_an_os_pathlike(tmp_path):
 
 
 def test_an_error_inside_the_construction_of_a_join_is_not_an_unsupported_operand():
-    class Boom(Uri):
+    class Boom(URI):
         __slots__ = ()
 
         def _join_object(self, *parts):
             raise TypeError("a bug in construction")
 
     with pytest.raises(TypeError, match="a bug in construction"):
-        Boom("x") / Uri("y")
+        Boom("x") / URI("y")
     with pytest.raises(TypeError, match="a bug in construction"):
-        Boom("x").joinpath(Uri("y"))
+        Boom("x").joinpath(URI("y"))
 
 
 def test_what_cannot_be_joined_is_not_implemented_for_both_classes():
-    for cls in (Uri, UriPath):
+    for cls in (URI, URIPath):
         with pytest.raises(TypeError, match="unsupported operand"):
             cls("unk://h/x") / 5
         with pytest.raises(TypeError, match="int"):
@@ -292,7 +292,7 @@ def test_what_cannot_be_joined_is_not_implemented_for_both_classes():
 
 
 def test_the_prefix_form_joins_a_decoded_path_in_front_for_both_classes():
-    assert ("pre" / Uri("x")).as_uri() == "pre/x"
-    assert ("C:/pre" / Uri("x")).as_uri() == "./C:/pre/x"
-    assert "pre" / UriPath("http://h/x") == UriPath("http://h/x")
-    assert type("pre" / UriPath("http://h/x")).__name__ == "HttpPath"
+    assert ("pre" / URI("x")).as_uri() == "pre/x"
+    assert ("C:/pre" / URI("x")).as_uri() == "./C:/pre/x"
+    assert "pre" / URIPath("http://h/x") == URIPath("http://h/x")
+    assert type("pre" / URIPath("http://h/x")).__name__ == "HTTPURIPath"

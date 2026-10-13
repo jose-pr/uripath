@@ -1,4 +1,4 @@
-"""Demonstrates WebDAV read/write operations using DavPath.
+"""Demonstrates WebDAV read/write operations using DAVURIPath.
 Requires a running WebDAV server -- guarded under `if __name__ == "__main__"` so
 importing this module is always safe, and skipped (prints setup instructions,
 exit 0) unless WEBDAV_EXAMPLE_URL is set.
@@ -15,10 +15,10 @@ import os
 import sys
 from urllib.parse import quote, urlsplit, urlunsplit
 
-from uripath import UriPath
+from uripath import URIPath
 
 
-def webdav_roundtrip(root: UriPath):
+def webdav_roundtrip(root: URIPath):
     # str() of a URI path drops the password, so printing it is safe.
     print(f"Connecting to WebDAV: {root}")
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         url = urlunsplit(
             (parts.scheme, netloc, parts.path, parts.query, parts.fragment)
         )
-    root = UriPath(url)
+    root = URIPath(url)
 
     try:
         webdav_roundtrip(root)

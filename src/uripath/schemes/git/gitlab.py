@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from ..gitlab import GitLabPath
+from ..gitlab import GitLabURIPath
 
 
-class GitLabGitPath(GitLabPath):
+class GitLabGitURIPath(GitLabURIPath):
     """`git+gitlab:` explicit GitLab-hosted repository scheme."""
 
     __SCHEMES = ("git+gitlab",)

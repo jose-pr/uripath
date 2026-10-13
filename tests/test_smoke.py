@@ -41,11 +41,11 @@ def test_import_does_not_load_netimps_or_unrelated_backends():
     out = _run_python("""
         import sys
         import pathlib_next
-        from uripath import UriPath
+        from uripath import URIPath
 
         print(sorted(m for m in ("netimps", "requests", "botocore") if m in sys.modules))
-        UriPath("file:/x")
-        UriPath("data:,x")
+        URIPath("file:/x")
+        URIPath("data:,x")
         print(sorted(m for m in ("requests", "botocore") if m in sys.modules))
         """)
     assert out.split("\n")[:2] == ["[]", "[]"]
@@ -61,13 +61,13 @@ def test_import_optional_submodules_guarded():
 
 def test_readme_http_path_construct_only():
     uri = _uri()
-    http_path = uri.UriPath("http://example.com/data.txt")
+    http_path = uri.URIPath("http://example.com/data.txt")
     assert http_path.source.scheme == "http"
 
 
 def test_example_uri_child_join():
     uri = _uri()
-    rootless = uri.Uri("sftp://root@sftpexample")
+    rootless = uri.URI("sftp://root@sftpexample")
     rootless.source
     authkeys = rootless / "root/.ssh/authorized_keys"
     keys = authkeys.as_uri()
@@ -96,17 +96,17 @@ def test_example_source():
 
 
 def test_example_uripath_norm():
-    UriPath = _uri().UriPath
-    dest = UriPath("file:./_ssh")
-    with_dots = UriPath("a/b/c/d/../../test/.")
+    URIPath = _uri().URIPath
+    dest = URIPath("file:./_ssh")
+    with_dots = URIPath("a/b/c/d/../../test/.")
     assert with_dots.normalized_path == "a/b/test"
 
-    source_host = UriPath("file://test.com/path1/path2/path3/path4")
+    source_host = URIPath("file://test.com/path1/path2/path3/path4")
     rel_to = source_host.relative_to("/path1/path2")
     assert rel_to.as_posix() == "path3/path4"
-    dest = UriPath(dest)
-    assert str(UriPath("file:") / "test") == "file:test"
-    assert str(UriPath()) == ""
+    dest = URIPath(dest)
+    assert str(URIPath("file:") / "test") == "file:test"
+    assert str(URIPath()) == ""
     assert dest.as_uri() == "file:_ssh"
 
     test1 = dest / "test" / "test2/"
@@ -114,10 +114,10 @@ def test_example_uripath_norm():
 
 
 def test_example_glob_local(tmp_path):
-    UriPath = _uri().UriPath
+    URIPath = _uri().URIPath
     (tmp_path / "a.py").write_text("")
     (tmp_path / "sub").mkdir()
     (tmp_path / "sub" / "b.py").write_text("")
-    glob_test = UriPath(f"file:{tmp_path.as_posix()}/**/*.py")
+    glob_test = URIPath(f"file:{tmp_path.as_posix()}/**/*.py")
     found = list(glob.glob(glob_test, recursive=True))
     assert len(found) == 2

@@ -20,7 +20,7 @@ from capabilities import requires_posix_modes
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next.archive._zipentries import _strip_zip64_extra
 from pathlib_next import _names as names_module
 from pathlib_next.archive import _pack as archive_module
@@ -79,7 +79,7 @@ def test_zip_read_only_archive_is_readable_and_unmodified(zip_archive):
     before = zip_archive.read_bytes()
     os.chmod(zip_archive, stat.S_IREAD)
     try:
-        readme = UriPath(_zip_uri(zip_archive, "docs/readme.txt"))
+        readme = URIPath(_zip_uri(zip_archive, "docs/readme.txt"))
         assert readme.exists()
         assert readme.read_text() == "hello world"
         assert [p.name for p in readme.parent.iterdir()] == ["readme.txt"]
@@ -92,7 +92,7 @@ def test_zip_read_only_archive_is_readable_and_unmodified(zip_archive):
 
 def test_zip_exists_on_missing_archive_does_not_create_it(tmp_path):
     missing = tmp_path / "missing.zip"
-    member = UriPath(_zip_uri(missing, "x.txt"))
+    member = URIPath(_zip_uri(missing, "x.txt"))
     assert not member.exists()
     with pytest.raises(FileNotFoundError):
         member.read_bytes()
@@ -103,7 +103,7 @@ def test_zip_exists_on_missing_archive_does_not_create_it(tmp_path):
 
 def test_zip_first_write_creates_missing_archive(tmp_path):
     created = tmp_path / "new.zip"
-    root = UriPath(_zip_uri(created))
+    root = URIPath(_zip_uri(created))
     (root / "x.txt").write_text("created")
     (root / "y.txt").write_text("appended")
     assert (root / "x.txt").read_text() == "created"
@@ -115,7 +115,7 @@ def test_zip_first_write_creates_missing_archive(tmp_path):
 def test_zip_probe_of_non_zip_file_leaves_it_unmodified(tmp_path):
     notes = tmp_path / "notes.txt"
     notes.write_bytes(b"not a zip file")
-    member = UriPath(_zip_uri(notes, "x.txt"))
+    member = URIPath(_zip_uri(notes, "x.txt"))
     with pytest.raises(zipfile.BadZipFile):
         member.exists()
     with pytest.raises(zipfile.BadZipFile):
@@ -131,7 +131,7 @@ def test_zip_append_keeps_existing_entries_and_prefix(tmp_path):
         raw.write(b"#!/usr/bin/env python3\n")
         with zipfile.ZipFile(raw, "w") as zf:
             zf.writestr("__main__.py", "print('hi')")
-    (UriPath(_zip_uri(path)) / "extra.txt").write_text("x")
+    (URIPath(_zip_uri(path)) / "extra.txt").write_text("x")
     assert path.read_bytes().startswith(b"#!/usr/bin/env python3\n")
     with zipfile.ZipFile(path) as zf:
         assert zf.namelist() == ["__main__.py", "extra.txt"]
@@ -202,7 +202,7 @@ def _snapshot(path):
 )
 def test_zip_rewrite_keeps_other_members_metadata(rich_zip, mutate, removed):
     comment, before = _snapshot(rich_zip)
-    mutate(UriPath(_zip_uri(rich_zip)))
+    mutate(URIPath(_zip_uri(rich_zip)))
     _release()
 
     assert rich_zip.read_bytes().startswith(_SHEBANG)
@@ -220,7 +220,7 @@ def test_zip_rewrite_keeps_other_members_metadata(rich_zip, mutate, removed):
 
 def test_zip_overwrite_keeps_member_compression_and_mode(rich_zip):
     _, before = _snapshot(rich_zip)
-    (UriPath(_zip_uri(rich_zip)) / "junk.txt").write_bytes(b"replaced")
+    (URIPath(_zip_uri(rich_zip)) / "junk.txt").write_bytes(b"replaced")
     _, after = _snapshot(rich_zip)
     assert after["junk.txt"][6] == b"replaced"
     assert after["junk.txt"][1:3] == before["junk.txt"][1:3]
@@ -229,7 +229,7 @@ def test_zip_overwrite_keeps_member_compression_and_mode(rich_zip):
 @requires_posix_modes
 def test_zip_rewrite_keeps_archive_file_mode(zip_archive):
     os.chmod(zip_archive, 0o644)
-    (UriPath(_zip_uri(zip_archive)) / "top.txt").unlink()
+    (URIPath(_zip_uri(zip_archive)) / "top.txt").unlink()
     assert stat.S_IMODE(os.stat(zip_archive).st_mode) == 0o644
 
 
@@ -239,7 +239,7 @@ def test_zip_rewrite_through_symlink_replaces_its_target(tmp_path, zip_archive):
         link.symlink_to(zip_archive)
     except (OSError, NotImplementedError) as error:
         pytest.skip(f"symlinks unavailable: {error}")
-    (UriPath(_zip_uri(link)) / "top.txt").unlink()
+    (URIPath(_zip_uri(link)) / "top.txt").unlink()
     _release()
     assert link.is_symlink()
     with zipfile.ZipFile(zip_archive) as zf:
@@ -254,7 +254,7 @@ def test_zip_failed_rewrite_leaves_archive_and_no_temp_file(zip_archive):
     os.chmod(zip_archive, stat.S_IREAD)
     try:
         with pytest.raises(PermissionError):
-            (UriPath(_zip_uri(zip_archive)) / "top.txt").unlink()
+            (URIPath(_zip_uri(zip_archive)) / "top.txt").unlink()
         _release()
         assert zip_archive.read_bytes() == before
         assert [p.name for p in zip_archive.parent.iterdir()] == ["a.zip"]
@@ -287,7 +287,7 @@ def _names(path):
 
 
 def test_zip_rename_onto_existing_file_replaces_it(abc_zip):
-    root = UriPath(_zip_uri(abc_zip))
+    root = URIPath(_zip_uri(abc_zip))
     (root / "a.txt").rename("b.txt")
     names = _names(abc_zip)
     assert names.count("b.txt") == 1
@@ -301,7 +301,7 @@ def test_zip_rename_onto_existing_file_replaces_it(abc_zip):
 
 
 def test_zip_rename_directory_onto_empty_directory_replaces_it(abc_zip):
-    root = UriPath(_zip_uri(abc_zip))
+    root = URIPath(_zip_uri(abc_zip))
     (root / "src").rename("empty")
     names = _names(abc_zip)
     assert names.count("empty/") == 1
@@ -321,7 +321,7 @@ def test_zip_rename_refusals_leave_archive_unchanged(
     abc_zip, source, target, error, code
 ):
     before = abc_zip.read_bytes()
-    root = UriPath(_zip_uri(abc_zip))
+    root = URIPath(_zip_uri(abc_zip))
     with pytest.raises(error) as raised:
         (root / source).rename(target)
     assert raised.value.errno == code
@@ -333,7 +333,7 @@ def test_zip_rewrite_collapses_existing_duplicates_to_the_live_entry(tmp_path):
         tmp_path / "dup.zip",
         [("dup.txt", b"stale"), ("other.txt", b"o"), ("dup.txt", b"live")],
     )
-    root = UriPath(_zip_uri(path))
+    root = URIPath(_zip_uri(path))
     (root / "other.txt").unlink()
     with zipfile.ZipFile(path) as zf:
         assert zf.namelist() == ["dup.txt"]
@@ -380,10 +380,10 @@ def test_archive_listing_skips_escaping_member_names(tmp_path, fmt):
     destination's job (see the copy tests). Backslash names are the same
     case but live in the tar-only tests, since `zipfile` rewrites them."""
     archive = _crafted(tmp_path, fmt)
-    pkg = UriPath(_URI[fmt](archive, "pkg"))
+    pkg = URIPath(_URI[fmt](archive, "pkg"))
     assert sorted(p.name for p in pkg.iterdir()) == _CRAFTED_PKG_CHILDREN
     # "pkg/../../ESCAPED_DOTDOT.txt" and "/abs.txt" have no name in here.
-    assert [p.name for p in UriPath(_URI[fmt](archive)).iterdir()] == ["pkg"]
+    assert [p.name for p in URIPath(_URI[fmt](archive)).iterdir()] == ["pkg"]
 
 
 @pytest.mark.parametrize("fmt", ["zip", "tar"])
@@ -396,7 +396,7 @@ def test_archive_recursive_copy_stays_inside_destination(tmp_path, fmt, monkeypa
     work = tmp_path / "work"
     dest = work / "deep" / "dest"
     dest.parent.mkdir(parents=True)
-    pkg = UriPath(_URI[fmt](archive, "pkg"))
+    pkg = URIPath(_URI[fmt](archive, "pkg"))
     refused = []
     pkg.copy(
         LocalPath(dest),
@@ -424,7 +424,7 @@ def test_archive_recursive_copy_keeps_posix_names_on_a_posix_destination(tmp_pat
     archive = _crafted(tmp_path / "src", fmt)
     dest = MemPath("/dest")
     dest.mkdir(parents=True)
-    pkg = UriPath(_URI[fmt](archive, "pkg"))
+    pkg = URIPath(_URI[fmt](archive, "pkg"))
     pkg.copy(dest, recursive=True, overwrite=True)
     assert sorted(p.name for p in dest.iterdir()) == _CRAFTED_PKG_CHILDREN
     assert (dest / "ok.txt").read_bytes() == b"ok"
@@ -435,7 +435,7 @@ def test_archive_safe_names_with_colons_are_still_listed_and_readable(tmp_path, 
     members = [("pkg/12:00.log", b"noon")]
     write = _write_zip if fmt == "zip" else _write_tar
     archive = write(tmp_path / f"colon.{fmt}", members)
-    (child,) = UriPath(_URI[fmt](archive, "pkg")).iterdir()
+    (child,) = URIPath(_URI[fmt](archive, "pkg")).iterdir()
     assert child.name == "12:00.log"
     assert child.read_bytes() == b"noon"
 
@@ -463,7 +463,7 @@ def test_member_names_are_normalized_for_listing_and_lookup(tmp_path, fmt):
     members = [(raw, raw.encode()) for raw, _ in _NORMALIZED_MEMBERS]
     write = _write_zip if fmt == "zip" else _write_tar
     archive = write(tmp_path / f"spellings.{fmt}", members)
-    root = UriPath(_URI[fmt](archive))
+    root = URIPath(_URI[fmt](archive))
 
     listed = sorted(p.path for p in root.rglob("*"))
     # The files under their normalized names, plus the directories those
@@ -493,7 +493,7 @@ def test_every_listed_member_can_be_read(tmp_path, fmt):
     members += [(name, b"evil") for name in _UNSAFE_MEMBER_NAMES]
     write = _write_zip if fmt == "zip" else _write_tar
     archive = write(tmp_path / f"mixed.{fmt}", members)
-    root = UriPath(_URI[fmt](archive))
+    root = URIPath(_URI[fmt](archive))
 
     expected = {normalized: raw for raw, normalized in _NORMALIZED_MEMBERS}
     read = {}
@@ -532,7 +532,7 @@ def test_drive_shaped_member_names_are_listed_and_readable(tmp_path, fmt, name):
     `C:drive.txt`, which escapes nothing there."""
     write = _write_zip if fmt == "zip" else _write_tar
     archive = write(tmp_path / f"shaped.{fmt}", [(name, b"real"), ("ok.txt", b"ok")])
-    root = UriPath(_URI[fmt](archive))
+    root = URIPath(_URI[fmt](archive))
     assert name in [p.path for p in root.rglob("*")]
     # A bare join would re-parse a leading "C:" as a URI scheme (the
     # documented round trip), so address it as the header prescribes.
@@ -543,7 +543,7 @@ def test_drive_shaped_member_names_are_listed_and_readable(tmp_path, fmt, name):
 def test_backslash_member_names_are_listed_and_readable_in_a_tar(tmp_path, name):
     """`\\` is an ordinary filename character on POSIX and tar keeps it."""
     archive = _write_tar(tmp_path / "shaped.tar", [(name, b"real"), ("ok.txt", b"ok")])
-    root = UriPath(_URI["tar"](archive))
+    root = URIPath(_URI["tar"](archive))
     assert name in [p.path for p in root.rglob("*")]
     assert root.with_segments(name).read_bytes() == b"real"
 
@@ -560,7 +560,7 @@ def test_recursive_copy_refuses_a_backslash_child_on_a_windows_target(
     )
     dest = tmp_path / "dest"
     refused = []
-    UriPath(_URI["tar"](archive, "dir")).copy(
+    URIPath(_URI["tar"](archive, "dir")).copy(
         LocalPath(dest), recursive=True, overwrite=True, ignore_error=refused.append
     )
     assert [p.name for p in dest.iterdir()] == ["ok.txt"]
@@ -572,7 +572,7 @@ def test_recursive_copy_refuses_a_backslash_child_on_a_windows_target(
 def test_escaping_member_names_are_not_listed(tmp_path, fmt, name):
     write = _write_zip if fmt == "zip" else _write_tar
     archive = write(tmp_path / f"escape.{fmt}", [(name, b"evil"), ("ok.txt", b"ok")])
-    root = UriPath(_URI[fmt](archive))
+    root = URIPath(_URI[fmt](archive))
     assert [p.path for p in root.rglob("*")] == ["ok.txt"]
 
 
@@ -586,7 +586,7 @@ def test_escaping_member_names_are_not_listed(tmp_path, fmt, name):
 def test_escaping_member_names_are_not_readable(tmp_path, fmt, name):
     write = _write_zip if fmt == "zip" else _write_tar
     archive = write(tmp_path / f"escape.{fmt}", [(name, b"evil"), ("ok.txt", b"ok")])
-    root = UriPath(_URI[fmt](archive))
+    root = URIPath(_URI[fmt](archive))
     with pytest.raises(FileNotFoundError):
         (root / name).read_bytes()
 
@@ -622,7 +622,7 @@ def test_zip_interrupted_append_leaves_the_archive_intact(zip_archive, monkeypat
         zipfile.ZipFile, "_write_end_record", dies_before_the_central_directory
     )
     with pytest.raises(OSError, match="simulated crash"):
-        (UriPath(_zip_uri(zip_archive)) / "new.txt").write_bytes(b"x" * 100_000)
+        (URIPath(_zip_uri(zip_archive)) / "new.txt").write_bytes(b"x" * 100_000)
     monkeypatch.undo()
     _release()
     assert zip_archive.read_bytes() == before
@@ -635,7 +635,7 @@ def test_zip_interrupted_append_leaves_the_archive_intact(zip_archive, monkeypat
 def test_zip_append_keeps_member_bytes_and_archive_mode(zip_archive):
     with zipfile.ZipFile(zip_archive) as zf:
         raw_before = {i.filename: (i.CRC, i.compress_size) for i in zf.infolist()}
-    (UriPath(_zip_uri(zip_archive)) / "new.txt").write_text("new")
+    (URIPath(_zip_uri(zip_archive)) / "new.txt").write_text("new")
     with zipfile.ZipFile(zip_archive) as zf:
         raw_after = {i.filename: (i.CRC, i.compress_size) for i in zf.infolist()}
         assert zf.read("new.txt") == b"new"
@@ -648,7 +648,7 @@ def test_zip_append_keeps_member_bytes_and_archive_mode(zip_archive):
 
 
 def test_zip_write_after_an_external_change_keeps_that_change(zip_archive):
-    root = UriPath(_zip_uri(zip_archive))
+    root = URIPath(_zip_uri(zip_archive))
     assert (root / "top.txt").exists()  # opens and caches the shared handle
     with zipfile.ZipFile(zip_archive, "a") as zf:
         zf.writestr("external.txt", "from another tool")
@@ -668,7 +668,7 @@ def test_zip_spellings_of_one_file_share_one_backend(zip_archive):
     uri = _zip_uri(zip_archive)
     drive = uri.index(":/", len("zip:file:")) - 1
     lower = uri[:drive] + uri[drive].swapcase() + uri[drive + 1 :]
-    a, b = UriPath(uri), UriPath(lower)
+    a, b = URIPath(uri), URIPath(lower)
     assert a.backend is b.backend
     (a / "from_a.txt").write_text("a")
     (b / "from_b.txt").write_text("b")
@@ -676,7 +676,7 @@ def test_zip_spellings_of_one_file_share_one_backend(zip_archive):
 
 
 def test_zip_read_does_not_keep_the_archive_open(zip_archive):
-    member = UriPath(_zip_uri(zip_archive, "top.txt"))
+    member = URIPath(_zip_uri(zip_archive, "top.txt"))
     assert member.read_text() == "top level"
     assert [p.name for p in member.parent.iterdir()] == ["docs", "top.txt"]
     os.remove(zip_archive)  # WinError 32 while a handle is held
@@ -699,7 +699,7 @@ def test_tar_member_stream_survives_reads_of_other_members(tmp_path):
             info.size = len(data)
             tf.addfile(info, io.BytesIO(data))
     assert gzip.open(path).read(1)
-    root = UriPath(_tar_uri(path))
+    root = URIPath(_tar_uri(path))
     first = (root / "m0.bin").open("rb")
     head = first.read(1000)
     assert (root / "m3.bin").read_bytes() == payloads["m3.bin"]
@@ -718,7 +718,7 @@ def test_tar_concurrent_reads_return_each_members_bytes(tmp_path):
             info = tarfile.TarInfo(name)
             info.size = len(data)
             tf.addfile(info, io.BytesIO(data))
-    root = UriPath(_tar_uri(path))
+    root = URIPath(_tar_uri(path))
     failures = []
 
     def reader(name):
@@ -754,7 +754,7 @@ def test_overwriting_a_dot_slash_member_rewrites_it_in_place(tmp_path):
     shadowed it -- and `unlink()` then deleted the shadow, resurrecting the
     original content while reporting success."""
     archive = _write_zip(tmp_path / "rt.zip", [("./f.txt", b"OLD")])
-    member = UriPath(_zip_uri(archive)) / "f.txt"
+    member = URIPath(_zip_uri(archive)) / "f.txt"
     member.write_bytes(b"NEW")
     with zipfile.ZipFile(archive) as zf:
         assert zf.namelist() == ["./f.txt"]
@@ -767,7 +767,7 @@ def test_overwriting_a_dot_slash_member_rewrites_it_in_place(tmp_path):
 
 def test_mkdir_over_a_dot_slash_directory_marker_does_not_duplicate(tmp_path):
     archive = _write_zip(tmp_path / "md.zip", [("./d/", b""), ("./d/x.txt", b"X")])
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with pytest.raises(FileExistsError):
         (root / "d").mkdir()
     with zipfile.ZipFile(archive) as zf:
@@ -793,7 +793,7 @@ def test_renaming_a_directory_moves_every_spelling_of_its_members(
     marker missed `./d/x` -- renaming nothing, or only half the tree, while
     returning the new path as if it had worked."""
     archive = _write_zip(tmp_path / "ren.zip", members)
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     (root / "d").rename(root / "e")
     with zipfile.ZipFile(archive) as zf:
         assert sorted(zf.namelist()) == sorted(expected)
@@ -805,11 +805,11 @@ def test_member_index_cache_sees_a_write_through_another_path_object(tmp_path):
     """The index is cached per open handle; every mutation closes it. A
     stale cache would hide a member another path object just wrote."""
     archive = _write_zip(tmp_path / "c.zip", [("a.txt", b"A")])
-    reader = UriPath(_zip_uri(archive))
+    reader = URIPath(_zip_uri(archive))
     assert sorted(p.name for p in reader.iterdir()) == ["a.txt"]
-    (UriPath(_zip_uri(archive)) / "b.txt").write_bytes(b"B")
+    (URIPath(_zip_uri(archive)) / "b.txt").write_bytes(b"B")
     assert sorted(p.name for p in reader.iterdir()) == ["a.txt", "b.txt"]
-    (UriPath(_zip_uri(archive)) / "a.txt").unlink()
+    (URIPath(_zip_uri(archive)) / "a.txt").unlink()
     assert sorted(p.name for p in reader.iterdir()) == ["b.txt"]
 
 
@@ -843,7 +843,7 @@ def test_a_member_name_with_a_nul_is_refused_and_the_archive_is_unchanged(tmp_pa
     archive = tmp_path / "a.zip"
     _write_zip(archive, [("top.txt", "top")])
     before = archive.read_bytes()
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with pytest.raises(ValueError, match="escapes the archive root"):
         (root / f"top.txt{nul}.png").write_text("x")
     with pytest.raises(ValueError, match="escapes the archive root"):
@@ -860,7 +860,7 @@ def test_renaming_to_a_name_that_escapes_the_archive_is_refused_and_changes_noth
     archive = tmp_path / "a.zip"
     _write_zip(archive, [("top.txt", "top")])
     before = archive.read_bytes()
-    root = UriPath(_zip_uri(archive))
+    root = URIPath(_zip_uri(archive))
     with pytest.raises(ValueError, match="escapes the archive root"):
         (root / "top.txt").rename(f"a{nul}b")
     _release()

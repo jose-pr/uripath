@@ -1,6 +1,6 @@
 # URI API
 
-`Uri` (pure URI paths), `UriPath` (URI paths with I/O and scheme dispatch),
+`URI` (pure URI paths), `URIPath` (URI paths with I/O and scheme dispatch),
 `Source` and `Query`. The built-in schemes are documented under *Schemes*.
 
 ::: uripath

@@ -1,4 +1,4 @@
-"""Data-loss regressions for HttpPath/DavPath against real loopback servers.
+"""Data-loss regressions for HTTPURIPath/DAVURIPath against real loopback servers.
 
 `dav_server` is wsgidav; the same server addressed through an `http:` URL
 exercises wsgidav's own HTML directory listing, whose parent row is
@@ -15,9 +15,9 @@ import pytest
 
 from http_fakes import on_current_transport
 from pathlib_next import LocalPath
-from uripath.schemes.dav import DavPath
-from uripath import UriPath
-from uripath.schemes.http import HttpPath
+from uripath.schemes.dav import DAVURIPath
+from uripath import URIPath
+from uripath.schemes.http import HTTPURIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -30,7 +30,7 @@ def _http(dav_url):
 
 
 def test_http_listing_of_wsgidav_never_yields_dot_entries(dav_server, fixture_tree):
-    sub = HttpPath(f"{_http(dav_server)}/sub/")
+    sub = HTTPURIPath(f"{_http(dav_server)}/sub/")
     children = list(sub.iterdir())
     assert sorted(c.name for c in children) == ["c.py", "nested"]
     assert all(c.path.rsplit("/", 1)[-1] not in (".", "..") for c in children)
@@ -39,7 +39,7 @@ def test_http_listing_of_wsgidav_never_yields_dot_entries(dav_server, fixture_tr
 def test_http_unlink_every_file_in_listing_keeps_parent(dav_server, fixture_tree):
     # The reported loop: with ".." listed as a file, its unlink() sent
     # DELETE /sub/.. -> DELETE / and wsgidav removed the whole share.
-    sub = HttpPath(f"{_http(dav_server)}/sub/")
+    sub = HTTPURIPath(f"{_http(dav_server)}/sub/")
     for child in sub.iterdir():
         if child.is_file():
             child.unlink()
@@ -50,7 +50,7 @@ def test_http_unlink_every_file_in_listing_keeps_parent(dav_server, fixture_tree
 
 
 def test_http_walk_of_wsgidav_terminates(dav_server):
-    root = HttpPath(f"{_http(dav_server)}/sub/")
+    root = HTTPURIPath(f"{_http(dav_server)}/sub/")
     tops = [top.path for top, _dirs, _files in root.walk()]
     assert len(tops) == 2
     assert all("/./" not in t and "/../" not in t for t in tops)
@@ -95,7 +95,7 @@ def dot_listing_server(tmp_path):
 
 
 def test_http_pre_listing_dot_entries_are_dropped(dot_listing_server):
-    d = HttpPath(f"{dot_listing_server}/d/")
+    d = HTTPURIPath(f"{dot_listing_server}/d/")
     assert [c.name for c in d.iterdir()] == ["x.txt"]
     # "./" used to make walk() descend /d/./././... without end.
     tops = [top.path for top, _dirs, _files in d.walk()]
@@ -103,7 +103,7 @@ def test_http_pre_listing_dot_entries_are_dropped(dot_listing_server):
 
 
 def test_dav_listing_of_wsgidav_has_no_dot_entries(dav_server):
-    names = sorted(c.name for c in DavPath(f"{dav_server}/sub/").iterdir())
+    names = sorted(c.name for c in DAVURIPath(f"{dav_server}/sub/").iterdir())
     assert names == ["c.py", "nested"]
 
 
@@ -111,7 +111,7 @@ def test_dav_listing_of_wsgidav_has_no_dot_entries(dav_server):
 
 
 def test_dav_unlink_on_collection_keeps_tree(dav_server, fixture_tree):
-    p = DavPath(f"{dav_server}/sub")
+    p = DAVURIPath(f"{dav_server}/sub")
     with pytest.raises(IsADirectoryError) as excinfo:
         p.unlink()
     assert excinfo.value.errno == errno.EISDIR
@@ -122,31 +122,31 @@ def test_dav_unlink_on_collection_keeps_tree(dav_server, fixture_tree):
 
 
 def test_dav_symlink_to_force_keeps_collection(dav_server, fixture_tree):
-    p = DavPath(f"{dav_server}/sub")
+    p = DAVURIPath(f"{dav_server}/sub")
     with pytest.raises(Exception):
         p.symlink_to("x", force=True)
     assert (fixture_tree / "sub" / "nested" / "d.py").read_text() == "d"
 
 
 def test_dav_unlink_file_and_missing_semantics(dav_server, fixture_tree):
-    DavPath(f"{dav_server}/a.txt").unlink()
+    DAVURIPath(f"{dav_server}/a.txt").unlink()
     assert not (fixture_tree / "a.txt").exists()
     assert (fixture_tree / "b.py").exists()
-    DavPath(f"{dav_server}/a.txt").unlink(missing_ok=True)
+    DAVURIPath(f"{dav_server}/a.txt").unlink(missing_ok=True)
     with pytest.raises(FileNotFoundError):
-        DavPath(f"{dav_server}/a.txt").unlink()
+        DAVURIPath(f"{dav_server}/a.txt").unlink()
 
 
 def test_dav_rmdir_and_recursive_rm_still_delete(dav_server, fixture_tree):
-    DavPath(f"{dav_server}/empty_dir").rmdir()
+    DAVURIPath(f"{dav_server}/empty_dir").rmdir()
     assert not (fixture_tree / "empty_dir").exists()
-    DavPath(f"{dav_server}/sub").rm(recursive=True)
+    DAVURIPath(f"{dav_server}/sub").rm(recursive=True)
     assert not (fixture_tree / "sub").exists()
     assert (fixture_tree / "a.txt").exists()
 
 
 def test_http_unlink_on_listed_directory_keeps_tree(dav_server, fixture_tree):
-    root = HttpPath(f"{_http(dav_server)}/")
+    root = HTTPURIPath(f"{_http(dav_server)}/")
     sub = next(c for c in root.iterdir() if c.name == "sub")
     with pytest.raises(IsADirectoryError) as excinfo:
         sub.unlink()
@@ -159,7 +159,7 @@ def test_http_unlink_refuses_redirecting_directory(http_server, fixture_tree):
     # The stdlib server 301s /sub -> /sub/, so stat() sees a directory;
     # unlink() must refuse before sending any DELETE.
     with pytest.raises(IsADirectoryError):
-        HttpPath(f"{http_server}/sub").unlink()
+        HTTPURIPath(f"{http_server}/sub").unlink()
     assert (fixture_tree / "sub" / "c.py").exists()
 
 
@@ -167,7 +167,7 @@ def test_http_unlink_refuses_redirecting_directory(http_server, fixture_tree):
 
 
 def test_dav_read_missing_file_raises(dav_server, fixture_tree):
-    p = DavPath(f"{dav_server}/missing.txt")
+    p = DAVURIPath(f"{dav_server}/missing.txt")
     with pytest.raises(FileNotFoundError):
         p.read_bytes()
     with pytest.raises(FileNotFoundError):
@@ -177,13 +177,13 @@ def test_dav_read_missing_file_raises(dav_server, fixture_tree):
     for _ in range(3):
         with pytest.raises(FileNotFoundError):
             p.read_text()
-    assert DavPath(f"{dav_server}/a.txt").read_text() == "a"
+    assert DAVURIPath(f"{dav_server}/a.txt").read_text() == "a"
 
 
 def test_dav_copy_missing_source_writes_no_error_page(dav_server, tmp_path):
     out = tmp_path / "out.txt"
     with pytest.raises(FileNotFoundError):
-        DavPath(f"{dav_server}/missing.txt").copy(
+        DAVURIPath(f"{dav_server}/missing.txt").copy(
             LocalPath(out), preserve_metadata=False
         )
     assert not out.exists() or b"<!DOCTYPE" not in out.read_bytes()
@@ -324,7 +324,7 @@ def test_read_of_compressing_server_returns_uncompressed_body(
     wire_server, scheme, name
 ):
     host, _store, _seen = wire_server
-    p = UriPath(f"{scheme}://{host}/{name}")
+    p = URIPath(f"{scheme}://{host}/{name}")
     assert p.read_bytes() == _PLAIN_BODY
     # Small reads through the buffered and the unbuffered stream.
     with p.open("rb") as f:
@@ -335,12 +335,12 @@ def test_read_of_compressing_server_returns_uncompressed_body(
 
 def test_stat_size_of_compressing_server_is_uncompressed(wire_server):
     host, _store, _seen = wire_server
-    assert HttpPath(f"http://{host}/gz.txt").stat().st_size == len(_PLAIN_BODY)
+    assert HTTPURIPath(f"http://{host}/gz.txt").stat().st_size == len(_PLAIN_BODY)
 
 
 def test_rewrite_append_keeps_plaintext_on_compressing_server(wire_server):
     host, store, _seen = wire_server
-    with HttpPath(f"http://{host}/log.txt").open("ab") as f:
+    with HTTPURIPath(f"http://{host}/log.txt").open("ab") as f:
         f.write(b"line three\n")
     assert store["/log.txt"] == _PLAIN_BODY + b"line three\n"
 
@@ -351,12 +351,12 @@ def test_rewrite_append_keeps_plaintext_on_compressing_server(wire_server):
 def test_truncated_body_raises_oserror(wire_server):
     host, _store, _seen = wire_server
     with pytest.raises(OSError):
-        HttpPath(f"http://{host}/truncated").read_bytes()
+        HTTPURIPath(f"http://{host}/truncated").read_bytes()
 
 
 def test_body_stalled_after_headers_raises_timeouterror(wire_server):
     host, _store, _seen = wire_server
-    p = on_current_transport(HttpPath(f"http://{host}/stall"), timeout=1)
+    p = on_current_transport(HTTPURIPath(f"http://{host}/stall"), timeout=1)
     with pytest.raises(TimeoutError):
         p.read_bytes()
 
@@ -366,26 +366,26 @@ def test_body_stalled_after_headers_raises_timeouterror(wire_server):
 
 def test_stat_redirect_to_file_is_a_file(wire_server, tmp_path):
     host, _store, _seen = wire_server
-    p = UriPath(f"http://{host}/redirect.txt")
+    p = URIPath(f"http://{host}/redirect.txt")
     st = p.stat()
     assert not st.is_dir()
     assert st.st_size == len(_PLAIN_BODY)
     assert p.is_file()
     out = tmp_path / "out.txt"
-    UriPath(f"http://{host}/redirect.txt").copy(LocalPath(out), recursive=True)
+    URIPath(f"http://{host}/redirect.txt").copy(LocalPath(out), recursive=True)
     assert out.is_file()
     assert out.read_bytes() == _PLAIN_BODY
 
 
 def test_stat_redirect_to_slash_is_a_directory(wire_server):
     host, _store, _seen = wire_server
-    assert UriPath(f"http://{host}/dir").stat().is_dir()
+    assert URIPath(f"http://{host}/dir").stat().is_dir()
 
 
 def test_stat_trailing_slash_directory_answered_both_ways(dav_server):
     # wsgidav answers HEAD /sub and HEAD /sub/ with 200.
-    assert HttpPath(f"{_http(dav_server)}/sub/").stat().is_dir()
-    assert HttpPath(f"{_http(dav_server)}/a.txt").stat().is_file()
+    assert HTTPURIPath(f"{_http(dav_server)}/sub/").stat().is_dir()
+    assert HTTPURIPath(f"{_http(dav_server)}/a.txt").stat().is_file()
 
 
 # --- httpdav-last-modified-parsed-as-local-time ---
@@ -395,7 +395,7 @@ def test_http_last_modified_is_utc(wire_server):
     import calendar
 
     host, _store, _seen = wire_server
-    st = HttpPath(f"http://{host}/lm.txt").stat()
+    st = HTTPURIPath(f"http://{host}/lm.txt").stat()
     assert st.st_mtime == calendar.timegm((2024, 1, 1, 0, 0, 0))
 
 
@@ -409,7 +409,7 @@ def test_dav_failed_put_is_not_resent_at_gc(wire_server):
     import gc
 
     host, _store, seen = wire_server
-    f = DavPath(f"dav://{host}/fail.txt").open("wb")
+    f = DAVURIPath(f"dav://{host}/fail.txt").open("wb")
     f.write(b"stale")
     with pytest.raises(OSError):
         f.close()
@@ -424,12 +424,12 @@ def test_dav_failed_put_is_not_resent_at_gc(wire_server):
 
 def test_dav_write_into_missing_parent_raises_filenotfound(dav_server):
     with pytest.raises(FileNotFoundError):
-        DavPath(f"{dav_server}/nodir/f.txt").write_bytes(b"x")
+        DAVURIPath(f"{dav_server}/nodir/f.txt").write_bytes(b"x")
 
 
 def test_dav_non_xml_propfind_reads_as_missing(wire_server):
     host, _store, _seen = wire_server
-    p = DavPath(f"dav://{host}/html")
+    p = DAVURIPath(f"dav://{host}/html")
     assert p.exists() is False
     assert p.is_dir() is False
     with pytest.raises(OSError):
@@ -441,20 +441,20 @@ def test_dav_non_xml_propfind_reads_as_missing(wire_server):
 
 def test_dav_207_delete_with_locked_member_raises(wire_server):
     host, _store, _seen = wire_server
-    p = DavPath(f"dav://{host}/locked/")
+    p = DAVURIPath(f"dav://{host}/locked/")
     with pytest.raises(PermissionError) as excinfo:
         p.rm(recursive=True)
     assert "held file.txt" in str(excinfo.value)
     # The ignore_error policy still applies.
     p.rm(recursive=True, ignore_error=True)
     with pytest.raises(PermissionError):
-        DavPath(f"dav://{host}/locked/f.txt")._delete()
+        DAVURIPath(f"dav://{host}/locked/f.txt")._delete()
 
 
 def test_dav_207_move_with_locked_member_raises(wire_server):
     host, _store, _seen = wire_server
     with pytest.raises(PermissionError):
-        DavPath(f"dav://{host}/locked/").rename("/elsewhere/")
+        DAVURIPath(f"dav://{host}/locked/").rename("/elsewhere/")
 
 
 # --- httpdav-dav-scandir-href-decoding ---
@@ -467,17 +467,17 @@ def test_dav_directory_with_space_lists_children_not_itself(dav_server, fixture_
     (fixture_tree / "x#y.txt").write_text("hash")
     (fixture_tree / "café.txt").write_text("cafe")
 
-    empty = DavPath(f"{dav_server}/my dir")
+    empty = DAVURIPath(f"{dav_server}/my dir")
     assert list(empty.iterdir()) == []
     empty.rmdir()
     assert not (fixture_tree / "my dir").exists()
 
-    team = DavPath(f"{dav_server}/Team Docs")
+    team = DAVURIPath(f"{dav_server}/Team Docs")
     assert sorted(c.name for c in team.iterdir()) == ["a.txt", "sub"]
     tops = [(top.name, sorted(dirs)) for top, dirs, _files in team.walk()]
     assert tops == [("Team Docs", ["sub"]), ("sub", [])]
 
-    root = {c.name: c for c in DavPath(f"{dav_server}/").iterdir()}
+    root = {c.name: c for c in DAVURIPath(f"{dav_server}/").iterdir()}
     assert "x#y.txt" in root and "café.txt" in root
     assert root["x#y.txt"].read_text() == "hash"
     assert root["café.txt"].read_text() == "cafe"

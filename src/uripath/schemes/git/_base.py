@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ... import Uri, UriPath
-from ..github import GitHubPath
-from ..gitlab import GitLabPath
+from ... import URI, URIPath
+from ..github import GitHubURIPath
+from ..gitlab import GitLabURIPath
 
 
-class GitPath(UriPath):
+class GitURIPath(URIPath):
     """`git:` catch-all scheme for public Git hosts.
 
     `git://github.com/...` and `git://gitlab.com/...` auto-select the
@@ -29,12 +29,12 @@ class GitPath(UriPath):
         for a host it cannot auto-detect."""
         host = cls._normalize_host(source.host)
         if host in ("github.com", "www.github.com"):
-            return GitHubPath
+            return GitHubURIPath
         if host in ("gitlab.com", "www.gitlab.com"):
-            return GitLabPath
+            return GitLabURIPath
         # Redacted like the git-hosting schemes: the userinfo can be a
-        # bare token, which `Uri`'s own repr keeps.
-        shown = GitHubPath._format_parsed_parts(
+        # bare token, which `URI`'s own repr keeps.
+        shown = GitHubURIPath._format_parsed_parts(
             source, path, query, fragment, sanitize=True
         )
         raise ValueError(
@@ -43,8 +43,8 @@ class GitPath(UriPath):
         )
 
     def __new__(cls, *args, **kwargs):
-        uri = Uri(*args, **kwargs)
+        uri = URI(*args, **kwargs)
         provider_cls = cls._provider_cls(uri.source, uri.path, uri.query, uri.fragment)
-        inst = UriPath.__new__(provider_cls, *args, **kwargs)
+        inst = URIPath.__new__(provider_cls, *args, **kwargs)
         inst._init(uri.source, uri.path, uri.query, uri.fragment, **kwargs)
         return inst

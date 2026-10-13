@@ -22,8 +22,8 @@ from test_archive_links import FORMATS, _archive, _root
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath
-from uripath import UriPath
-from uripath.schemes.archive._base import ArchiveUri
+from uripath import URIPath
+from uripath.schemes.archive._base import ArchiveURIPath
 from pathlib_next.sync import PathSyncer
 
 RUNAWAY = 100_000
@@ -118,7 +118,7 @@ class Entries:
 @pytest.fixture
 def entries(monkeypatch):
     seen = Entries()
-    original = ArchiveUri._scandir
+    original = ArchiveURIPath._scandir
 
     def counted(self):
         for item in original(self):
@@ -127,7 +127,7 @@ def entries(monkeypatch):
                 pytest.fail(f"a listing went past {RUNAWAY} entries")
             yield item
 
-    monkeypatch.setattr(ArchiveUri, "_scandir", counted)
+    monkeypatch.setattr(ArchiveURIPath, "_scandir", counted)
     return seen
 
 

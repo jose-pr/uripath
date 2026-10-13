@@ -8,8 +8,8 @@ import xml.sax.saxutils
 import pytest
 
 from http_wire import Reply, Wire, response
-from uripath import UriPath
-from uripath.schemes.http import HttpBackend
+from uripath import URIPath
+from uripath.schemes.http import HTTPBackend
 from uripath.schemes._http._headers import peer_text
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
@@ -53,7 +53,7 @@ def test_peer_text_is_cut_to_its_limit():
 def test_a_reason_phrase_is_shown_escaped(request):
     with Wire(reply_with_reason(f"Server {ESC}Error")) as wire:
         with pytest.raises(OSError) as excinfo:
-            UriPath(wire.url + "/x").read_bytes()
+            URIPath(wire.url + "/x").read_bytes()
     message = str(excinfo.value)
     assert "\x1b" not in message
     assert "Server \\x1b[31mError" in message
@@ -62,15 +62,15 @@ def test_a_reason_phrase_is_shown_escaped(request):
 def test_a_long_reason_phrase_is_cut():
     with Wire(reply_with_reason("R" * 20000)) as wire:
         with pytest.raises(OSError) as excinfo:
-            UriPath(wire.url + "/x").read_bytes()
+            URIPath(wire.url + "/x").read_bytes()
     assert len(str(excinfo.value)) < 400
 
 
 def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
-    from uripath.schemes.github import GitHubPath, RepoBackend
+    from uripath.schemes.github import GitHubURIPath, RepoBackend
 
     with Wire(reply_with_reason(f"Oops {ESC}", 500)) as wire:
-        path = GitHubPath(
+        path = GitHubURIPath(
             "github://github.com/o/r/f.txt", backend=RepoBackend(api_base=wire.url)
         )
         with pytest.raises(OSError) as excinfo:
@@ -80,7 +80,7 @@ def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
 
 
 def test_a_rate_limit_header_is_shown_escaped_and_cut():
-    from uripath.schemes.github import GitHubPath, RepoBackend
+    from uripath.schemes.github import GitHubURIPath, RepoBackend
 
     def script(request):
         return response(
@@ -90,7 +90,7 @@ def test_a_rate_limit_header_is_shown_escaped_and_cut():
         )
 
     with Wire(script) as wire:
-        path = GitHubPath(
+        path = GitHubURIPath(
             "github://github.com/o/r/f.txt", backend=RepoBackend(api_base=wire.url)
         )
         with pytest.raises(OSError) as excinfo:
@@ -112,7 +112,7 @@ def test_a_redirect_that_is_refused_is_shown_cut_and_with_an_escaped_reason(
         return Reply(raw)
 
     with Wire(script) as wire:
-        backend = HttpBackend(http_transport)
+        backend = HTTPBackend(http_transport)
         with pytest.raises(OSError) as excinfo:
             backend.request("PUT", wire.url + "/f", data=b"x")
     message = str(excinfo.value)
@@ -136,7 +136,7 @@ def test_the_href_of_a_failed_member_is_shown_escaped_and_few_are_listed():
         return response(207, {"Content-Type": "application/xml"}, body.encode())
 
     with Wire(script) as wire:
-        path = UriPath("dav" + wire.url[len("http") :] + "/d/")
+        path = URIPath("dav" + wire.url[len("http") :] + "/d/")
         with pytest.raises(OSError) as excinfo:
             path.rm(recursive=True)
     message = str(excinfo.value)

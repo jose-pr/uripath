@@ -20,20 +20,20 @@ HEADER = PACKAGE / "AGENTS.md"
 
 # The names the shipped header documents, by the module they are imported from.
 DOCUMENTED = {
-    "uripath": {"DerivedBackend", "Uri", "UriLike", "UriPath", "same_authority"},
+    "uripath": {"DerivedBackend", "URI", "URILike", "URIPath", "same_authority"},
     "uripath.source": {"Source", "compose_host", "compose_uri", "is_drive"},
     "uripath.query": {"Query"},
     "uripath.schemes": {
-        "DataUri",
-        "DavPath",
-        "FileUri",
-        "FtpPath",
-        "GitHubPath",
-        "GitLabPath",
-        "GitPath",
-        "HttpPath",
-        "TarUri",
-        "ZipUri",
+        "DataURIPath",
+        "DAVURIPath",
+        "FileURIPath",
+        "FTPURIPath",
+        "GitHubURIPath",
+        "GitLabURIPath",
+        "GitURIPath",
+        "HTTPURIPath",
+        "TarURIPath",
+        "ZipURIPath",
     },
 }
 
@@ -67,11 +67,11 @@ def test_the_import_lines_of_the_header_run():
 
 
 CONSUMER = """\
-from uripath import Uri, UriPath
+from uripath import URI, URIPath
 
-remote = UriPath("ftp://h/x")
-allowed = UriPath("data:,x", schemesmap={})
-pure = Uri("http://h/d") / "x"
+remote = URIPath("ftp://h/x")
+allowed = URIPath("data:,x", schemesmap={})
+pure = URI("http://h/d") / "x"
 """
 
 

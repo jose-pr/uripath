@@ -16,12 +16,12 @@ None needs a client library: they send through the same transport as `http:`.
       show_if_no_docstring: true
       filters: ["!^_"]
 
-::: uripath.schemes.github.GitHubPath
+::: uripath.schemes.github.GitHubURIPath
 
-::: uripath.schemes.gitlab.GitLabPath
+::: uripath.schemes.gitlab.GitLabURIPath
 
-::: uripath.schemes.git._base.GitPath
+::: uripath.schemes.git._base.GitURIPath
 
-::: uripath.schemes.git.github.GitHubGitPath
+::: uripath.schemes.git.github.GitHubGitURIPath
 
-::: uripath.schemes.git.gitlab.GitLabGitPath
+::: uripath.schemes.git.gitlab.GitLabGitURIPath

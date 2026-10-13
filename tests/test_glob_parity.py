@@ -1,6 +1,6 @@
 """Differential glob tests: `pathlib.Path.glob()`/`rglob()` of the RUNNING
 interpreter is the oracle, compared as sets of relative paths over the same
-real tree for LocalPath, a FileUri of it, and a MemPath copy of it.
+real tree for LocalPath, a FileURIPath of it, and a MemPath copy of it.
 
 Expected results legitimately differ by interpreter (a trailing "**" also
 selects files on 3.13+), which is why nothing here hard-codes them.
@@ -16,7 +16,7 @@ from capabilities import requires_junctions
 
 import pathlib_next
 from pathlib_next.mempath import MemPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next import glob as _glob
 
 _FILES = (
@@ -110,7 +110,7 @@ def _mempath(root: pathlib.Path) -> MemPath:
 
 _IMPLS = {
     "LocalPath": lambda root: pathlib_next.LocalPath(root),
-    "FileUri": lambda root: UriPath(root.as_uri()),
+    "FileURIPath": lambda root: URIPath(root.as_uri()),
     "MemPath": _mempath,
 }
 
@@ -188,7 +188,7 @@ def loop_tree(tmp_path):
     return root
 
 
-@pytest.mark.parametrize("kind", ["LocalPath", "FileUri"])
+@pytest.mark.parametrize("kind", ["LocalPath", "FileURIPath"])
 @pytest.mark.parametrize(
     "method,pattern",
     [
@@ -228,7 +228,7 @@ def test_recurse_symlinks_adds_nothing_where_the_tree_has_no_links(impl):
 def test_uripath_question_mark_is_a_wildcard(tree):
     (tree / "a1.txt").write_text("1")
     (tree / "a2.txt").write_text("2")
-    base = UriPath(tree.as_uri())
+    base = URIPath(tree.as_uri())
     assert {p.name for p in base.glob("a?.txt")} == {"a1.txt", "a2.txt"}
     assert {p.name for p in base.glob("*/n?sted/*.py")} == {"d.py"}
 
@@ -264,7 +264,7 @@ def test_glob_none_expands_the_pattern_the_path_carries(tree, cls):
     expand a path that IS a pattern -- what yaconfiglib's `glob("")` did
     before 0.9.4."""
     root = pathlib_next.LocalPath(tree)
-    carrier = root / "*.py" if cls == "local" else UriPath((root / "*.py").as_uri())
+    carrier = root / "*.py" if cls == "local" else URIPath((root / "*.py").as_uri())
     got = sorted(p.name for p in carrier.glob(None))
     assert got == sorted(p.name for p in root.glob("*.py"))
     assert got

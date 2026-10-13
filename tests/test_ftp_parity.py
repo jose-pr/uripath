@@ -17,10 +17,10 @@ import pytest
 from waits import wait_until
 
 from pathlib_next import LocalPath
-from uripath import UriPath
+from uripath import URIPath
 from pathlib_next.ftp import _backend as ftp_mod
 from pathlib_next.ftp._facts import facts_to_filestat
-from uripath.schemes.ftp import FtpBackend, FtpPath
+from uripath.schemes.ftp import FTPURIBackend, FTPURIPath
 
 # --- FTP loopback servers ------------------------------------------------------
 
@@ -95,13 +95,13 @@ def test_ftp_separately_built_paths_share_one_connection(ftp_factory):
     for i in range(10):
         (root / f"f{i}.txt").write_bytes(b"%d" % i)
     for i in range(10):
-        assert UriPath(f"{url}f{i}.txt").read_bytes() == b"%d" % i
+        assert URIPath(f"{url}f{i}.txt").read_bytes() == b"%d" % i
     assert handler.connections == 1
 
 
 def test_ftp_evicted_connection_is_closed(ftp_factory, monkeypatch):
     url, _handler, _root = ftp_factory()
-    p = FtpPath(f"{url}d/f.txt")
+    p = FTPURIPath(f"{url}d/f.txt")
     p.read_bytes()
     ((key, client),) = [
         (k, c) for k, c in ftp_mod._CACHED_CLIENTS.cache.items() if k[1] == p.source
@@ -137,19 +137,19 @@ def test_ftp_failed_transfer_does_not_desync_the_next_operation(
             return super().retrbinary(cmd, interrupting, *args, **kwargs)
 
     monkeypatch.setattr(ftplib, "FTP", InterruptOnce)
-    backend = FtpBackend(timeout=5)
-    p = FtpPath(f"{url}small.bin", backend=backend)
+    backend = FTPURIBackend(timeout=5)
+    p = FTPURIPath(f"{url}small.bin", backend=backend)
     with pytest.raises(_Interrupt):
         p.read_bytes()
     assert p.read_bytes() == b"x" * 100
     assert p.stat().st_size == 100
-    FtpPath(f"{url}c.txt", backend=backend).write_bytes(b"cc")
+    FTPURIPath(f"{url}c.txt", backend=backend).write_bytes(b"cc")
     assert (root / "c.txt").read_bytes() == b"cc"
 
 
 def test_ftp_write_after_idle_timeout_reconnects_and_lands(ftp_factory):
     url, handler, root = ftp_factory(timeout=1)
-    p = FtpPath(f"{url}late.txt", backend=FtpBackend(timeout=5))
+    p = FTPURIPath(f"{url}late.txt", backend=FTPURIBackend(timeout=5))
     assert p.parent.is_dir()  # the session exists before the idle wait
     f = p.open("wb")
     f.write(b"important data")
@@ -170,7 +170,7 @@ def test_ftp_write_after_idle_timeout_reconnects_and_lands(ftp_factory):
 
 def test_ftp_without_mlsd_directories_stat_as_directories(ftp_factory):
     url, _handler, _root = ftp_factory(mlsd=False)
-    base = FtpPath(url)
+    base = FTPURIPath(url)
     d = base / "d"
     assert d.exists()
     assert d.is_dir()
@@ -190,7 +190,7 @@ def test_ftp_without_mlsd_directories_stat_as_directories(ftp_factory):
 def test_ftp_refused_login_is_permission_error_not_missing(ftp_factory):
     url, handler, _root = ftp_factory()
     handler.auth_failed_timeout = 0.01  # pyftpdlib delays a failed login 3 s
-    p = FtpPath(url.replace(":12345@", ":wrong@") + "d/f.txt")
+    p = FTPURIPath(url.replace(":12345@", ":wrong@") + "d/f.txt")
     with pytest.raises(PermissionError):
         p.stat()
     with pytest.raises(PermissionError):
@@ -203,12 +203,12 @@ def test_ftp_mlsd_mtime_is_utc(ftp_factory):
     target = root / "t.txt"
     target.write_bytes(b"t")
     os.utime(target, (epoch, epoch))
-    assert FtpPath(f"{url}t.txt").stat().st_mtime == epoch
+    assert FTPURIPath(f"{url}t.txt").stat().st_mtime == epoch
 
 
 def test_ftp_refused_commands_map_to_permission_error(ftp_factory):
     url, _handler, root = ftp_factory(perm="elr")
-    keep = FtpPath(f"{url}d/f.txt")
+    keep = FTPURIPath(f"{url}d/f.txt")
     with pytest.raises(PermissionError):
         keep.unlink()
     with pytest.raises(PermissionError):
@@ -216,31 +216,31 @@ def test_ftp_refused_commands_map_to_permission_error(ftp_factory):
     assert (root / "d" / "f.txt").exists()
     # A read-only login gets "550 Not enough privileges" for a missing file
     # too; it is still missing.
-    missing = FtpPath(f"{url}missing.txt")
+    missing = FTPURIPath(f"{url}missing.txt")
     missing.unlink(missing_ok=True)
     with pytest.raises(FileNotFoundError):
         missing.unlink()
     with pytest.raises(PermissionError):
-        FtpPath(f"{url}new.txt").write_bytes(b"x")
+        FTPURIPath(f"{url}new.txt").write_bytes(b"x")
     with pytest.raises(PermissionError):
-        FtpPath(f"{url}d").rmdir()
+        FTPURIPath(f"{url}d").rmdir()
     with pytest.raises(PermissionError):
-        FtpPath(f"{url}d/f.txt").rename("g.txt")
+        FTPURIPath(f"{url}d/f.txt").rename("g.txt")
 
 
 def test_ftp_wrong_type_and_missing_targets_raise_like_pathlib(ftp_factory):
     url, _handler, root = ftp_factory()
-    d = FtpPath(f"{url}d")
+    d = FTPURIPath(f"{url}d")
     with pytest.raises(IsADirectoryError):
         d.read_bytes()
     with pytest.raises(IsADirectoryError):
         d.unlink()
     with pytest.raises(NotADirectoryError):
-        FtpPath(f"{url}d/f.txt").rmdir()
+        FTPURIPath(f"{url}d/f.txt").rmdir()
     with pytest.raises(OSError) as info:
         d.rmdir()
     assert info.value.errno == errno.ENOTEMPTY
-    nope = FtpPath(f"{url}nope")
+    nope = FTPURIPath(f"{url}nope")
     with pytest.raises(FileNotFoundError):
         nope.rmdir()
     with pytest.raises(FileNotFoundError):
@@ -250,19 +250,19 @@ def test_ftp_wrong_type_and_missing_targets_raise_like_pathlib(ftp_factory):
     with pytest.raises(FileNotFoundError):
         list(nope.iterdir())
     with pytest.raises(NotADirectoryError):
-        list(FtpPath(f"{url}d/f.txt").iterdir())
+        list(FTPURIPath(f"{url}d/f.txt").iterdir())
     errors = []
     assert list(nope.walk(on_error=errors.append)) == []
     assert [type(e) for e in errors] == [FileNotFoundError]
     with pytest.raises(FileNotFoundError):
-        FtpPath(f"{url}nope/x.txt").write_bytes(b"x")
-    FtpPath(f"{url}a/b/c").mkdir(parents=True)
+        FTPURIPath(f"{url}nope/x.txt").write_bytes(b"x")
+    FTPURIPath(f"{url}a/b/c").mkdir(parents=True)
     assert (root / "a" / "b" / "c").is_dir()
 
 
 def test_ftp_rplus_writes_land_and_read_stream_is_read_only(ftp_factory):
     url, _handler, root = ftp_factory()
-    p = FtpPath(f"{url}d/f.txt")
+    p = FTPURIPath(f"{url}d/f.txt")
     with p.open("rb") as f:
         with pytest.raises(io.UnsupportedOperation):
             f.write(b"x")
@@ -275,7 +275,7 @@ def test_ftp_rplus_writes_land_and_read_stream_is_read_only(ftp_factory):
 
 def test_ftp_failed_upload_closes_the_stream(ftp_factory):
     url, _handler, _root = ftp_factory(perm="elr")
-    f = FtpPath(f"{url}state.json").open("wb")
+    f = FTPURIPath(f"{url}state.json").open("wb")
     f.write(b"v1")
     with pytest.raises(PermissionError):
         f.close()
@@ -284,13 +284,13 @@ def test_ftp_failed_upload_closes_the_stream(ftp_factory):
 
 def test_ftp_mlsd_perm_fact_is_a_known_mode(ftp_factory, tmp_path):
     url, _handler, _root = ftp_factory()
-    st = FtpPath(f"{url}d/f.txt").stat()
+    st = FTPURIPath(f"{url}d/f.txt").stat()
     assert st.mode_known
     assert stat.S_ISREG(st.st_mode)
     assert stat.S_IMODE(st.st_mode) & 0o600 == 0o600
-    assert FtpPath(f"{url}d").stat().mode_known
+    assert FTPURIPath(f"{url}d").stat().mode_known
     out = LocalPath(tmp_path / "out.txt")
-    FtpPath(f"{url}d/f.txt").copy(out)
+    FTPURIPath(f"{url}d/f.txt").copy(out)
     assert os.access(out, os.W_OK)
-    FtpPath(f"{url}d/f.txt").copy(out, overwrite=True)
+    FTPURIPath(f"{url}d/f.txt").copy(out, overwrite=True)
     assert out.read_bytes() == b"hello"

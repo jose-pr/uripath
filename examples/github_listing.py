@@ -1,4 +1,4 @@
-"""List files in a GitHub repository using GitHubPath.
+"""List files in a GitHub repository using GitHubURIPath.
 Needs only `uripath` -- the
 standard library sends the requests, no PyGithub SDK. Works unauthenticated for public repos
 (subject to GitHub's 60 req/h anonymous rate limit); set GITHUB_TOKEN for
@@ -18,14 +18,14 @@ Run directly:
 import os
 import sys
 
-from uripath.schemes.github import GitHubPath, RepoBackend
+from uripath.schemes.github import GitHubURIPath, RepoBackend
 
 
 def list_github(owner_repo: str, path: str, ref: str, token: str):
     query = f"?ref={ref}" if ref else ""
     uri = f"github://github.com/{owner_repo}/{path.lstrip('/')}{query}"
     backend = RepoBackend(token=token) if token else None
-    root = GitHubPath(uri, backend=backend) if backend else GitHubPath(uri)
+    root = GitHubURIPath(uri, backend=backend) if backend else GitHubURIPath(uri)
     print(f"Listing GitHub location: {uri}")
     for child in root.iterdir():
         kind = "dir " if child.is_dir() else "file"

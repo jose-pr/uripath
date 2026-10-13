@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from ..github import GitHubPath
+from ..github import GitHubURIPath
 
 
-class GitHubGitPath(GitHubPath):
+class GitHubGitURIPath(GitHubURIPath):
     """`git+github:` explicit GitHub-hosted repository scheme."""
 
     __SCHEMES = ("git+github",)

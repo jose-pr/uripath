@@ -2,7 +2,7 @@
 
 This is the reusable "one test class, many backends" pattern the project
 wants third-party implementers (custom Path subclasses like MemPath, or
-UriPath schemes) to be able to run against their own implementation -- see
+URIPath schemes) to be able to run against their own implementation -- see
 `docs/guides/extending.md`.
 """
 
@@ -21,10 +21,10 @@ from pathlib_next.testing import (
     ReadPathContract,
     populate_fixture_tree,
 )
-from uripath.schemes.file import FileUri
-from uripath.schemes.data import DataUri
-from uripath import UriPath
-from uripath.schemes.archive import ZipUri, TarUri
+from uripath.schemes.file import FileURIPath
+from uripath.schemes.data import DataURIPath
+from uripath import URIPath
+from uripath.schemes.archive import ZipURIPath, TarURIPath
 
 
 def make_zip_from_local(local_dir, zip_path):
@@ -80,12 +80,12 @@ class TestMemContract(PathContract):
         return populate_fixture_tree(MemPath("/"))
 
 
-class TestFileUriContract(PathContract):
+class TestFileURIPathContract(PathContract):
     supports_question_mark_names = stores_question_marks()
 
     @pytest.fixture
     def root(self, fixture_tree):
-        return FileUri(fixture_tree.as_uri())
+        return FileURIPath(fixture_tree.as_uri())
 
 
 # HTTP read-only contract
@@ -96,9 +96,9 @@ class TestHttpContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, http_server, http_transport_kind):
-        from uripath.schemes.http import HttpPath
+        from uripath.schemes.http import HTTPURIPath
 
-        return HttpPath(http_server)
+        return HTTPURIPath(http_server)
 
 
 # Zip read/write contract (local outer archive -- full mutation support:
@@ -116,7 +116,7 @@ class TestZipContract(PathContract):
         # the tree it archives lists itself.
         zip_file = tmp_path_factory.mktemp("zip") / "tree.zip"
         make_zip_from_local(fixture_tree, zip_file)
-        return ZipUri(f"zip:{zip_file.as_uri()}!/")
+        return ZipURIPath(f"zip:{zip_file.as_uri()}!/")
 
 
 # Tar read-only contract
@@ -125,7 +125,7 @@ class TestTarContract(ReadPathContract):
     def root(self, tmp_path_factory, fixture_tree):
         tar_file = tmp_path_factory.mktemp("tar") / "tree.tar"
         make_tar_from_local(fixture_tree, tar_file)
-        return TarUri(f"tar:{tar_file.as_uri()}!/")
+        return TarURIPath(f"tar:{tar_file.as_uri()}!/")
 
 
 # `archive:` picks the format from the outer file's extension; `archive+zip:`
@@ -141,7 +141,7 @@ class TestArchiveZipContract(PathContract):
     def root(self, tmp_path_factory, fixture_tree):
         zip_file = tmp_path_factory.mktemp("archive-zip") / "tree.zip"
         make_zip_from_local(fixture_tree, zip_file)
-        return UriPath(f"{self.scheme}:{zip_file.as_uri()}!/")
+        return URIPath(f"{self.scheme}:{zip_file.as_uri()}!/")
 
 
 class TestArchivePinnedZipContract(TestArchiveZipContract):
@@ -155,20 +155,20 @@ class TestArchiveTarContract(ReadPathContract):
     def root(self, tmp_path_factory, fixture_tree):
         tar_file = tmp_path_factory.mktemp("archive-tar") / "tree.tar"
         make_tar_from_local(fixture_tree, tar_file)
-        return UriPath(f"{self.scheme}:{tar_file.as_uri()}!/")
+        return URIPath(f"{self.scheme}:{tar_file.as_uri()}!/")
 
 
 class TestArchivePinnedTarContract(TestArchiveTarContract):
     scheme = "archive+tar"
 
 
-# DataUri read-only contract (represents single file)
-class TestDataUriContract(ReadPathContract):
+# DataURIPath read-only contract (represents single file)
+class TestDataURIPathContract(ReadPathContract):
     supports_listing = False
 
     @pytest.fixture
     def root(self):
-        return DataUri("data:text/plain,a")
+        return DataURIPath("data:text/plain,a")
 
     def _single_resource(self):
         pytest.skip("a data: URI is a single resource with no children")
@@ -225,9 +225,9 @@ class TestFtpContract(PathContract):
 
     @pytest.fixture
     def root(self, ftp_server):
-        from uripath.schemes.ftp import FtpPath
+        from uripath.schemes.ftp import FTPURIPath
 
-        return FtpPath(ftp_server)
+        return FTPURIPath(ftp_server)
 
 
 # WebDAV contract
@@ -242,9 +242,9 @@ class TestDavContract(PathContract):
 
     @pytest.fixture
     def root(self, dav_server, http_transport_kind):
-        from uripath.schemes.dav import DavPath
+        from uripath.schemes.dav import DAVURIPath
 
-        return DavPath(dav_server)
+        return DAVURIPath(dav_server)
 
 
 # GitHub contract — in-process fake contents-API server (see conftest.py's
@@ -255,11 +255,11 @@ class TestGitHubContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, github_api_server, http_transport_kind):
-        from uripath.schemes.github import GitHubPath, RepoBackend
+        from uripath.schemes.github import GitHubURIPath, RepoBackend
 
         base_url, owner, repo = github_api_server
         backend = RepoBackend(api_base=base_url)
-        return GitHubPath(f"github://github.com/{owner}/{repo}", backend=backend)
+        return GitHubURIPath(f"github://github.com/{owner}/{repo}", backend=backend)
 
 
 # GitLab contract — in-process fake REST v4 server (see conftest.py's
@@ -269,11 +269,11 @@ class TestGitLabContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, gitlab_api_server, http_transport_kind):
-        from uripath.schemes.gitlab import GitLabPath, RepoBackend
+        from uripath.schemes.gitlab import GitLabURIPath, RepoBackend
 
         base_url, owner, repo = gitlab_api_server
         backend = RepoBackend(api_base=f"{base_url}/api/v4")
-        return GitLabPath(f"gitlab://gitlab.com/{owner}/{repo}", backend=backend)
+        return GitLabURIPath(f"gitlab://gitlab.com/{owner}/{repo}", backend=backend)
 
 
 # `git+github:` and `git+gitlab:` name the provider explicitly (a bare `git:`
@@ -284,12 +284,14 @@ class TestGitGitHubContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, github_api_server, http_transport_kind):
-        from uripath.schemes.git import GitHubGitPath
+        from uripath.schemes.git import GitHubGitURIPath
         from uripath.schemes.github import RepoBackend
 
         base_url, owner, repo = github_api_server
         backend = RepoBackend(api_base=base_url)
-        return GitHubGitPath(f"git+github://github.com/{owner}/{repo}", backend=backend)
+        return GitHubGitURIPath(
+            f"git+github://github.com/{owner}/{repo}", backend=backend
+        )
 
 
 class TestGitGitLabContract(ReadPathContract):
@@ -297,9 +299,11 @@ class TestGitGitLabContract(ReadPathContract):
 
     @pytest.fixture
     def root(self, gitlab_api_server, http_transport_kind):
-        from uripath.schemes.git import GitLabGitPath
+        from uripath.schemes.git import GitLabGitURIPath
         from uripath.schemes.gitlab import RepoBackend
 
         base_url, owner, repo = gitlab_api_server
         backend = RepoBackend(api_base=f"{base_url}/api/v4")
-        return GitLabGitPath(f"git+gitlab://gitlab.com/{owner}/{repo}", backend=backend)
+        return GitLabGitURIPath(
+            f"git+gitlab://gitlab.com/{owner}/{repo}", backend=backend
+        )

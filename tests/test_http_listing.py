@@ -10,7 +10,7 @@ import typing
 import pytest
 
 from http_fakes import is_client_error, on_current_transport, spy_on_sends
-from uripath import UriPath
+from uripath import URIPath
 from uripath.schemes import http as http_module
 
 TIMEOUT = (5, 30)
@@ -96,13 +96,13 @@ pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
 def _http(site, name, **session_args):
     return on_current_transport(
-        UriPath(site.base + name), **{"timeout": TIMEOUT, **session_args}
+        URIPath(site.base + name), **{"timeout": TIMEOUT, **session_args}
     )
 
 
 def _dav(site, name, **session_args):
     return on_current_transport(
-        UriPath("dav" + site.base[len("http") :] + name),
+        URIPath("dav" + site.base[len("http") :] + name),
         **{"timeout": TIMEOUT, **session_args},
     )
 
@@ -231,14 +231,14 @@ def test_index_of_exactly_the_cap_is_listed(site, monkeypatch):
 
 @pytest.mark.parametrize("suffix", ["?C=M", "#top", "?a=1#top"])
 def test_directory_url_with_query_or_fragment_is_a_directory(http_server, suffix):
-    assert UriPath(f"{http_server}/sub/{suffix}").is_dir()
+    assert URIPath(f"{http_server}/sub/{suffix}").is_dir()
 
 
 def test_unlink_refuses_a_directory_url_that_carries_a_query(
     http_writable_server, fixture_tree
 ):
     with pytest.raises(IsADirectoryError):
-        UriPath(f"{http_writable_server}/sub/?x=1").unlink()
+        URIPath(f"{http_writable_server}/sub/?x=1").unlink()
     assert (fixture_tree / "sub" / "c.py").exists()
 
 
@@ -355,19 +355,19 @@ def test_listing_a_directory_without_a_slash_asks_for_the_slash_form(
     seen = spy_on_sends(
         monkeypatch, lambda method, url, **kwargs: (method, url[len(http_server) :])
     )
-    names = sorted(p.name for p in UriPath(f"{http_server}/sub").iterdir())
+    names = sorted(p.name for p in URIPath(f"{http_server}/sub").iterdir())
     assert names == ["c.py", "nested"]
     assert seen == [("GET", "/sub/")]
 
 
 def test_listing_a_file_still_raises_not_a_directory(http_server):
     with pytest.raises(NotADirectoryError):
-        list(UriPath(f"{http_server}/a.txt").iterdir())
+        list(URIPath(f"{http_server}/a.txt").iterdir())
 
 
 def test_listing_a_missing_path_raises_file_not_found(http_server):
     with pytest.raises(FileNotFoundError):
-        list(UriPath(f"{http_server}/nothing").iterdir())
+        list(URIPath(f"{http_server}/nothing").iterdir())
 
 
 # --- stat follows the Location of a redirect once ---
@@ -384,7 +384,7 @@ def test_stat_keeps_the_credentials_through_a_same_origin_redirect(site):
     site.on("HEAD", "/a", (301, {"Location": "/a/"}, b""))
     site.on("HEAD", "/a/", (200, {"Content-Length": "0"}, b""))
     host = site.base[len("http://") :]
-    assert UriPath(f"http://user:pw@{host}/a").stat().is_dir()
+    assert URIPath(f"http://user:pw@{host}/a").stat().is_dir()
     assert [r.path for r in site.log] == ["/a", "/a/"]
     assert all(
         r.headers.get("Authorization", "").startswith("Basic ") for r in site.log
@@ -556,7 +556,7 @@ def test_get_follows_a_redirect(site):
     assert _http(site, "/r/f.bin").read_bytes() == b"hello"
 
 
-# --- DavPath verbs ---
+# --- DAVURIPath verbs ---
 
 
 def test_rename_destination_carries_the_targets_query_not_the_sources(site):
@@ -572,7 +572,7 @@ def test_rename_destination_carries_the_targets_query_not_the_sources(site):
 def test_rename_to_a_uri_keeps_that_uris_query_and_drops_its_fragment(site):
     site.on("MOVE", "/d/f.txt", (201, {}, b""))
     host = site.base[len("http://") :]
-    target = UriPath(f"dav://{host}/d/h.txt?sig=TARGET#frag")
+    target = URIPath(f"dav://{host}/d/h.txt?sig=TARGET#frag")
     moved = _dav(site, "/d/f.txt").rename(target)
     (request,) = site.sent("MOVE")
     assert request.headers["Destination"] == f"http://{host}/d/h.txt?sig=TARGET"
