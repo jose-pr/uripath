@@ -59,7 +59,7 @@ def test_a_syntax_error_names_the_fault_and_not_the_text():
 
 def test_a_source_that_is_not_only_a_scheme_and_an_authority_is_a_syntax_error():
     with pytest.raises(URISyntaxError, match="path"):
-        Source.from_str("http://h/some/path")
+        Source.parse("http://h/some/path")
 
 
 def test_a_git_uri_on_a_host_with_no_provider_is_a_syntax_error():
@@ -94,5 +94,5 @@ def test_a_callers_mistake_is_not_a_uripath_error():
 
     assert not isinstance(taken.value, URIPathError)
     with pytest.raises(ValueError) as composing:
-        Source("http", None, "h", 99999).as_str()
+        str(Source("http", None, "h", 99999))
     assert not isinstance(composing.value, URIPathError)

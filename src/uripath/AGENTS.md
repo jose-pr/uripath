@@ -248,9 +248,11 @@ class does.
 ```python
 class Source(NamedTuple):
     def __init__(self, scheme, userinfo, host, port): ...
-    def as_str(self, sanitize=True) -> str: ...
+    def reveal(self) -> str: ...
     @classmethod
-    def from_str(cls, source, strict=True): ...
+    def parse(cls, text, *, strict=True) -> Source: ...
+    @classmethod
+    def try_parse(cls, text, default=None, *, strict=True) -> Source | None: ...
     def keys(self): ...
     def parsed_userinfo(self) -> tuple[str, str]: ...
     def get_scheme_cls(self, schemesmap=None): ...
@@ -259,12 +261,18 @@ class Source(NamedTuple):
 
 `NamedTuple`,
 falsy when all fields are empty; indexes by position, slice or field name.
-`as_str(sanitize=True)` is the composer `URI.as_uri()` uses (`file:` for an
-empty host; an invalid scheme or port is a `ValueError`); `str()`/`repr()`
-redact the password, and the whole userinfo for `github:`/`gitlab:`/`git:`
-(the fields keep it). `Source.from_str(source, strict=True)` reads the
-authority as `URI` does (`URISyntaxError` for a path/query/fragment when
-strict, naming the component and never the input),
+`str(source)` is the canonical text: the composer `URI.as_uri()` uses (`file:`
+for an empty host; an invalid scheme or port is a `ValueError`), without the
+password; `repr()` redacts it too, and both drop the whole userinfo for
+`github:`/`gitlab:`/`git:` (the fields keep it). `reveal()` is the text with
+the password, as `URI.as_uri(sanitize=False)` is for a URI; it is named as an
+action because its result carries the secret. `Source.parse(text, *,
+strict=True)` reads the authority as `URI` does (`URISyntaxError` for a
+path/query/fragment when strict, naming the component and never the text;
+`TypeError` for what is not a `str`); `Source.try_parse(text, default=None, *,
+strict=True)` returns `default` for text that does not parse and still raises
+`TypeError` for what is not text. `parse(str(source))` is `source` except for
+the password,
 `parsed_userinfo() -> (user, password)` (`""` when absent; `userinfo`
 stays the decoded `user:password` text),
 `get_scheme_cls(schemesmap=None) -> type[URIPath]`, `keys()` (the field
@@ -1004,7 +1012,7 @@ exports it and the two below.
 - `URISyntaxError` — text that is not a URI, or not the part of one that was
   asked for: a port that is not 0-65535, a malformed host or IPv6 address, a
   `git:` URI on a host with no provider, a `zip:` URI without the scheme of its
-  archive, `Source.from_str()` of text with a path. The message names the
+  archive, `Source.parse()` of text with a path. The message names the
   fault and never the text, which can carry a password.
 - `UnsupportedSchemeError` — `URIPath.scheme_class(name)` for a scheme nobody
   registered; the message lists the registered ones.

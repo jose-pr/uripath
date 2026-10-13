@@ -646,7 +646,7 @@ _host = st.text(alphabet="abc.-", min_size=1, max_size=8).filter(
 @settings(max_examples=300)
 def test_a_source_survives_its_unsanitized_text(userinfo, host, port):
     source = Source("sftp", userinfo, host, port)
-    assert Source.from_str(source.as_str(sanitize=False)) == source
+    assert Source.parse(source.reveal()) == source
 
 
 @given(
@@ -661,4 +661,4 @@ def test_a_password_in_the_userinfo_is_not_in_the_text_a_log_would_show(
     source = Source("sftp", f"{user}:{password}", host, None)
     assert password not in repr(source)
     assert password not in str(source)
-    assert password not in str(URI(source.as_str(sanitize=False) + "/x"))
+    assert password not in str(URI(source.reveal() + "/x"))

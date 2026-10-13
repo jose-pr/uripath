@@ -115,8 +115,8 @@ def test_source_slices_like_the_tuple_it_is():
 @pytest.mark.parametrize(
     "text", ["file:", "x:", "http://h", "//h", "http://u:p@h:1", "file://localhost"]
 )
-def test_from_str_reads_an_authority_as_a_uri_does(text):
-    assert Source.from_str(text) == URI(text).source
+def test_parse_reads_an_authority_as_a_uri_does(text):
+    assert Source.parse(text) == URI(text).source
 
 
 # --- the caches -------------------------------------------------------------------------------

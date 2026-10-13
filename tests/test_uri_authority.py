@@ -1,6 +1,6 @@
 """How an authority (userinfo, host, port) is read and written: the parse
-(`URI._parse_uri`, `Source.from_str`) and the composer (`URI.as_uri`,
-`Source.as_str`) agree with each other and with RFC 3986 / RFC 6874."""
+(`URI._parse_uri`, `Source.parse`) and the composer (`URI.as_uri`,
+`str(Source)`) agree with each other and with RFC 3986 / RFC 6874."""
 
 from __future__ import annotations
 
@@ -130,13 +130,13 @@ def test_a_port_is_not_echoed_with_the_password_in_the_message():
 )
 def test_a_source_that_was_not_parsed_cannot_compose_a_different_uri(source):
     with pytest.raises(ValueError):
-        source.as_str()
+        str(source)
     with pytest.raises(ValueError):
         URI("/p").with_source(source).as_uri()
 
 
 def test_a_port_given_as_digits_composes_as_a_number():
-    assert Source("http", "u", "h", "80").as_str() == "http://u@h:80"
+    assert str(Source("http", "u", "h", "80")) == "http://u@h:80"
 
 
 # --- an IPv6 zone ---------------------------------------------------------------
@@ -168,10 +168,10 @@ def test_a_percent_encoded_zone_is_decoded_and_encoded_again():
 
 
 def test_a_zone_survives_a_host_given_as_text():
-    assert Source("http", None, "[fe80::1%25eth0]", None).as_str() == (
+    assert str(Source("http", None, "[fe80::1%25eth0]", None)) == (
         "http://[fe80::1%25eth0]"
     )
-    assert Source("http", None, "fe80::1%eth0", None).as_str() == (
+    assert str(Source("http", None, "fe80::1%eth0", None)) == (
         "http://[fe80::1%25eth0]"
     )
 
@@ -194,12 +194,10 @@ def test_a_zone_survives_a_host_given_as_text():
         "sftp://us%3Aer:p%40w@h",
     ],
 )
-def test_source_as_str_is_what_as_uri_writes_for_that_source(url):
+def test_source_text_is_what_as_uri_writes_for_that_source(url):
     uri = URI(url)
-    for sanitize in (True, False):
-        assert uri.source.as_str(sanitize=sanitize) == uri.with_path("").as_uri(
-            sanitize=sanitize
-        )
+    assert str(uri.source) == uri.with_path("").as_uri(sanitize=True)
+    assert uri.source.reveal() == uri.with_path("").as_uri(sanitize=False)
 
 
 def test_source_str_renders_a_non_ascii_host_as_idna():
@@ -211,29 +209,27 @@ def test_source_str_renders_a_non_ascii_host_as_idna():
 # --- messages and reprs never carry the secret -------------------------------------
 
 
-def test_from_str_names_the_unexpected_component_not_the_input():
+def test_parse_names_the_unexpected_component_not_the_input():
     with pytest.raises(ValueError) as caught:
-        Source.from_str("sftp://user:S3CRET@h/path")
+        Source.parse("sftp://user:S3CRET@h/path")
     assert "S3CRET" not in str(caught.value)
     assert "path" in str(caught.value)
     with pytest.raises(ValueError, match="query") as caught:
-        Source.from_str("sftp://user:S3CRET@h?token=S3CRET")
+        Source.parse("sftp://user:S3CRET@h?token=S3CRET")
     assert "S3CRET" not in str(caught.value)
 
 
-def test_from_str_does_not_echo_a_password_when_the_port_is_wrong():
+def test_parse_does_not_echo_a_password_when_the_port_is_wrong():
     with pytest.raises(ValueError) as caught:
-        Source.from_str("sftp://user:S3CRET@h:99999")
+        Source.parse("sftp://user:S3CRET@h:99999")
     assert "S3CRET" not in str(caught.value)
 
 
-def test_from_str_still_reads_an_authority():
-    source = Source.from_str("http://user:pass@host:80")
+def test_parse_reads_an_authority():
+    source = Source.parse("http://user:pass@host:80")
     assert source == Source("http", "user:pass", "host", 80)
-    assert Source.from_str("sftp://root@[::1]:22").port == 22
-    assert Source.from_str("http://h/p", strict=False) == Source(
-        "http", None, "h", None
-    )
+    assert Source.parse("sftp://root@[::1]:22").port == 22
+    assert Source.parse("http://h/p", strict=False) == Source("http", None, "h", None)
 
 
 @pytest.mark.parametrize("scheme", ["sftp", "http", "ftp"])
@@ -255,7 +251,7 @@ def test_repr_and_str_of_a_source_hide_the_token_of_a_git_scheme(scheme):
 def test_a_token_scheme_in_a_source_keeps_its_host_in_the_text():
     source = Source("github", "TOKEN123", "github.com", None)
     assert str(source) == "github://github.com"
-    assert source.as_str(sanitize=False) == "github://TOKEN123@github.com"
+    assert source.reveal() == "github://TOKEN123@github.com"
 
 
 # --- a name that is not well-formed text -----------------------------------------------

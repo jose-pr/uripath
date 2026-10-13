@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   | `DerivedBackend` | `uripath.schemes.DerivedBackend` |
   | `query.Query` | `uripath.Query`, also `uripath.query.Query`; no longer a `str` (see below) |
   | `Query(text)`, `Query.decode()` | `Query.parse(text)`, `Query.to_pairs()` |
+  | `Source.from_str(text, strict)` | `Source.parse(text, *, strict=True)`, and `Source.try_parse(text, default=None, *, strict=True)` |
+  | `Source.as_str(sanitize=True)` | `str(source)` |
+  | `Source.as_str(sanitize=False)` | `Source.reveal()` |
   | `schemes.file.FileUri`, `schemes.data.DataUri` | `uripath.schemes.FileURIPath`, `DataURIPath` |
   | `schemes.archive.ZipUri`, `TarUri`, `ArchiveUri` | `uripath.schemes.ZipURIPath`, `TarURIPath`, `ArchiveURIPath` |
   | `schemes.archive.ArchiveZipUri`, `ArchiveTarUri` | `uripath.schemes.ArchiveZipURIPath`, `ArchiveTarURIPath` |
@@ -81,9 +84,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `for pair in query.to_pairs()`, and a comparison of `uri.query` with text
   becomes `str(uri.query) == text`. `URI.query` is still a `Query` and
   `with_query()` still takes text, a mapping, pairs or a `Query`.
+- `Source` follows the conversion names. Was: `Source.from_str(text, strict)`,
+  `source.as_str(sanitize=True)` (the same text as `str(source)`) and
+  `source.as_str(sanitize=False)` (the text with the password). Is:
+  `Source.parse(text, *, strict=True)`, `Source.try_parse(text, default=None,
+  *, strict=True)` (the default instead of the error, and still a `TypeError`
+  for what is not text), `str(source)` (the canonical text, without the
+  password) and `source.reveal()` (the text with the password, named as an
+  action because it carries the secret). `strict` is keyword-only. There is no
+  alias: replace the call. `Source` is still a named tuple, so positional
+  construction and unpacking are unchanged.
 - Text that is not a URI raises `URISyntaxError` where it raised a bare
   `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
-  `Source.from_str()` of text with a path, a `git:` URI on a host with no
+  `Source.parse()` of text with a path, a `git:` URI on a host with no
   provider, a `zip:` URI without the scheme of its archive. It is a subclass of
   `ValueError`, so `except ValueError` still catches it. `URIPath.scheme_class()`
   of a scheme nobody registered raises `UnsupportedSchemeError`, also a

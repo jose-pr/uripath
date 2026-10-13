@@ -52,7 +52,7 @@ def _source_parts(source: "Source", sanitize: bool) -> tuple:
 
 def _parse_source(scheme: "str | None", authority: "str | None") -> "Source":
     """The `Source` of an already split URI: `scheme` is lower-cased by the
-    caller, `authority` is the raw text. Used by `URI` and `Source.from_str`
+    caller, `authority` is the raw text. Used by `URI` and `Source.parse`
     so both read an authority the same way."""
     userinfo, host, port = _split_authority(authority)
     if userinfo is not None:
@@ -84,27 +84,24 @@ class Source(_ty.NamedTuple):
         scheme = self.scheme.lower() if self.scheme else None
         return _redact_userinfo(self.userinfo, scheme)
 
-    def as_str(self, /, sanitize=True) -> str:
-        """Compose this `Source` back into an authority string
-        (`scheme://userinfo@host:port`; `file:` for an empty host). It is the
-        composer `URI.as_uri()` uses, so a non-ASCII host renders as IDNA
-        here too, and a scheme or port that is not valid raises
-        `ValueError`. `sanitize=True` (the default, matching `__str__`)
-        drops the password from `userinfo`; pass `sanitize=False` for the
-        full, credentialed round trip -- the same escape hatch
-        `URI.as_uri(sanitize=False)` provides one layer up.
-        """
-        scheme, userinfo, host, port = _source_parts(self, sanitize)
+    def __str__(self) -> str:
+        """The canonical text of this source (`scheme://userinfo@host:port`;
+        `file:` for an empty host), without the password: `str()` is what
+        logging and printing reach for, and a `Source` on a failing call stack
+        must not leak a credential. It is the composer `URI.as_uri()` uses, so
+        a non-ASCII host renders as IDNA, and a scheme or port that is not
+        valid raises `ValueError`. `parse(str(source))` is this source except
+        for the password; `reveal()` keeps it."""
+        scheme, userinfo, host, port = _source_parts(self, True)
         return _compose_uri(scheme, userinfo, host, port, "", None, None)
 
-    def __str__(self) -> str:
-        """Deliberately sanitized (password dropped from `userinfo`), same
-        rationale as `URI.__str__`: this is what logging/printing reach
-        for, and a `Source` on a failing call stack must not leak a
-        credential. Does NOT round-trip a credentialed source -- use
-        `as_str(sanitize=False)` for the unredacted form.
-        """
-        return self.as_str(sanitize=True)
+    def reveal(self) -> str:
+        """The text of this source with its password, which `str()` leaves out:
+        the credentialed round trip, as `URI.as_uri(sanitize=False)` is for a
+        URI. Named as an action because the result carries the secret; it
+        belongs in a connection, never in a log or a message."""
+        scheme, userinfo, host, port = _source_parts(self, False)
+        return _compose_uri(scheme, userinfo, host, port, "", None, None)
 
     def __repr__(self) -> str:
         # NamedTuple's generated __repr__ shows self.userinfo verbatim, and a traceback
@@ -116,13 +113,16 @@ class Source(_ty.NamedTuple):
         )
 
     @classmethod
-    def from_str(cls, source: str, strict=True):
+    def parse(cls, text: str, *, strict: bool = True) -> Source:
         """The `Source` a URI string names. With `strict` (the default) a
         path, query or fragment is a `URISyntaxError` that names the component
-        and not the input, which may carry a password. A port outside
+        and not the text, which may carry a password. A port outside
         0-65535, or a ':' followed by anything but digits in a name that is
-        not a bracketed address, is a `URISyntaxError` as well."""
-        uri = _uritools.urisplit(source)
+        not a bracketed address, is a `URISyntaxError` as well. `TypeError`
+        for what is not a `str`."""
+        if not isinstance(text, str):
+            raise TypeError(f"source text must be a str, not {type(text).__name__!r}")
+        uri = _uritools.urisplit(text)
         if strict:
             extra = [
                 name for name in ("path", "query", "fragment") if getattr(uri, name)
@@ -134,6 +134,17 @@ class Source(_ty.NamedTuple):
                 )
         scheme = uri.scheme.lower() if uri.scheme is not None else None
         return _parse_source(scheme, uri.authority)
+
+    @classmethod
+    def try_parse(
+        cls, text: str, default: "Source | None" = None, *, strict: bool = True
+    ) -> "Source | None":
+        """`parse()`, but `default` (`None`) for text that is not a source.
+        `TypeError` still for what is not a `str`."""
+        try:
+            return cls.parse(text, strict=strict)
+        except URISyntaxError:
+            return default
 
     def keys(self):
         return self._asdict().keys()

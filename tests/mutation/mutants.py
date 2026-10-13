@@ -99,8 +99,8 @@ mutant(
 mutant(
     "source-str-shows-the-password",
     "source/_source.py",
-    "        return self.as_str(sanitize=True)\n",
-    "        return self.as_str(sanitize=False)\n",
+    "        scheme, userinfo, host, port = _source_parts(self, True)\n",
+    "        scheme, userinfo, host, port = _source_parts(self, False)\n",
     "tests/test_uri_parse.py::test_source_str_and_repr_redact_password",
     "Source.__str__ shows the password",
 )

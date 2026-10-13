@@ -29,8 +29,8 @@ def test_parsed_userinfo_empty():
     assert s.parsed_userinfo() == ("", "")
 
 
-def test_from_str():
-    s = Source.from_str("http://user:pass@host:80")
+def test_parse():
+    s = Source.parse("http://user:pass@host:80")
     assert s.scheme == "http"
     assert s.host == "host"
     assert s.port == 80
@@ -61,11 +61,11 @@ def test_is_local_loopback_ip():
 
 
 def test_is_local_loopback_ipv6_literal():
-    # Constructed via from_str() (not a raw Source(...) string field) so
+    # Constructed via parse() (not a raw Source(...) string field) so
     # _decode_host() parses the bracketed literal into a real IPv6Address
     # -- the isinstance(host, str) branch in is_local() is then skipped
     # entirely.
-    s = Source.from_str("sftp://root@[::1]:22", strict=False)
+    s = Source.parse("sftp://root@[::1]:22", strict=False)
     assert s.is_local()
 
 
@@ -179,3 +179,43 @@ def test_network_guard_blocks_non_loopback_hosts(_block_non_loopback_network):
             call()
     assert blocked == ["getaddrinfo 'example.com'", "getaddrinfo '192.0.2.1'"]
     blocked.clear()
+
+
+# --- one name per conversion --------------------------------------------------
+
+
+def test_parse_is_the_only_way_in_from_text_and_reveal_the_only_way_out_with_the_secret():
+    assert not hasattr(Source, "from_str")
+    assert not hasattr(Source, "as_str")
+    source = Source.parse("sftp://root:secret@nas:22")
+    assert str(source) == "sftp://root@nas:22"
+    assert source.reveal() == "sftp://root:secret@nas:22"
+    assert Source.parse(source.reveal()) == source
+
+
+def test_parse_refuses_what_is_not_text_and_try_parse_does_too():
+    for call in (Source.parse, Source.try_parse):
+        for value in (None, b"http://h", 80, Source(None, None, "h", None)):
+            with pytest.raises(TypeError, match="str"):
+                call(value)
+
+
+def test_try_parse_gives_none_or_the_default_for_text_that_does_not_parse():
+    assert Source.try_parse("http://h:99999") is None
+    assert Source.try_parse("http://[::1") is None
+    assert Source.try_parse("http://h/some/path") is None
+    fallback = Source("http", None, "fallback", None)
+    assert Source.try_parse("http://h:99999", fallback) is fallback
+    assert Source.try_parse("http://h/some/path", strict=False) == Source(
+        "http", None, "h", None
+    )
+
+
+def test_try_parse_returns_what_parse_returns_for_text_that_parses():
+    for text in ("http://u:p@h:80", "ftp://h", "file:", "//h"):
+        assert Source.try_parse(text) == Source.parse(text)
+
+
+def test_parse_takes_strict_by_keyword_only():
+    with pytest.raises(TypeError):
+        Source.parse("http://h/p", False)
