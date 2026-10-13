@@ -9,6 +9,7 @@ import urllib.parse as _urlparse
 import warnings as _warnings
 
 from pathlib_next import providers as _providers
+from .._version import __version__
 from ..exceptions import InsecureTransportWarning
 from ..source import Source
 from ._path import URIPath
@@ -204,7 +205,9 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         stream=False,
     ) -> HTTPResponse:
         sent = _merge_headers(
-            {"User-Agent": "uripath", "Accept": "*/*"}, self.headers, headers
+            {"User-Agent": f"uripath/{__version__}", "Accept": "*/*"},
+            self.headers,
+            headers,
         )
         if self.token:
             sent.setdefault("Authorization", f"Bearer {self.token}")

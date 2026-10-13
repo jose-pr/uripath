@@ -163,9 +163,11 @@ def _send(api_base, **backend_args):
     return [(s.method, s.url, s.headers) for s in transport.sent]
 
 
-def test_a_repository_api_request_names_uripath_as_its_user_agent():
+def test_a_repository_api_request_names_uripath_and_its_version_as_its_user_agent():
+    import uripath
+
     calls = _send("https://api.example.test")
-    assert calls[0][2]["User-Agent"] == "uripath"
+    assert calls[0][2]["User-Agent"] == f"uripath/{uripath.__version__}"
 
 
 def test_token_over_plain_http_to_another_host_warns_and_is_still_sent():

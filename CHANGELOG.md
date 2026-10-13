@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   lists the four, and `URIPath.scheme_class()` raises the same error for them.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
+- `uripath.__version__`, read from the installed metadata.
 - `FTPURIBackend` and `BaseFTPURIBackend` have `close()` and are context
   managers: `close()` closes the control connection every thread holds to the
   servers of that backend, may be called twice, and a later use connects
@@ -111,9 +112,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The environment variable that chooses the default HTTP transport is
   `URIPATH_HTTP_TRANSPORT`. `PATHLIB_NEXT_HTTP_TRANSPORT` is not read: set the
   new one.
-- Requests of `http:`, `dav:`, `github:` and `gitlab:` send `User-Agent: uripath`
-  instead of `User-Agent: pathlib-next`. A backend's `headers=` still replaces
-  it.
+- Requests of `http:`, `dav:`, `github:` and `gitlab:` send
+  `User-Agent: uripath/<version>` instead of `User-Agent: pathlib-next`; the
+  version is `uripath.__version__`. A backend's `headers=` still replaces it.
 - The entry-point group for third-party schemes is `uripath.schemes`. A plugin
   registered under `pathlib_next.schemes` is not found: register it under the
   new group.

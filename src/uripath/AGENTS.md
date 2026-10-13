@@ -24,6 +24,8 @@ other distributions ("Provided by other distributions").
 
 `pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11`,
 `netimps>=0.4.0,<0.5` and `uritools>=5.0,<7`. There are no extras.
+`uripath.__version__` is the installed distribution's version, read from its
+metadata.
 
 ## URIs (`uripath`)
 
@@ -670,7 +672,7 @@ class HTTPResponse:
   tuple: `HTTPBackend(transport=None, *, headers=None, timeout, write_method,
   append_mode)`.
 - **What the backend does for every transport.** It follows redirects, adds
-  credentials and default headers (`User-Agent: uripath`, `Accept: */*`),
+  credentials and default headers (`User-Agent: uripath/<version>`, `Accept: */*`),
   applies the default timeout, and maps a status to a pathlib exception.
   `headers` given to the backend go with every request; request-specific
   headers merge over them by name (case-blind). A header value or URL with a

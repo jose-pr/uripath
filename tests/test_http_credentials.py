@@ -108,10 +108,11 @@ def test_url_password_is_sent_as_the_octets_it_stands_for(
 
 
 @pytest.mark.parametrize("scheme", ["http", "dav"])
-def test_a_request_names_uripath_as_its_user_agent(recorder, scheme):
+def test_a_request_names_uripath_and_its_version_as_its_user_agent(recorder, scheme):
     URIPath(f"{scheme}://{recorder.base}/f.txt").stat()
     (_method, _path, headers), *_rest = recorder.log
-    assert {k.lower(): v for k, v in headers.items()}["user-agent"] == "uripath"
+    agent = {k.lower(): v for k, v in headers.items()}["user-agent"]
+    assert agent == f"uripath/{uripath.__version__}"
 
 
 def test_ascii_credentials_reach_the_transport_as_a_basic_authorization_header():

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing as _ty
 
+from ..._version import __version__
 from .._path import DerivedBackend
 from . import _follow, _settings
 from ._follow import FOLLOWED_METHODS as _FOLLOWED_METHODS
@@ -23,7 +24,7 @@ _UNSET = object()
 """The `timeout` of a call that did not give one: the backend's own."""
 
 
-_BASE_HEADERS = {"User-Agent": "uripath", "Accept": "*/*"}
+_BASE_HEADERS = {"User-Agent": f"uripath/{__version__}", "Accept": "*/*"}
 
 
 class HTTPBackend(TransportOwner):
