@@ -4,7 +4,7 @@ real servers, real write/delete persistence, the exception-translation
 matrix beyond 404/405/501, and `stat()`'s redirect/HEAD-fallback branches.
 `tests/test_http.py`'s `http_server` fixture (stdlib
 `SimpleHTTPRequestHandler`) only ever emits `<ul><li>` listings, so none of
-this was previously exercised by anything but the fallback branch.
+nothing else exercises the other listing shapes.
 """
 
 import pytest
@@ -114,9 +114,8 @@ def test_stat_redirect_then_head_405_falls_back_to_get(http_server_head_rejectin
     # "/sub" (no trailing slash): the pre-redirect loop's own HEAD-405
     # fallback kicks in first (GET, allow_redirects=False -> 301), so
     # resp.is_redirect is True and stat() re-fetches HEAD on the redirect
-    # target -- which this server also 405s. Regression: that second
-    # HEAD had no fallback, so this surfaced PermissionError for a
-    # directory that actually exists.
+    # target -- which this server also 405s. That second HEAD needs the same
+    # fallback, or stat() raises PermissionError for a directory that exists.
     p = URIPath(f"{http_server_head_rejecting}/sub")
     st = p.stat()
     assert st.is_dir()

@@ -100,10 +100,9 @@ def _ftp(path, backend=None):
 def test_ftpbackend_client_uses_netimps_default_port_when_source_has_none(
     monkeypatch,
 ):
-    # FTPURIBackend.client() used to hardcode 21 inline; now delegates to
-    # netimps.get_default_port("ftp"), which returns the same 21 -- assert
-    # the actual value ftplib.FTP.connect() receives, not just that it's
-    # unchanged by coincidence.
+    # FTPURIBackend.client() asks netimps.get_default_port("ftp") for the
+    # port, which is 21 -- assert the actual value ftplib.FTP.connect()
+    # receives.
     calls = []
 
     class _FakeClient:
@@ -376,10 +375,9 @@ def test_chmod_follow_symlinks_false_raises_notimplemented():
         p.chmod(0o644, follow_symlinks=False)
 
 
-# --- destination arguments are decoded paths, not URI syntax (0.9.3) ------
-# Same defect as SFTPURIPath's (`URI(self.parent, target)` re-parsed the
-# destination as a URI); FTPURIPath's `.path` is likewise a filesystem path on
-# the server, so "?" / "#" / "%xx" in it are ordinary filename characters.
+# --- destination arguments are decoded paths, not URI syntax --------------
+# FTPURIPath's `.path` is a filesystem path on the server, so "?" / "#" /
+# "%xx" in a destination are ordinary filename characters.
 
 
 @pytest.mark.parametrize("name", ["rn?b.txt", "rn#b.txt", "rn%20b.txt", "rn:b.txt"])

@@ -470,7 +470,7 @@ def test_archive_scheme_tar_detected_write_raises_not_implemented(tar_archive):
         p.write_text("nope")
 
 
-# --- destination member names are decoded paths, not URI syntax (0.9.3) ---
+# --- destination member names are decoded paths, not URI syntax -----------
 
 
 @pytest.mark.parametrize("name", ["re?named.txt", "re#named.txt", "re%20named.txt"])

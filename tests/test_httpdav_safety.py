@@ -97,7 +97,7 @@ def dot_listing_server(tmp_path):
 def test_http_pre_listing_dot_entries_are_dropped(dot_listing_server):
     d = HTTPURIPath(f"{dot_listing_server}/d/")
     assert [c.name for c in d.iterdir()] == ["x.txt"]
-    # "./" used to make walk() descend /d/./././... without end.
+    # "./" must not make walk() descend /d/./././... without end.
     tops = [top.path for top, _dirs, _files in d.walk()]
     assert tops == ["/d/"]
 

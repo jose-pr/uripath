@@ -52,7 +52,7 @@ def test_is_local_cached_same_result():
 
 
 def test_is_local_loopback_ip():
-    # is_local() now delegates the "is this address mine" check to
+    # is_local() delegates the "is this address mine" check to
     # netimps.is_local_address(), which answers loopback without
     # requiring interface enumeration -- see netimps' own is_local_address
     # docstring.
@@ -69,13 +69,12 @@ def test_is_local_loopback_ipv6_literal():
 
 
 def test_is_local_bare_ipv6_string_host():
-    # B-fix: a directly-constructed Source with host as a bare IPv6 str
+    # A directly-constructed Source with host as a bare IPv6 str
     # (bypassing _decode_host()'s usual bracket-literal parsing -- a
-    # supported construction pattern, Source's fields are public) used to
-    # crash with socket.gaierror when is_local() still used gethostbyname()
-    # (IPv4-only). is_local() now tries netimps.try_parse() first, which
-    # handles any IP literal (v4 or v6) directly, before falling through to
-    # hostname resolution.
+    # supported construction pattern, Source's fields are public) must not
+    # crash with socket.gaierror from an IPv4-only lookup. is_local() tries
+    # netimps.try_parse() first, which handles any IP literal (v4 or v6)
+    # directly, before falling through to hostname resolution.
     assert Source(None, None, "::1", None).is_local()
 
 
@@ -85,10 +84,10 @@ def test_is_local_own_hostname():
     # Exercises the real hostname->address resolution path end to end
     # (netimps.resolve()'s default backend chain), not just IP literals.
     # Skip if this environment's own hostname doesn't resolve at all --
-    # e.g. an mDNS-only "*.local" name on a macOS CI runner. Since netimps
-    # 0.3.0 an empty dnspython answer no longer ends resolve()'s chain, so
-    # the OS resolver is asked too, but whether it answers is still an
-    # environment question, not something this test is meant to validate.
+    # e.g. an mDNS-only "*.local" name on a macOS CI runner. An empty
+    # dnspython answer does not end resolve()'s chain, so the OS resolver is
+    # asked too, but whether it answers is an environment question, not
+    # something this test is meant to validate.
     import socket
 
     import netimps
@@ -100,15 +99,11 @@ def test_is_local_own_hostname():
 
 
 def test_is_local_false_for_nonresolving_hostname(monkeypatch):
-    # A hostname that genuinely doesn't resolve anywhere now correctly
-    # returns False (definitive non-local answer) rather than raising --
+    # A hostname that genuinely doesn't resolve anywhere returns False (a
+    # definitive non-local answer) rather than raising --
     # netimps.resolve()'s contract is "always a list, empty on genuine
     # lookup failure, never an exception for a not-found name" (see
-    # netimps.resolve()'s own docstring). This is an improvement over the
-    # old socket.gethostbyname()-based implementation, which raised
-    # socket.gaierror for the same input -- callers like
-    # sync._is_local() that used to catch that exception and treat
-    # it as "local" (safe-default fallback) now get a real answer instead.
+    # netimps.resolve()'s own docstring).
     #
     # The resolver is stubbed with that "not found" answer: a real lookup
     # of an .invalid name still queries the configured nameservers.

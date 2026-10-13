@@ -60,8 +60,8 @@ def recording_http_server():
 def test_http_request_carries_the_encoded_query_unchanged(recording_http_server):
     base, seen = recording_http_server
     URIPath(f"{base}/download?name=a%26b&sig=ab%2Bcd%3D%3D").read_bytes()
-    # It used to go out as "name=a&b&sig=ab+cd==": a presigned signature
-    # broken and an extra parameter injected.
+    # The request line keeps the escapes: sending "name=a&b&sig=ab+cd=="
+    # would break a presigned signature and inject an extra parameter.
     assert "/download?name=a%26b&sig=ab%2Bcd%3D%3D" in seen
 
 

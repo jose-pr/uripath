@@ -144,12 +144,12 @@ def test_uripath_unimplemented_unlink():
         p.unlink()
 
 
-# --- destination/target normalization (0.9.3) ----------------------------
+# --- destination/target normalization ------------------------------------
 #
-# The single place every scheme's `rename()` and `symlink_to()` now converts
-# a `str` destination. Tested here, once, rather than per-scheme: a `str`
+# The single place every scheme's `rename()` and `symlink_to()` converts a
+# `str` destination. Tested here, once, rather than per-scheme: a `str`
 # destination is an already-decoded PATH, so feeding it back through the URI
-# parser truncated it at "?"/"#", percent-decoded it, and read a leading
+# parser would truncate it at "?"/"#", percent-decode it, and read a leading
 # "C:" as a scheme -- silently, on the wire.
 
 _DECODED = ["rn?b.txt", "rn#b.txt", "rn b.txt", "rn%20b.txt", "rn%b.txt", "rn:b.txt"]
@@ -310,8 +310,7 @@ def test_a_data_payload_is_never_normalized(base, joined):
 def test_join_uses_the_same_child_builder_as_a_listing():
     """`/` walks segments through `_make_child_relpath()`, so a scheme that
     gives a name special meaning sees it. `gitlab:` reserves "-": built by
-    hand the child used to address the repository root instead of the
-    directory the listing yields."""
+    hand, the child addresses the same path as the one a listing yields."""
     gitlab = pytest.importorskip("uripath.schemes._gitlab")
     repo = gitlab.GitLabURIPath("gitlab://gitlab.com/owner/repo")
     assert (repo / "-").path == repo._make_child_relpath("-").path
@@ -362,14 +361,10 @@ def test_a_same_endpoint_uri_destination_keeps_the_configured_backend():
 
 
 def test_joining_a_path_never_builds_a_backend():
-    """A join is a PURE-PATH operation. 0.9.7 routed `/` through
-    `_make_child_relpath()`, which read the `backend` property -- and that
-    property builds one, so spelling `URIPath("sftp://h/x") / "y"` imported
-    paramiko and raised ImportError without the extra. Every scheme, not
-    just the ones whose client happens to be installed."""
-    # Schemes whose class module does not import a client at import time.
-    # (`http:`/`s3:` cannot even be CONSTRUCTED without their extra -- that
-    # is deliberate and documented, and a separate matter from joining.)
+    """A join is a PURE-PATH operation: it never reads the `backend`
+    property, which builds one, so `URIPath("sftp://h/x") / "y"` connects to
+    and imports nothing, even for a scheme another distribution provides.
+    Every scheme, not just the ones whose client happens to be installed."""
     # (`zip:`/`tar:` are left out on purpose: their "backend" is the shared
     # archive handle from the registry, stdlib-only and opened lazily, so it
     # is attached at construction and a join inherits it.)

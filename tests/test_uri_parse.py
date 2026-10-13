@@ -124,12 +124,9 @@ def test_str_sanitizes_password_but_as_uri_full_round_trips():
 
 
 def test_source_str_and_repr_redact_password():
-    # Source.__str__ used to call uricompose() with the raw userinfo
-    # (password included) -- a genuinely valid, authenticated URI string,
-    # and exactly the leak: repr() (NamedTuple's default, also unredacted)
-    # is what a traceback frame renders, so a Source anywhere on a failing
-    # call stack leaked the credential, even though URI.__str__() already
-    # redacted. Both now redact the same way URI.__str__() does.
+    # repr() is what a traceback frame renders, so a Source anywhere on a
+    # failing call stack would leak the credential if it showed the userinfo
+    # as it is. Both redact the same way URI.__str__() does.
     from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
@@ -139,16 +136,12 @@ def test_source_str_and_repr_redact_password():
     assert repr(source) == "Source(scheme='sftp', userinfo='root', host='nas', port=22)"
 
 
-def test_source_str_no_longer_reconstructs_authenticated_uri():
-    # This is a deliberate behavior change, not just an addition: str(source)
-    # used to be a valid, connectable URI (password included) -- code that
-    # relied on f"{source}"/str(source) to rebuild a working authority
-    # string would now silently get a non-authenticating one instead.
-    # Verified nothing in this codebase does that (every real connection
-    # site reads individual Source fields -- .host/.port/.userinfo/
-    # parsed_userinfo() -- never whole-object str()). The real round trip,
-    # for any caller that genuinely needs it, is reveal()
-    # (mirrors URI.as_uri(sanitize=False)).
+def test_source_str_is_not_a_connectable_uri():
+    # str(source) carries no password, so it does not rebuild a working
+    # authority: every real connection site reads individual Source fields
+    # (.host/.port/.userinfo/parsed_userinfo()), never the whole object. The
+    # round trip, for a caller that needs it, is reveal() (mirrors
+    # URI.as_uri(sanitize=False)).
     from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)

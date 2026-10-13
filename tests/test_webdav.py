@@ -387,7 +387,8 @@ def test_rmdir_on_file_raises_notadirectoryerror():
     # rmdir() fix: a file must not be silently DELETEd -- a
     # PROPFIND Depth:1 on a non-collection resource only returns the "."
     # entry describing itself, which _scandir() filters out, so a file
-    # used to look exactly like an empty directory to _listdir() alone.
+    # so a file would look exactly like an empty directory to _listdir()
+    # alone.
     session = _FakeSession()
     session.responses[("PROPFIND", "http://host/docs/readme.txt", "0")] = _FakeResponse(
         207, _MULTISTATUS_FILE

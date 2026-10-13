@@ -67,7 +67,7 @@ def _rate_limit_error(response, path_obj) -> "OSError | None":
     else None. Both hosts signal a primary limit with 403 or 429 and a
     `(X-)RateLimit-Remaining: 0` header, and a secondary limit with 403 or
     429 and a `Retry-After` header; a bare 429 is a limit too. Checked
-    before the generic mapping, which read a secondary-limit 403 as
+    before the generic mapping, which would read a secondary-limit 403 as
     PermissionError and a 429 as EIO."""
     if response is None or response.status not in (403, 429):
         return None

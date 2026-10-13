@@ -77,7 +77,7 @@ def test_github_token_backend_does_not_follow_join_to_another_host():
     # join must not build one (it is a pure-path operation), so a child of a
     # connectionless parent makes its own on first use.
     assert root._backend is None
-    root.backend  # now it exists, and the next child shares it
+    root.backend  # after this use it exists, and the next child shares it
     assert (root / "docs").backend is root.backend
 
     # Crossing hosts needs a URI argument, and that drops the token.

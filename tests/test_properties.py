@@ -165,9 +165,8 @@ def test_is_relative_to_matches_pure_posix_path(segs):
     u, pp = URI(path_str), pathlib.PurePosixPath(path_str)
     u_parent, pp_parent = URI(parent_str), pathlib.PurePosixPath(parent_str)
     assert u.is_relative_to(u_parent) == pp.is_relative_to(pp_parent) == True
-    # The str form must agree with the object form: it used to anchor
-    # `other` at self's root (URI(self, _ROOT, other)) and answer False for
-    # every *relative* self.
+    # The str form agrees with the object form: `other` is not anchored at
+    # self's root, which would answer False for every *relative* self.
     assert u.is_relative_to(parent_str) == pp.is_relative_to(parent_str) == True
 
 

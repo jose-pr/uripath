@@ -1,5 +1,6 @@
-"""Regressions for low-severity soundness defects in the core `Path`
-protocols, `MemPath`, `FileStat`, checksums and the URI core."""
+"""Soundness cases of the URI core and of how `URIPath` joins, compares and
+renders next to `MemPath` and `LocalPath`: equality and hash, `/` with a `str`
+or a path, absolute and relative `file:` paths, IDNA hosts and `data:` URIs."""
 
 from __future__ import annotations
 

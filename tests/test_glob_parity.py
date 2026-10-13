@@ -180,7 +180,7 @@ def loop_tree(tmp_path):
     (root / "a").mkdir(parents=True)
     (root / "a" / "f.txt").write_text("f")
     try:
-        # Two cycles: before the fix recursion branched 2x per level.
+        # Two cycles: an unbounded recursion would branch 2x per level.
         os.symlink(root, root / "a" / "loop", target_is_directory=True)
         os.symlink(root, root / "a" / "loop2", target_is_directory=True)
     except (OSError, NotImplementedError) as exc:
@@ -261,8 +261,7 @@ _FULL_MATCH_CASES = [
 @pytest.mark.parametrize("cls", ["local", "uri"])
 def test_glob_none_expands_the_pattern_the_path_carries(tree, cls):
     """`glob("")` raises like pathlib; `glob(None)` is the supported way to
-    expand a path that IS a pattern -- what yaconfiglib's `glob("")` did
-    before 0.9.4."""
+    expand a path that IS a pattern."""
     root = pathlib_next.LocalPath(tree)
     carrier = root / "*.py" if cls == "local" else URIPath((root / "*.py").as_uri())
     got = sorted(p.name for p in carrier.glob(None))

@@ -182,8 +182,8 @@ def test_pre_skips_parent_directory_variants():
 def test_pre_absolute_href_child_entries_kept():
     # A reverse-proxied/absolute-URL-configured server can render every
     # entry (not just the parent link) as an absolute href -- a blanket
-    # startswith('/') filter would drop the whole listing (regression:
-    # this used to come back empty).
+    # startswith('/') filter would drop the whole listing, and the listing
+    # must not come back empty.
     html = (
         "<html><head><title>Index of /files/</title></head><body><pre>"
         '<a href="/files/">../</a>\n'

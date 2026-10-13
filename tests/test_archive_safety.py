@@ -487,7 +487,7 @@ def test_member_names_are_normalized_for_listing_and_lookup(tmp_path, fmt):
 @pytest.mark.parametrize("fmt", ["zip", "tar"])
 def test_every_listed_member_can_be_read(tmp_path, fmt):
     """Listing and lookup agree: a name a listing yields always resolves,
-    and resolves to the member that name was normalized from. Zip used to
+    and resolves to the member that name was normalized from; a zip must not
     hide `./x` from listings while still reading it by its raw name."""
     members = [(raw, raw.encode()) for raw, _ in _NORMALIZED_MEMBERS]
     members += [(name, b"evil") for name in _UNSAFE_MEMBER_NAMES]
@@ -749,10 +749,10 @@ def test_tar_concurrent_reads_return_each_members_bytes(tmp_path):
 
 
 def test_overwriting_a_dot_slash_member_rewrites_it_in_place(tmp_path):
-    """0.9.5 handed the NORMALIZED name to a backend keyed on raw names, so
-    writing over a member spelled `./f.txt` appended a second entry that
-    shadowed it -- and `unlink()` then deleted the shadow, resurrecting the
-    original content while reporting success."""
+    """Writing over a member spelled `./f.txt` rewrites that entry. Handing
+    the NORMALIZED name to a backend keyed on raw names would append a second
+    entry that shadows it, and `unlink()` would then delete the shadow,
+    resurrecting the original content while reporting success."""
     archive = _write_zip(tmp_path / "rt.zip", [("./f.txt", b"OLD")])
     member = URIPath(_zip_uri(archive)) / "f.txt"
     member.write_bytes(b"NEW")
@@ -778,7 +778,7 @@ def test_mkdir_over_a_dot_slash_directory_marker_does_not_duplicate(tmp_path):
     "members,expected",
     [
         ([("./d/x.txt", b"X"), ("./d/y.txt", b"Y")], ["e/x.txt", "e/y.txt"]),
-        # Mixed spellings used to split the directory in two.
+        # Mixed spellings of one directory stay one directory.
         (
             [("d/", b""), ("./d/x.txt", b"X"), ("d/y.txt", b"Y")],
             ["e/", "e/x.txt", "e/y.txt"],

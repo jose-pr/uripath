@@ -3,7 +3,7 @@ listing goes through at most one directory link per path and never enters a
 link to the directory that holds it or to one of that directory's ancestors, so
 the entries any recursive operation visits are bounded by
 `(members + links) * (directory links + 1)` however the links point. The
-archive is untrusted input: a few hundred bytes of links to `.` used to make
+archive is untrusted input: a few hundred bytes of links to `.` would make
 `walk(follow_symlinks=True)`, `glob(recurse_symlinks=True)`, `copy()` and
 `PathSyncer` visit one path per route, up to the link bound each.
 

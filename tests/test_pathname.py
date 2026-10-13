@@ -207,9 +207,8 @@ def test_root_drive_anchor_relative(cls):
 
 @pytest.mark.parametrize("cls", IMPLS)
 def test_equality_is_by_value_not_identity(cls):
-    # `Pathname` used to define no __eq__ at all, so any subclass that
-    # didn't hand-write one (MemPath, and every downstream Track A class)
-    # compared by identity.
+    # `Pathname` defines __eq__, so a subclass that does not write one
+    # (MemPath, for one) compares by value, not by identity.
     assert cls("a/b") == cls("a/b")
     assert cls("a/b") != cls("a/c")
     assert cls("a/b") is not cls("a/b")
@@ -234,8 +233,8 @@ def test_is_relative_to_str_and_object_agree_with_stdlib(cls, path, other):
     expected = pathlib.PurePosixPath(path).is_relative_to(other)
     assert expected is True  # sanity: the oracle really does say True
     assert cls(path).is_relative_to(cls(other)) is expected
-    # The str form used to join `other` onto `self` instead of parsing it
-    # standalone, so it answered False where the object form answered True.
+    # The str form parses `other` on its own, as the object form does,
+    # instead of joining it onto `self`.
     assert cls(path).is_relative_to(other) is expected
 
 

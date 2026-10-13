@@ -74,10 +74,9 @@ def _split_authority(
     authority: "str | None",
 ) -> "tuple[str | None, str | None, int | None]":
     """One-pass split of a raw URI authority into (userinfo, host, port) --
-    RAW/undecoded strings, port as int-or-None. Ported from
-    the RFC 3986 reading of `userinfo@host:port`, with one split of the
-    authority; the tests compare it with the `uritools` reading and name
-    where it differs:
+    RAW/undecoded strings, port as int-or-None. It follows the RFC 3986
+    reading of `userinfo@host:port` with one split of the authority; the tests
+    compare it with the `uritools` reading and name where it differs:
 
     * a host is followed by a port only when a ':' was found, so a host of
       digits alone (`s3://20240101/key`) stays the host, where `uritools`
