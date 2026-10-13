@@ -29,7 +29,7 @@ import sys
 REPO_ROOT = StdlibPath(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from uripath import Uri
+from uripath import URI
 
 SCHEMA = "uripath.bench/1"
 MAX_SAMPLES = 100
@@ -87,19 +87,19 @@ def _timeit(stmt, *, number, name, group, setup="pass", repeat=5):
 
 def benchmark_uri_parse():
     # Parse a typical complex URI 10,000 times
-    setup = "from uripath import Uri"
-    code = "Uri('http://user:pass@host:80/path/to/resource?query=1#fragment')"
+    setup = "from uripath import URI"
+    code = "URI('http://user:pass@host:80/path/to/resource?query=1#fragment')"
     return _timeit(
         code,
         setup=setup,
         number=10000,
-        name="uri: Uri() construct, same literal",
+        name="uri: URI() construct, same literal",
         group="uri",
     )
 
 
 def benchmark_uri_parse_unique():
-    # Uri() construction is lazy (no parsing until .source/.path/... is
+    # URI() construction is lazy (no parsing until .source/.path/... is
     # first accessed) and benchmark_uri_parse() above reuses the SAME
     # literal string every call, so it measures neither real parse cost.
     # This one forces the actual parse (the one-pass
@@ -109,7 +109,7 @@ def benchmark_uri_parse_unique():
     # library caches by input (verified true of urllib.urlsplit, ~28x;
     # not true of uritools/our own parser, but always bench unique inputs
     # regardless so this stays an apples-to-apples comparison).
-    from uripath import Uri
+    from uripath import URI
 
     n = 5000
     urls = [
@@ -120,7 +120,7 @@ def benchmark_uri_parse_unique():
 
     def _run():
         for url in urls:
-            u = Uri(url)
+            u = URI(url)
             _ = u.source
             _ = u.path
             _ = u.query
@@ -128,7 +128,7 @@ def benchmark_uri_parse_unique():
 
     samples = timeit.repeat(_run, number=1, repeat=_reps(5))
     RECORDER.timing("uri: parse, unique URIs, forced", samples, group="uri", calls=n)
-    return statistics.median(samples) / n * 1e6  # microseconds per unique Uri() parse
+    return statistics.median(samples) / n * 1e6  # microseconds per unique URI() parse
 
 
 def benchmark_uri_parse_and_compose_unique():
@@ -136,9 +136,9 @@ def benchmark_uri_parse_and_compose_unique():
     # uncached -- sanitize=True forces a fresh compose every call instead
     # of hitting the cached-after-first-call fast path) -- exercises both
     # the one-pass parse (_parse_uri) and direct-assembly compose
-    # (_format_parsed_parts) together, which is what "Uri() construction"
+    # (_format_parsed_parts) together, which is what "URI() construction"
     # means end to end.
-    from uripath import Uri
+    from uripath import URI
 
     n = 5000
     urls = [
@@ -149,26 +149,26 @@ def benchmark_uri_parse_and_compose_unique():
 
     def _run():
         for url in urls:
-            u = Uri(url)
+            u = URI(url)
             _ = u.as_uri(sanitize=True)
 
     samples = timeit.repeat(_run, number=1, repeat=_reps(5))
     RECORDER.timing("uri: parse+compose, unique URIs", samples, group="uri", calls=n)
     return (
         statistics.median(samples) / n * 1e6
-    )  # microseconds per unique Uri() parse+compose
+    )  # microseconds per unique URI() parse+compose
 
 
 def benchmark_path_join():
     # Join paths using / operator 10,000 times
-    setup = "from uripath import Uri; p = Uri('http://host/path')"
+    setup = "from uripath import URI; p = URI('http://host/path')"
     code = "p / 'sub' / 'child'"
     return _timeit(code, setup=setup, number=10000, name="uri: path join", group="uri")
 
 
 def benchmark_segments_name_access():
     # Access .segments and .name 10,000 times
-    setup = "from uripath import Uri; u = Uri('http://host/a/b/c/d/e')"
+    setup = "from uripath import URI; u = URI('http://host/a/b/c/d/e')"
     code = "_ = u.segments; _ = u.name"
     return _timeit(
         code, setup=setup, number=10000, name="uri: segments + name access", group="uri"
@@ -177,7 +177,7 @@ def benchmark_segments_name_access():
 
 def benchmark_suffix_stem():
     # Access .suffix and .stem 10,000 times
-    setup = "from uripath import Uri; u = Uri('http://host/path/file.tar.gz')"
+    setup = "from uripath import URI; u = URI('http://host/path/file.tar.gz')"
     code = "_ = u.suffix; _ = u.stem"
     return _timeit(
         code, setup=setup, number=10000, name="uri: suffix + stem access", group="uri"
@@ -208,13 +208,13 @@ def benchmark_walk_glob_http():
         thread.start()
 
         try:
-            # We import the HttpPath scheme
-            from uripath.schemes.http import HttpPath
+            # We import the HTTPURIPath scheme
+            from uripath.schemes.http import HTTPURIPath
 
             url = f"http://127.0.0.1:{port}"
 
             # Warm up
-            hp = HttpPath(url)
+            hp = HTTPURIPath(url)
             _ = list(hp.glob("**/*.html"))
 
             # Benchmark glob and walk, 10 calls per sample
@@ -222,7 +222,7 @@ def benchmark_walk_glob_http():
                 lambda: list(hp.glob("**/*.html")), number=10, repeat=_reps(3)
             )
             RECORDER.timing(
-                "http: HttpPath glob('**/*.html') 20 files",
+                "http: HTTPURIPath glob('**/*.html') 20 files",
                 glob_samples,
                 group="http",
                 calls=10,
@@ -231,7 +231,10 @@ def benchmark_walk_glob_http():
                 lambda: list(hp.walk()), number=10, repeat=_reps(3)
             )
             RECORDER.timing(
-                "http: HttpPath walk() 20 files", walk_samples, group="http", calls=10
+                "http: HTTPURIPath walk() 20 files",
+                walk_samples,
+                group="http",
+                calls=10,
             )
 
             _benchmark_http_transports(url)
@@ -246,19 +249,19 @@ def benchmark_walk_glob_http():
 def _benchmark_http_transports(url):
     """The same listing work and a run of small GETs on the transport
     `HTTPTransport` (the default above)."""
-    from uripath.schemes.http import HttpPath, HTTPTransport
+    from uripath.schemes.http import HTTPURIPath, HTTPTransport
 
     transports = [("builtin", HTTPTransport)]
     for name, make in transports:
         transport = make()
         try:
-            root = HttpPath(url).with_transport(transport)
+            root = HTTPURIPath(url).with_transport(transport)
             list(root.walk())  # warm up
             walk_samples = timeit.repeat(
                 lambda: list(root.walk()), number=10, repeat=_reps(3)
             )
             RECORDER.timing(
-                f"http: HttpPath walk() 20 files, {name} transport",
+                f"http: HTTPURIPath walk() 20 files, {name} transport",
                 walk_samples,
                 group="http",
                 calls=10,

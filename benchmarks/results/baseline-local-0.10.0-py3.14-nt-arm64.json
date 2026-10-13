@@ -26,7 +26,7 @@
       "samples": 3,
       "calls_per_sample": 50
     },
-    "http: HttpPath glob('**/*.html') 20 files": {
+    "http: HTTPURIPath glob('**/*.html') 20 files": {
       "group": "http",
       "min_ms": 86.94655,
       "median_ms": 89.86599,
@@ -34,7 +34,7 @@
       "samples": 3,
       "calls_per_sample": 10
     },
-    "http: HttpPath walk() 20 files": {
+    "http: HTTPURIPath walk() 20 files": {
       "group": "http",
       "min_ms": 31.93244,
       "median_ms": 45.93799,
@@ -42,7 +42,7 @@
       "samples": 3,
       "calls_per_sample": 10
     },
-    "http: HttpPath walk() 20 files, builtin transport": {
+    "http: HTTPURIPath walk() 20 files, builtin transport": {
       "group": "http",
       "min_ms": 35.69242,
       "median_ms": 36.10391,
@@ -66,7 +66,7 @@
       "samples": 3,
       "calls_per_sample": 20
     },
-    "uri: Uri() construct, same literal": {
+    "uri: URI() construct, same literal": {
       "group": "uri",
       "min_ms": 0.001155,
       "median_ms": 0.001352,
