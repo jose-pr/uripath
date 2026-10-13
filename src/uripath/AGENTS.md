@@ -780,8 +780,8 @@ class BaseFTPURIBackend:
   yet used, is probed with `NOOP` and replaced when dead.
 - `FTPURIPath` is a `URIPath` over `pathlib_next.ftp.FTPPath`: the listing,
   stat, reads, writes, `rename()`, `chmod()` and `_utime()` are those
-  described under "What a path does" in the FTP section, and an `OSError`
-  names the URI. A `with` block over `open("w")` that raised uploads nothing.
+  described under "What a path does" in the FTP section of the `pathlib-next`
+  header, and an `OSError` names the URI. A `with` block over `open("w")` that raised uploads nothing.
   Its URI-only parts are the endpoint (the `Source` and the
   scheme's `tls`) and the backend rules above.
 - An empty path (`ftp://host`) is the root, as `ftp://host/` is: `/` is
@@ -851,8 +851,8 @@ write method raise `NotImplementedError`.
   `X-GitHub-Media-Type` header: the API names its media type in every
   reply, so that is a proxy's or a captive portal's page, and `open()` of
   it is `OSError(EIO)` naming the path (a file of the repository that is
-  HTML still reads, with the header). That rule has not been checked
-  against the live service.
+  HTML still reads, with the header). A server that sends HTML for a file
+  without that header is read as a proxy's page.
 
 ### `GitLabURIPath` — `gitlab://[TOKEN@]host[:port]/owner/repo/path` (`uripath.schemes`)
 
@@ -928,12 +928,13 @@ with the scheme it was written with.
 - One shared handle per archive (keyed by the real local path, or the outer
   URI), released when no path references it. `ArchiveURIPath.refresh()` forgets
   what is held of the outer, so the next use reads it again; the rest is
-  described under `ArchivePath`.
+  described under `ArchivePath` in the `pathlib-next` header.
 - `ArchiveURIPath` is a `URIPath` over `pathlib_next.archive.ArchivePath` (`ZipURIPath`
   over `ZipPath`, `TarURIPath` over `TarPath`) on the shared handle of its outer:
   member names, the archive root, links, cost, writes, `batch()`, the removal
   and the damage errors are those described under "Archives
-  (`pathlib_next.archive`)", with an `OSError` naming the URI. A `with` block
+  (`pathlib_next.archive`)" in the `pathlib-next` header, with an `OSError`
+  naming the URI. A `with` block
   over `open("w")` that raised adds no member and creates no archive.
   `uripath.schemes.MEMBER_SPOOL_BYTES` is the same setting as
   `pathlib_next.archive.MEMBER_SPOOL_BYTES`.
