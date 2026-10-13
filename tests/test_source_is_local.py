@@ -4,9 +4,8 @@ no name is looked up."""
 
 from __future__ import annotations
 
+import netimps
 import pytest
-
-netimps = pytest.importorskip("netimps")
 
 from uripath.source import _locality as source_module
 from uripath.source import Source

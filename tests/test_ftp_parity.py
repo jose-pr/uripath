@@ -29,6 +29,7 @@ from uripath.schemes import FTPURIBackend, FTPURIPath
 def ftp_factory(tmp_path):
     """`start(perm=..., mlsd=..., timeout=...)` -> (url, handler class, root).
     The handler counts the control connections it accepted."""
+    pytest.importorskip("pyftpdlib")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         from pyftpdlib.authorizers import DummyAuthorizer

@@ -14,8 +14,6 @@ import textwrap
 
 import pytest
 
-pytest.importorskip("netimps")
-
 import uripath
 
 _PRELUDE = """

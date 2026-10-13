@@ -17,8 +17,6 @@ import textwrap
 
 import pytest
 
-pytest.importorskip("netimps")
-
 import uripath
 from uripath import URIPath
 from uripath.schemes import DataURIPath
