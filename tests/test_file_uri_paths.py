@@ -256,7 +256,7 @@ def test_a_named_host_that_is_this_machine_is_still_a_unc_share():
     path = URIPath("file://localhost/share/a")
     assert path.parent.as_uri() == "file://localhost/share"
     assert URIPath("file://Server/Share/a/b").parents[-1].as_uri() == (
-        "file://server/Share/"
+        "file://Server/Share/"
     )
 
 

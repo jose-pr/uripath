@@ -134,7 +134,15 @@ def _decode_host(host: str) -> "str | _IPAddress":
     try:
         return _ip.IPv4Address(host)
     except ValueError:
-        return _uritools.uridecode(host, errors=_ERRORS).lower()
+        return _uritools.uridecode(host, errors=_ERRORS)
+
+
+def fold_host(host: "str | _IPAddress | None") -> "str | _IPAddress | None":
+    """`host` as a comparison or a key reads it: a name in lower case, since
+    host names are case-insensitive (RFC 3986 3.2.2), and an address as it is.
+    `Source.host` keeps the spelling it was given, so anything that compares
+    hosts or uses one as a key folds it at that place."""
+    return host.lower() if isinstance(host, str) else host
 
 
 def is_drive(segment: str) -> bool:

@@ -72,7 +72,8 @@ def _origin(split: _urlparse.SplitResult) -> "tuple[str, str, int | None]":
         port = split.port
     except ValueError:
         port = -1
-    return scheme, (split.hostname or ""), port or _DEFAULT_PORTS.get(scheme)
+    # `hostname` is lower case already; a host name is case-insensitive.
+    return scheme, (split.hostname or "").lower(), port or _DEFAULT_PORTS.get(scheme)
 
 
 class _FileEntry(_ty.NamedTuple):

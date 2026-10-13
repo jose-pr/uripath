@@ -15,7 +15,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from uripath import URI
-from uripath.source import Source
+from uripath.source import Source, fold_host
 from uripath.source._compose import _compose_uri
 from uripath.source._parse import (
     _decode_host,
@@ -385,6 +385,14 @@ def _fast_parse(uri: str):
     return scheme, userinfo, host, port, path, (query or ""), (fragment or "")
 
 
+def _folded(parsed):
+    """`parsed` with its host in lower case: uritools folds a host name, and
+    this parser keeps the spelling it was given (pinned in test_host_case.py)."""
+    if parsed[0] == "EXC":
+        return parsed
+    return (*parsed[:2], fold_host(parsed[2]), *parsed[3:])
+
+
 @given(uri=_uri_string())
 @settings(max_examples=1000)
 def test_fast_parse_matches_uritools_getters(uri):
@@ -396,7 +404,7 @@ def test_fast_parse_matches_uritools_getters(uri):
         oracle = _oracle_parse(uri)
     except Exception as e:
         oracle = ("EXC", type(e).__name__)
-    assert fast == oracle, f"uri={uri!r}"
+    assert _folded(fast) == oracle, f"uri={uri!r}"
 
 
 @given(uri=_uri_string())
@@ -422,7 +430,7 @@ def test_uri_parse_uri_matches_oracle_components(uri):
         oracle = _oracle_parse(uri)
     except Exception as e:
         oracle = ("EXC", type(e).__name__)
-    assert fast == oracle, f"uri={uri!r}"
+    assert _folded(fast) == oracle, f"uri={uri!r}"
 
 
 _compose_scheme_st = st.one_of(st.none(), st.just(""), _scheme_st)
@@ -517,9 +525,21 @@ def test_uri_format_parsed_parts_matches_uricompose(
 ):
     source = Source(scheme, userinfo, host, port)
     try:
-        fast = URI._format_parsed_parts(
+        # uricompose folds a host name and the composer keeps its spelling: the
+        # two texts differ in the case of the host and nowhere else.
+        spelled = URI._format_parsed_parts(
             source, path, query, fragment, sanitize=sanitize
         )
+        fast = URI._format_parsed_parts(
+            source._replace(host=fold_host(host)),
+            path,
+            query,
+            fragment,
+            sanitize=sanitize,
+        )
+        assert spelled.lower() == fast.lower()
+    except AssertionError:
+        raise
     except Exception as e:
         fast = ("EXC", _kind(e))
     try:
@@ -554,9 +574,23 @@ def test_compose_uri_matches_uricompose_direct(
     `_format_parsed_parts` wrapper) -- this is DAVURIPath._wire_uri()'s call
     shape: None-checked, not truthy-filtered."""
     try:
-        fast = _compose_uri(
+        # uricompose folds a host name and the composer keeps its spelling: the
+        # two texts differ in the case of the host and nowhere else.
+        spelled = _compose_uri(
             scheme, userinfo, host, port, path, query or None, fragment or None
         )
+        fast = _compose_uri(
+            scheme,
+            userinfo,
+            fold_host(host),
+            port,
+            path,
+            query or None,
+            fragment or None,
+        )
+        assert spelled.lower() == fast.lower()
+    except AssertionError:
+        raise
     except Exception as e:
         fast = ("EXC", _kind(e))
     try:

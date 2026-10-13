@@ -41,6 +41,7 @@ NOT_THE_CORES = {
     ("schemes/_dav.py", "_replace"): "a stdlib named tuple's method",
     ("schemes/_http/_headers.py", "_pairs"): "the pairs a headers mapping holds",
     ("schemes/_gitrepo.py", "_replace"): "a `Source` named tuple's method",
+    ("schemes/_ftp.py", "_replace"): "a `Source` named tuple's method",
 }
 
 # (module, file that imports it, private name): what this package takes from a

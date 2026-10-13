@@ -147,7 +147,9 @@ class ArchiveURIPath(DelegatingPath):
                 shared=type(outer) is not URIPath,
                 # A nested archive is named by its URI: asking it for its node
                 # would settle its format.
-                identity=outer.as_uri() if isinstance(outer, ArchiveURIPath) else None,
+                identity=(
+                    outer._identity() if isinstance(outer, ArchiveURIPath) else None
+                ),
             )
         else:
             # A derived instance: the backend is known and `path` is already the inner path.

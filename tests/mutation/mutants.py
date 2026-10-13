@@ -790,6 +790,45 @@ mutant(
     "the stream is closed, and so uploaded, by the block that raised through it",
 )
 
+# --- the case of a host -------------------------------------------------------
+
+_HOST = "tests/test_host_case.py"
+mutant(
+    "uri-equality-reads-the-case-of-the-host",
+    "_uri.py",
+    "        host = fold_host(source.host)\n        if host == source.host:\n",
+    "        host = source.host\n        if host == source.host:\n",
+    f"{_HOST}::test_uris_that_differ_in_the_case_of_the_host_are_equal",
+    "a file is not recognised as itself when its host is spelled in another case",
+)
+mutant(
+    "same-authority-reads-the-case-of-the-host",
+    "source/_source.py",
+    "        str(host).lower() if host else None,\n",
+    "        str(host) if host else None,\n",
+    (
+        f"{_HOST}::test_the_same_authority_is_decided_without_regard_to_the_case_of_the_host",
+        f"{_HOST}::test_a_rename_within_one_server_is_not_a_move_to_another",
+    ),
+    "a backend or a rename stops following a host spelled in another case",
+)
+mutant(
+    "containment-reads-the-case-of-the-host",
+    "_uri.py",
+    "            _same_authority(other.source, self.source)\n",
+    "            (other.source == self.source)\n",
+    f"{_HOST}::test_relative_to_and_containment_do_not_depend_on_the_case_of_the_host",
+    "a copy of a directory into itself is not recognised when the host is spelled in another case",
+)
+mutant(
+    "localhost-reads-the-case",
+    "source/_source.py",
+    '        host = fold_host(self.host)\n        if not host or host == "localhost":\n',
+    '        host = self.host\n        if not host or host == "localhost":\n',
+    f"{_HOST}::test_localhost_is_this_machine_in_any_case",
+    "LOCALHOST is looked up as a remote name",
+)
+
 # --- constructor keywords -----------------------------------------------------
 
 mutant(

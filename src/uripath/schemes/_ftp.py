@@ -11,7 +11,7 @@ from pathlib_next.ftp import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
 from pathlib_next.ftp import BaseFTPBackend, FTPBackend, FTPPath
 from pathlib_next.providers import notimplemented as _notimplemented
 from .._uri import URI
-from ..source import Source
+from ..source import Source, fold_host
 from ._delegate import DelegatingPath
 
 if _ty.TYPE_CHECKING:
@@ -117,10 +117,16 @@ class _EndpointBackend(BaseFTPBackend):
         self.owner = owner
         self.source = source
         self.tls = tls
-        self.endpoint = source
+        # The key of the connections: `ftp://NAS/` and `ftp://nas/` are one server.
+        self.endpoint = _endpoint(source)
 
     def client(self):
         return self.owner.client(self.source, self.tls)
+
+
+def _endpoint(source: Source) -> Source:
+    """`source` with its host name folded, to key what is shared per server."""
+    return source._replace(host=fold_host(source.host))
 
 
 _ENDPOINTS: "_weakref.WeakValueDictionary[tuple, _EndpointBackend]" = (
@@ -133,7 +139,7 @@ def _endpoint_backend(owner: BaseFTPURIBackend, source: Source, tls: bool):
     """The one core backend for `owner`, `source` and `tls`, while any path or
     cached connection holds it. The owner is held by the entry, so its `id`
     names it for as long as the entry lives."""
-    key = (id(owner), source, tls)
+    key = (id(owner), _endpoint(source), tls)
     with _ENDPOINTS_LOCK:
         found = _ENDPOINTS.get(key)
         if found is None:

@@ -161,6 +161,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   for `ftp:` and `zip:`, whose streams are the `pathlib-next` ones. What to do:
   nothing, unless code relied on the partial upload; a local file still keeps
   what a failed block wrote, as `pathlib` does.
+- A host keeps the spelling it was given. Was: the parser and the composer
+  folded a host name to lower case, so `Source.parse("wss://root:pw@nasA:8443").host`
+  was `nasa` and `str(Uri("wss://root:pw@nasA:8443/api"))` was
+  `wss://root@nasa:8443/api`. Is: `Source.host` and the text keep `nasA`, and
+  everything that compares hosts or keys on one folds the case itself: `==`,
+  `hash()` and ordering of URIs, `same_authority()`, `is_relative_to()`,
+  backend sharing, `rename()`, the same-file decisions of `copy()` and
+  `move()`, the redirect origin that keeps `Authorization`, the proxy rules,
+  `Source.is_local()`, the connection cache of `ftp:` and the host tables of
+  `github:`, `gitlab:` and `git:`. `http://NASA/x` and `http://nasa/x` are one
+  server and equal URIs; their text differs. Two `Source` values compare as
+  tuples, exactly; `compose_host()` and `compose_uri()` keep the case of a
+  name; an internationalized name is still written in IDNA form. What to do:
+  compare hosts with `uripath.source.same_authority()` or
+  `uripath.source.fold_host()` (new) instead of `source.host == "name"`, and
+  key anything you keep per server on `fold_host(source.host)`.
 - A constructor raises `TypeError` for a keyword argument it does not name.
   Was: `URI("x", anything=1)` and `URIPath("https://h/x", backnd=backend)`
   were accepted and the keyword ignored, so a misspelt `backend=` meant "use

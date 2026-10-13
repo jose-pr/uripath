@@ -210,7 +210,9 @@ def check_url(url: str) -> Target:
         raise ValueError(
             "the request URL carries credentials; send them in an Authorization header"
         )
-    host = parts.hostname
+    # The connection pool, the Host header, SNI and the proxy rules key on this
+    # name, which is case-insensitive: `hostname` is lower case already.
+    host = (parts.hostname or "").lower()
     if not host:
         raise ValueError("the request URL has no host")
     if not host.isascii():

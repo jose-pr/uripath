@@ -11,6 +11,7 @@ from ._locality import _host_is_local
 from ._parse import (
     _decode_host,
     _decode_userinfo,
+    fold_host,
     _IPAddress,
     _Userinfo,
     _split_authority,
@@ -205,7 +206,7 @@ class Source(_ty.NamedTuple):
         bracket-literal parsing) is handled by `netimps.try_parse()`
         without going through resolution at all.
         """
-        host = self.host
+        host = fold_host(self.host)
         if not host or host == "localhost":
             return True
         return _host_is_local(host)
@@ -233,8 +234,9 @@ def _authority_key(source: Source) -> tuple:
 
 def same_authority(a: Source, b: Source) -> bool:
     """Whether two sources name the same endpoint (scheme, userinfo, host,
-    port), treating `""` and `None` alike. The test for whether a backend,
-    connection or rename may cross from one path to another."""
+    port), treating `""` and `None` alike and a host name without regard to
+    case. The test for whether a backend, connection or rename may cross from
+    one path to another."""
     return _authority_key(a) == _authority_key(b)
 
 

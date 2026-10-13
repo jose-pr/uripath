@@ -119,7 +119,6 @@ def compose_host(host: "str | _IPAddress") -> str:
         return _compose_ipv6(_ip.IPv6Address(host))
     except ValueError:
         pass
-    host = host.lower()
     if not host.isascii():
         # RFC 3986 3.2.2: a non-ASCII registered name meant for DNS is produced in its
         # IDNA form (HTTP clients IDNA-encode only a non-ASCII host). A name the codec

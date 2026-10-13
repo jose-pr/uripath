@@ -18,7 +18,7 @@ from pathlib_next.providers import name_suffix as _name_suffix
 from .query import Query, QueryLike, _coerce
 from .source import Source
 from .source._compose import _encode
-from .source._parse import _ERRORS, _is_drive, _remove_dot_segments
+from .source._parse import _ERRORS, _is_drive, _remove_dot_segments, fold_host
 from .source._source import _parse_source, _same_authority, _source_parts
 from .source._compose import _compose_uri
 
@@ -683,20 +683,34 @@ class URI(Pathname):
 
     def as_uri(self, /, sanitize=False):
         if self._uri is None or sanitize:
-            path = self.path
-            if path.startswith("//") and not self._has_authority():
-                # Without an authority a "//" path would render as one ("file:////srv/x" is
-                # host "" and path "//srv/x") and str()/repr()/hash() would raise; "/." keeps
-                # it a path that parses back to the same one.
-                path = "/." + path
-            uri = self._format_parsed_parts(
-                self.source, path, self.query, self.fragment, sanitize=sanitize
-            )
+            uri = self._text(self.source, sanitize)
             if not sanitize:
                 self._uri = uri
             return uri
         else:
             return self._uri
+
+    def _text(self, source: Source, sanitize: bool) -> str:
+        """The URI text of this path at `source`."""
+        path = self.path
+        if path.startswith("//") and not self._has_authority():
+            # Without an authority a "//" path would render as one ("file:////srv/x" is
+            # host "" and path "//srv/x") and str()/repr()/hash() would raise; "/." keeps
+            # it a path that parses back to the same one.
+            path = "/." + path
+        return self._format_parsed_parts(
+            source, path, self.query, self.fragment, sanitize=sanitize
+        )
+
+    def _identity(self) -> str:
+        """The text that `==`, `hash()` and ordering compare: `as_uri()` with
+        the host name in lower case, since `source.host` keeps the spelling it
+        was given and a host name is case-insensitive (RFC 3986 3.2.2)."""
+        source = self.source
+        host = fold_host(source.host)
+        if host == source.host:
+            return self.as_uri()
+        return self._text(source._replace(host=host), False)
 
     @property
     def source(self) -> Source:
@@ -861,7 +875,7 @@ class URI(Pathname):
         # empty, which the guard below treats as compatible with any `self.source`.
         other = other if isinstance(other, URI) else URI(other)
         if not (
-            (other.source == self.source)
+            _same_authority(other.source, self.source)
             or not (bool(self.source) and bool(other.source))
         ):
             return False
@@ -912,20 +926,20 @@ class URI(Pathname):
         # raises. Text that is not a URI names nothing, so it is not equal.
         if isinstance(other, str):
             try:
-                uri = URI(other).as_uri()
+                uri = URI(other)._identity()
             except ValueError:
                 return False
         elif isinstance(other, URI):
-            uri = other.as_uri()
+            uri = other._identity()
         else:
             return NotImplemented
-        return self.as_uri() == uri
+        return self._identity() == uri
 
     def __hash__(self):
-        return hash(self.as_uri())
+        return hash(self._identity())
 
     def _order_key(self):
-        return self.as_uri()
+        return self._identity()
 
     def _join_object(self, *parts) -> "URI":
         """A new URI of this class from `parts`, joined as the constructor

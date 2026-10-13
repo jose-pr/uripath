@@ -13,7 +13,7 @@ from .._version import __version__
 from ..exceptions import InsecureTransportWarning
 from ..source import Source
 from ._path import URIPath
-from ..source import compose_host
+from ..source import compose_host, fold_host
 from . import _elsewhere
 from ._http import HTTPResponse, TransportOwner
 from ._http import _follow
@@ -357,7 +357,7 @@ class _RepoAPIPath(URIPath):
     def _api_authority(self) -> str:
         """`host[:port]` of this URI for a self-hosted API root, with an
         IPv6 literal bracketed."""
-        authority = compose_host(self.source.host)
+        authority = compose_host(fold_host(self.source.host))
         if self.source.port:
             authority += f":{self.source.port}"
         return authority

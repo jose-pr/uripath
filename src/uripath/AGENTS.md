@@ -135,7 +135,16 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   written `[fe80::1%25eth0]` (a bare `%` is read too). A name that holds a
   lone surrogate (a Windows file name can) renders as its UTF-8 bytes, so
   `str()`, `hash()` and `==` work on it.
-- `==` compares the URI text. The other operand is a `URI` or a `str`, which is
+- A host keeps the spelling it was given: `source.host` and the text of the URI
+  are `nasA` for `wss://root:pw@nasA:8443`, and only the scheme is
+  lower-cased by the parser (an address is its own spelling: `[FE80::1]` is
+  written `[fe80::1]`). Everything that compares hosts folds the case itself:
+  `==`, `hash()` and ordering of URIs, `same_authority()`, `is_relative_to()`
+  and `relative_to()`, backend sharing, `rename()`, the same-file decisions
+  of `copy()` and `move()`, the origin that keeps `Authorization` through a
+  redirect, the proxy rules, `is_local()` and the connection cache of `ftp:`.
+  The path, the userinfo, the query and the fragment compare exactly.
+- `==` compares the URI text (with the host name in lower case). The other operand is a `URI` or a `str`, which is
   parsed first and so compared by what it names, not by its spelling
   (`URI("http://h/a b") == "http://h/a%20b"`); text that is not a URI is not
   equal, and nothing else is (a non-URI `Pathname` included). `hash` is that of
@@ -291,6 +300,9 @@ class Source(NamedTuple):
 
 `NamedTuple`,
 falsy when all fields are empty; indexes by position, slice or field name.
+`host` keeps the spelling it was given (`Source.parse("http://NasA").host ==
+"NasA"`), so two `Source`s compare as tuples, exactly: use `same_authority()`
+to ask whether they name one endpoint.
 `str(source)` is the canonical text: the composer `URI.as_uri()` uses (`file://`
 for an empty host and `file:` for none; an invalid scheme or port is a
 `ValueError`), without the
@@ -915,6 +927,7 @@ class URI(Pathname):
     def _is_absolute_decoded(self, path) -> bool: ...
     def _rename_target(self, target) -> URI: ...
     def _same_location(self, other) -> bool: ...
+    def _identity(self) -> str: ...
     _initiated
     _raw_uris
     _source
@@ -946,6 +959,7 @@ class DerivedBackend: ...
 # uripath.source
 def compose_uri(scheme, userinfo, host, port, path, query, fragment) -> str: ...
 def compose_host(host) -> str: ...
+def fold_host(host): ...
 def percent_encode(text, safe) -> str: ...
 def is_drive(segment) -> bool: ...
 SAFE_PATH = "!$&'()*+,;=:@/"
@@ -989,6 +1003,9 @@ Building and deriving a path:
   says; an absolute key restarts at the root of the same source.
   `_is_absolute_decoded(path)` says whether a string restarts a join (a leading
   `/`; `FileURIPath` also a drive path).
+- `_identity()` — the text `==`, `hash()` and ordering compare: `as_uri()` with
+  the host name in lower case. Key a cache on it, not on `as_uri()`, when two
+  spellings of a host must share an entry.
 - `_rename_target(target)` — a `rename()` destination as a `URI`: a `str` is a
   decoded path, resolved against `self.parent`. Raises `NotImplementedError`
   when `_same_location()` says a native rename cannot reach it, which makes
@@ -1043,7 +1060,11 @@ Composing text:
   from decoded components, each percent-encoded for its part; `None` omits one
   and an invalid scheme, port or path/authority pairing is a `ValueError`.
   `compose_host(host)` encodes a host (an IPv6 address is bracketed, an
-  internationalized name is IDNA). `percent_encode(text, safe)` encodes UTF-8
+  internationalized name is IDNA) and keeps the case of a name.
+  `fold_host(host)` is the host as a comparison or a key reads it: a name in
+  lower case, an address or `None` as it is. A scheme that keeps something per
+  server (a connection, a cache) keys it on `fold_host(source.host)`, or on
+  `same_authority()` of two sources. `percent_encode(text, safe)` encodes UTF-8
   and keeps the characters of `safe`; `SAFE_PATH` is the set a path keeps.
   `ERRORS` is the error handler for percent-decoding and re-encoding
   (`"surrogateescape"`: a byte that is not UTF-8 survives the round trip).
