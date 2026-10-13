@@ -37,6 +37,11 @@ do about it.
   (`uripath-http-requests` declares `requests`); `builtin` is always the
   built-in `HTTPTransport`, and an entry of that name is ignored.
   `URIPATH_HTTP_TRANSPORT` accepts any name `names()` lists.
+- `uripath.transports.prepare_request()` applies the checks of the transport
+  contract and the body framing of the built-in transport to the arguments of
+  `send()`, for a transport that another distribution provides, and
+  `HTTPResponse.buffered()` reads the rest of a body into memory and closes the
+  connection, which is what `send(stream=False)` returns.
 - `uripath.exceptions`: `URIPathError`, the base of what this package raises
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).

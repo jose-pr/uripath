@@ -520,6 +520,7 @@ class HTTPResponse:
     ): ...
     def read(self, size=-1): ...
     def iter_bytes(self, chunk_size=65536): ...
+    def buffered(self): ...
     def close(self): ...
 ```
 
@@ -556,8 +557,10 @@ class HTTPResponse:
 - **`HTTPResponse`**: `status`, `reason`, `headers` (read-only, names compare
   without case, a name sent twice reads as `"a, b"` and `headers.get_all()`
   lists them), `url` (the URL requested, without fragment; an empty path is
-  `/`), `read(size=-1)`, `iter_bytes(chunk_size)`, `close()` and a context
-  manager. A `gzip` or `deflate` body is decoded, in steps of at most 256
+  `/`), `read(size=-1)`, `iter_bytes(chunk_size)`, `buffered()` (reads the
+  rest of the body into memory, closes the connection and returns the
+  response, which stays readable: what `send(stream=False)` returns), `close()`
+  and a context manager. A `gzip` or `deflate` body is decoded, in steps of at most 256
   KiB of output per step, unless the request set an `Accept-Encoding` naming
   a coding of its own (`identity` counts as none); `headers` stay as
   received, so `Content-Length` counts the encoded bytes. A body that ends
@@ -1119,6 +1122,18 @@ Composing text:
 GROUP = "uripath.http_transports"
 def names() -> tuple[str, ...]: ...
 def get(name: str) -> type: ...
+
+class PreparedRequest(NamedTuple):
+    method: str
+    url: str
+    headers: dict[str, str]
+    body: Any
+    timeout: tuple[float | None, float | None]
+    decode: bool
+
+def prepare_request(
+    method, url, *, headers, body=None, timeout,
+) -> PreparedRequest: ...
 ```
 
 A distribution provides an HTTP transport by declaring an entry point in the
@@ -1143,6 +1158,23 @@ transport contract" above: `send()` and `close()`.
   `get("requests")(session, **requests_args)`. A distribution that provides
   `requests` therefore takes `session=None` and the keyword arguments of
   `requests.Session.request()`.
+- `prepare_request(method, url, *, headers, body=None, timeout)` — the
+  arguments of `send()` as the contract reads them, so a transport that
+  starts with it refuses what the built-in transport refuses and frames a
+  body the same way. `method` is upper-cased and the fragment is dropped from
+  `url`. `headers` come back as a `dict` of text values with the
+  `Content-Length` of a body whose length is known (`0` for a `PATCH`, `POST` or
+  `PUT` without one) and `Accept-Encoding: gzip, deflate` unless the caller
+  named an encoding. `body` is `None`, `bytes`, an object that yields
+  exactly the `Content-Length` bytes (a file or a list of `bytes`, cut at the
+  length it was measured at) or an iterable of `bytes` to send chunked.
+  `timeout` is the `(connect, read)` pair. `decode` is what to pass as
+  `HTTPResponse(..., decode=decode)`. It raises `ValueError`, before anything
+  is sent, for a method or header name that is not a token, a header value or
+  URL with a control character, a URL with credentials or another scheme, a
+  `Content-Length` that is not a count of bytes or exceeds the body, and a
+  timeout that is not a positive number, `None` or a pair of them; and
+  `TypeError` for a `str` body. No message quotes the URL or a header value.
 
 ## Provided by other distributions
 

@@ -351,6 +351,47 @@ mutant(
     "a class of another module takes a scheme from a class that has the same name",
 )
 
+mutant(
+    "prepare-request-keeps-the-fragment",
+    "transports.py",
+    '        method, url.split("#", 1)[0], sent, body, timeout, decode\n',
+    "        method, url, sent, body, timeout, decode\n",
+    "tests/test_prepare_request.py::test_the_method_is_upper_case_and_the_fragment_is_dropped",
+    "a transport built on prepare_request() sends the fragment of a URL",
+)
+mutant(
+    "prepare-request-offers-no-content-coding",
+    "transports.py",
+    '    if not _has_header(sent, "Accept-Encoding"):\n',
+    "    if False:\n",
+    "tests/test_prepare_request.py::test_gzip_and_deflate_are_asked_for_unless_the_caller_names_a_coding",
+    "a transport built on prepare_request() does not ask for gzip or deflate",
+)
+mutant(
+    "prepare-request-sends-bytes-without-a-length",
+    "transports.py",
+    "        if isinstance(body, (bytes, bytearray, memoryview)):\n",
+    "        if False:\n",
+    "tests/test_prepare_request.py::test_a_body_of_known_length_is_sent_under_its_length",
+    "a bytes body is sent without the Content-Length the contract asks for",
+)
+mutant(
+    "prepare-request-does-not-say-a-put-has-no-body",
+    "transports.py",
+    "        elif body is None and method in _EXPECTING_BODY:\n",
+    "        elif False:\n",
+    "tests/test_prepare_request.py::test_a_request_that_expects_a_body_and_has_none_says_so",
+    "a PUT without a body is sent with no Content-Length",
+)
+mutant(
+    "response-buffered-leaves-the-body-unread",
+    "schemes/_http/_response.py",
+    "        return self._buffered()\n",
+    "        return self\n",
+    "tests/test_prepare_request.py::test_buffered_reads_the_body_closes_the_source_and_returns_the_response",
+    "send(stream=False) returns a response whose body is still on the connection",
+)
+
 # --- http transports: the guards every transport keeps --------------------------
 
 _HTTP_PKG = "schemes/_http"

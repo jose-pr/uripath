@@ -54,7 +54,13 @@ DOCUMENTED = {
         "same_authority",
     },
     "uripath.query": {"Query", "QueryLike"},
-    "uripath.transports": {"GROUP", "get", "names"},
+    "uripath.transports": {
+        "GROUP",
+        "PreparedRequest",
+        "get",
+        "names",
+        "prepare_request",
+    },
     "uripath.cli": {"main"},
     "uripath.schemes": {
         "ArchiveTarURIPath",

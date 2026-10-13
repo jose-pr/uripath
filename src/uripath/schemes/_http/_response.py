@@ -230,6 +230,13 @@ class HTTPResponse:
             self._closed = True
             self._source.close()
 
+    def buffered(self) -> "HTTPResponse":
+        """Reads the rest of the body into memory, closes the connection and
+        returns this response, which can then be read after it is closed. A
+        transport returns its response this way when `send()` is called with
+        `stream=False`."""
+        return self._buffered()
+
     def _buffered(
         self, limit: "int | None" = None, message: str = ""
     ) -> "HTTPResponse":
