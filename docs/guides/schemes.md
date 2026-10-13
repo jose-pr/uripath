@@ -47,6 +47,12 @@ implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
   or archive raises `NotImplementedError`, and `move()` copies and
   deletes instead. A `str` target is a path (not URI syntax); a relative one
   is a sibling.
+- **Query and fragment** stay on every path that is derived from another by
+  changing only the path (`/`, `parent`, `with_name()`, a listing's children),
+  so a token in the query follows the names taken from it; the children of an
+  `http:` or `dav:` listing are the exception, since the server names them.
+- **Case**: a host keeps the spelling it was given, and `http://NASA/x` and
+  `http://nasa/x` are one server and equal URIs.
 - **Backends** are passed as `URIPath(uri, backend=...)` or
   `path.with_backend(backend)`, and inherited by every derived path. Without
   one, paths derived from one another (`root / name`, `parent`, ...) share the
@@ -56,10 +62,14 @@ implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
 ## Local files and data
 
 - **`file:`** (`FileURIPath`) wraps a `LocalPath` (`filepath`) and delegates all
-  I/O to it. `rename()` accepts local targets only.
+  I/O to it. `rename()` accepts local targets only. A path built from a local
+  path object is written with the empty authority, as `pathlib.Path.as_uri()`
+  writes it (`file:///etc/passwd`).
 - **`data:`** (`DataURIPath`, RFC 2397) keeps the whole content in the URI
   (`data:[<mediatype>][;base64],<data>`): a read-only single file with a
-  `mediatype` property.
+  `mediatype` and a `charset` property (`read_text()` decodes with it). Its
+  path is the payload, so `name`, `parent`, `/` and the other path algebra
+  raise `NotImplementedError`.
 
 ## HTTP and WebDAV
 

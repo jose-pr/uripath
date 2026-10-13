@@ -143,16 +143,25 @@ Conventions for a scheme implementation:
 - Set `_host_filesystem_path = True` only when `self.path` is a real
   filesystem path on the remote host; `os.fspath()` and
   `host_fspath()` then return it.
-- Build a child by name with `_make_child_relpath(name)` and a path from
-  decoded components with `_from_parsed_parts(source, path, query, fragment)`;
-  neither parses its argument. A constructor-level override goes in
+- Build a child by name with `_make_child_relpath(name)` (it keeps the query
+  and the fragment of its parent, like every derivation that changes only the
+  path) and a path from decoded components with
+  `_from_parsed_parts(source, path, query, fragment)`; neither parses its
+  argument. A constructor-level override goes in
   `_init(source, path, query, fragment, **kwargs)`, which every construction
   ends in, and calls `super()._init()`. Two paths are on one endpoint when
-  `uripath.source.same_authority(a.source, b.source)`.
+  `uripath.source.same_authority(a.source, b.source)`; a host keeps the spelling
+  it was given, so key anything kept per server on
+  `uripath.source.fold_host(source.host)`.
+- A scheme whose constructor reads keyword arguments of its own names them in
+  `_OPTIONS` (`_OPTIONS = URIPath._OPTIONS | {"flavor"}`): any other keyword is a
+  `TypeError`.
 - A backend that cannot be written piecewise (an FTP `STOR`, an archive
   rewrite) is returned from `_open()` as
   `pathlib_next.providers.CommitOnClose(commit)`: `commit(buffer)` runs once,
-  when the stream is closed.
+  when the stream is closed. A stream of your own that commits on close
+  inherits `pathlib_next.providers.DiscardOnError`, first in its bases, and
+  defines `discard()`, so that a `with` block that raised commits nothing.
 
 The shipped API header (`AGENTS.md` inside the package) lists the hooks and
 helpers of `URIPath` with their signatures, under "For scheme implementers";
