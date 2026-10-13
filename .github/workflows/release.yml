@@ -4,10 +4,11 @@ name: Release
 # push/PR events on branches -- this is a release gate, not general CI.
 #
 # Test gate and dependency-floor gate, build (checking that the tag names the
-# version built), an installed-wheel smoke test, a strict docs build gate, the
-# GitHub Release, then -- for final (non pre-release) tags
-# only -- the PyPI upload and a dispatch of docs.yml at this tag. The docs site
-# is only GATED here (docs-gate never deploys); docs.yml owns every Pages deploy.
+# version built), an installed-wheel smoke test with and without the `cli`
+# extra, a strict docs build gate, the GitHub Release, then -- for final (non
+# pre-release) tags only -- the PyPI upload and a dispatch of docs.yml at this
+# tag. The docs site is only GATED here (docs-gate never deploys); docs.yml owns
+# every Pages deploy.
 on:
   push:
     tags:
@@ -16,7 +17,26 @@ on:
 permissions:
   contents: read
 
+env:
+  # A git ref of jose-pr/pathlib-next to install first (the repository variable
+  # PATHLIB_NEXT_REF), for a pre-release made while the pathlib-next that
+  # pyproject.toml asks for is not on PyPI yet. Empty installs it from PyPI. A
+  # final tag refuses a ref: what is released is what users install.
+  CORE_REF: ${{ vars.PATHLIB_NEXT_REF }}
+
 jobs:
+  released-core:
+    name: Source of pathlib-next
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say where pathlib-next comes from
+        run: echo "pathlib-next from ${CORE_REF:-PyPI}"
+      - name: Refuse a git ref of pathlib-next on a final tag
+        if: ${{ env.CORE_REF != '' && !contains(github.ref_name, '-') }}
+        run: |
+          echo "PATHLIB_NEXT_REF is set: a final release is tested against the pathlib-next on PyPI. Release pathlib-next first and delete the repository variable." >&2
+          exit 1
+
   test:
     name: Test (py${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -30,6 +50,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
+        run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install package with its test servers
         run: python -m pip install -e ".[dev]"
       - name: Run tests
@@ -67,6 +91,10 @@ jobs:
                   pins.append("%s==%s" % (m.group(1), m.group(3)))
           open("floors.txt", "w").write("\n".join(pins) + "\n")
           print("\n".join(pins) or "(no floors declared)")
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
+        run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install at the floors
         run: python -m pip install -c floors.txt -e ".[dev]"
       - name: Run tests
@@ -87,6 +115,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
+        run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install the package, pytest and the two checkers
         # basedpyright, not the PyPI `pyright`: that one downloads node at
         # run time. The test accepts either.
@@ -98,7 +130,7 @@ jobs:
 
   build:
     name: Build distribution
-    needs: [test, floors, typing]
+    needs: [released-core, test, floors, typing]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -139,8 +171,10 @@ jobs:
           name: dist
           path: dist/
 
-  # What a user installs is the wheel, not the checkout: install it into a clean
-  # environment and check it imports and carries the files it must ship.
+  # What a user installs is the wheel, not the checkout: install it into two
+  # clean environments, one as `pip install uripath` and one with the `cli`
+  # extra, and check that each imports, carries the files it must ship and
+  # behaves as that install should.
   wheel-smoke:
     name: Installed-wheel smoke test (py${{ matrix.python-version }})
     needs: build
@@ -158,16 +192,25 @@ jobs:
         with:
           name: dist
           path: dist/
-      - name: Install the wheel into a fresh venv
+      - name: Install the wheel into a fresh venv, and into one with the cli extra
         run: |
-          python -m venv "$RUNNER_TEMP/smoke"
-          "$RUNNER_TEMP/smoke/bin/pip" install dist/*.whl
+          wheel="$(ls dist/*.whl)"
+          python -m venv "$RUNNER_TEMP/bare"
+          python -m venv "$RUNNER_TEMP/cli"
+          for venv in bare cli; do
+            if [ -n "$CORE_REF" ]; then
+              "$RUNNER_TEMP/$venv/bin/pip" install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
+            fi
+          done
+          "$RUNNER_TEMP/bare/bin/pip" install "$wheel"
+          "$RUNNER_TEMP/cli/bin/pip" install "$wheel[cli]"
       - name: Import it, and find the files it must ship
         working-directory: ${{ runner.temp }}
         run: |
-          "$RUNNER_TEMP/smoke/bin/python" - <<'PY'
+          cat > check.py <<'PY'
           from importlib.metadata import entry_points
           from importlib.resources import files
+          import sys
 
           import uripath
 
@@ -179,14 +222,31 @@ jobs:
               schemes = list(found.select(group="uripath.schemes"))
           else:
               schemes = list(found.get("uripath.schemes", []))
-          assert len(schemes) == 18, "expected 18 scheme entry points, found %d" % len(schemes)
-          print("ok:", uripath.__name__, len(schemes), "schemes")
+          names = {ep.name for ep in schemes}  # a repeated sys.path entry repeats a distribution
+          assert len(names) == 18, "expected 18 scheme entry points, found %s" % sorted(names)
+          loaded = {"duho", "uritools", "requests", "paramiko", "asyncssh", "boto3"} & set(sys.modules)
+          assert not loaded, "importing uripath loaded %s" % sorted(loaded)
+          print("ok:", uripath.__name__, uripath.__version__, len(names), "schemes")
           PY
-      - name: The uripath console script reads a local file
+          for venv in bare cli; do
+            "$RUNNER_TEMP/$venv/bin/python" check.py
+          done
+      - name: Without the extra the command names it
         working-directory: ${{ runner.temp }}
         run: |
           printf 'hello\n' > local.txt
-          test "$("$RUNNER_TEMP/smoke/bin/uripath" read local.txt)" = "hello"
+          status=0
+          "$RUNNER_TEMP/bare/bin/uripath" read local.txt 2> stderr.txt || status=$?
+          cat stderr.txt
+          test "$status" = 1
+          grep -q 'uripath\[cli\]' stderr.txt
+      - name: With the extra the console script and python -m uripath read a local file
+        working-directory: ${{ runner.temp }}
+        run: |
+          printf 'hello\n' > local.txt
+          test "$("$RUNNER_TEMP/cli/bin/uripath" read local.txt)" = "hello"
+          test "$("$RUNNER_TEMP/cli/bin/python" -m uripath read local.txt)" = "hello"
+          "$RUNNER_TEMP/cli/bin/uripath" --version
 
   # Docs are DEPLOYED by docs.yml. This job only GATES the release on a strict
   # docs BUILD: a release must never ship if the docs site is broken, but the
@@ -201,6 +261,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
+        run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install package with docs tooling
         run: python -m pip install -e ".[dev,docs]"
       - name: Build docs (gate only)

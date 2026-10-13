@@ -16,7 +16,7 @@ on:
         required: false
         default: ""
       pathlib_next_ref:
-        description: "Git ref of jose-pr/pathlib-next to install instead of the release (branch, tag, or SHA)"
+        description: "Git ref of jose-pr/pathlib-next to install instead of the release (branch, tag, or SHA); empty uses the repository variable PATHLIB_NEXT_REF"
         required: false
         default: ""
       benchmark:
@@ -34,6 +34,14 @@ permissions:
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # The pathlib-next every job installs first: a git ref of jose-pr/pathlib-next
+  # from the dispatch input, else from the repository variable PATHLIB_NEXT_REF
+  # (a ci-* tag has no input). With both empty, pip takes the release range
+  # that pyproject.toml declares from PyPI. The ref must hold a version inside
+  # that range.
+  CORE_REF: ${{ inputs.pathlib_next_ref || vars.PATHLIB_NEXT_REF }}
 
 jobs:
   test:
@@ -72,19 +80,69 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install pathlib-next from a git ref
-        if: ${{ inputs.pathlib_next_ref != '' }}
-        # The core is installed first, so the step below finds the range
-        # satisfied and leaves it alone; an empty input installs the release.
-        env:
-          CORE_REF: ${{ inputs.pathlib_next_ref }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        # The core goes in first, so the step below finds its range satisfied.
+        shell: bash
         run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install package with its test servers
-        # `dev` holds every test server; a missing one skips its tests
-        # (pytest.importorskip) instead of running them.
+        # `dev` holds every test server and the `cli` extra; a missing one
+        # skips its tests (pytest.importorskip) instead of running them.
         run: python -m pip install -e ".[dev]"
       - name: Run tests
         # -rs lists every skip with its reason, so a missing extra shows up.
+        run: python -m pytest -q -rs
+
+  # The package as a user gets it from `pip install uripath`: no `cli` extra and
+  # none of `dev` but pytest. The import loads no optional library, the command
+  # names the extra it needs, and the tests that need nothing else run (the
+  # rest skip, and -rs says which).
+  bare:
+    name: Bare install (py${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.9", "3.14"] # oldest + newest supported
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
+        run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
+      - name: Install the package with pytest and nothing else
+        run: python -m pip install -e . pytest
+      - name: Import it and read a file; no optional library is loaded
+        shell: python
+        run: |
+          import pathlib
+          import sys
+
+          import uripath
+
+          pathlib.Path("local.txt").write_text("hello", encoding="utf-8")
+          from uripath import URIPath
+
+          assert URIPath("file:local.txt").read_text() == "hello"
+          loaded = {"duho", "uritools", "requests", "paramiko", "asyncssh", "boto3"}
+          loaded &= set(sys.modules)
+          assert not loaded, "importing uripath loaded %s" % sorted(loaded)
+          print("ok:", uripath.__version__)
+      - name: The command names the extra it needs
+        shell: bash
+        run: |
+          status=0
+          uripath read local.txt 2> stderr.txt || status=$?
+          cat stderr.txt
+          test "$status" = 1
+          grep -q 'uripath\[cli\]' stderr.txt
+      - name: Run the tests that need nothing else
         run: python -m pytest -q -rs
 
   # The declared floors, exercised: every runtime dependency and feature extra
@@ -124,11 +182,10 @@ jobs:
                   pins.append("%s==%s" % (m.group(1), m.group(3)))
           open("floors.txt", "w").write("\n".join(pins) + "\n")
           print("\n".join(pins) or "(no floors declared)")
-      - name: Install pathlib-next from a git ref
-        if: ${{ inputs.pathlib_next_ref != '' }}
-        # An empty input installs the release at its floor.
-        env:
-          CORE_REF: ${{ inputs.pathlib_next_ref }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        # Without a ref the release is installed at its floor, below.
+        shell: bash
         run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install at the floors
         run: python -m pip install -c floors.txt -e ".[dev]"
@@ -152,12 +209,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install pathlib-next from a git ref
-        if: ${{ inputs.pathlib_next_ref != '' }}
-        # The core is installed first, so the step below finds the range
-        # satisfied and leaves it alone; an empty input installs the release.
-        env:
-          CORE_REF: ${{ inputs.pathlib_next_ref }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
         run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install the package, pytest and the two checkers
         # basedpyright, not the PyPI `pyright`: that one downloads node at
@@ -188,12 +242,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - name: Install pathlib-next from a git ref
-        if: ${{ inputs.pathlib_next_ref != '' }}
-        # The core is installed first, so the step below finds the range
-        # satisfied and leaves it alone; an empty input installs the release.
-        env:
-          CORE_REF: ${{ inputs.pathlib_next_ref }}
+      - name: Install pathlib-next from the git ref, if one is set
+        if: ${{ env.CORE_REF != '' }}
+        shell: bash
         run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
       - name: Install benchmark dependencies
         run: python -m pip install -e ".[dev]"
