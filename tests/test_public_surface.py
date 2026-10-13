@@ -43,13 +43,18 @@ DOCUMENTED = {
         "UnsupportedSchemeError",
     },
     "uripath.source": {
+        "ERRORS",
+        "SAFE_PATH",
         "Source",
         "compose_host",
         "compose_uri",
+        "fold_host",
         "is_drive",
+        "percent_encode",
         "same_authority",
     },
     "uripath.query": {"Query", "QueryLike"},
+    "uripath.cli": {"main"},
     "uripath.schemes": {
         "ArchiveTarURIPath",
         "ArchiveURIPath",
@@ -127,8 +132,9 @@ def test_every_public_module_declares_all_and_the_others_are_private():
         assert all(hasattr(module, member) for member in module.__all__), name
 
 
-def test_the_root_exports_exactly_the_documented_names():
-    assert set(uripath.__all__) == DOCUMENTED["uripath"]
+@pytest.mark.parametrize("module", sorted(DOCUMENTED))
+def test_a_public_module_exports_exactly_the_documented_names(module):
+    assert set(importlib.import_module(module).__all__) == DOCUMENTED[module]
 
 
 def _header_import_lines():
