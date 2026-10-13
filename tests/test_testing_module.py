@@ -117,6 +117,41 @@ def test_a_checkout_runs_the_suite_from_its_tests_directory():
     assert testing.suite_directory() == TESTS
 
 
+def test_an_option_and_its_value_before_the_files_reach_the_suite_from_any_directory(
+    tmp_path,
+):
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(
+            None,
+            [
+                str(pathlib.Path(uripath.__file__).resolve().parent.parent),
+                env.get("PYTHONPATH"),
+            ],
+        )
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "uripath.testing",
+            "--http-transports",
+            "builtin",
+            "--collect-only",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        env=env,
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "test_http_transport.py::" in result.stdout
+
+
 def test_the_suite_is_listed_by_the_command_and_runs_once_per_transport():
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(

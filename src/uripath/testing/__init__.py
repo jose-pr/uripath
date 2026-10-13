@@ -85,4 +85,7 @@ def run(arguments: "_ty.Sequence[str] | None" = None) -> int:
         ) from error
     directory = suite_directory()
     files = [str(directory / name) for name in MODULES]
-    return int(pytest.main([*(arguments or ()), *files]))
+    # The files go first: with an option and its value ahead of them, pytest
+    # 8 reads the value as the first path and loads no `conftest.py`, so the
+    # option `--http-transports` is not known.
+    return int(pytest.main([*files, *(arguments or ())]))
