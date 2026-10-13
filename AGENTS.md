@@ -1,31 +1,25 @@
-# pathlib_next — contributor orientation
+# uripath — contributor orientation
 
-Orientation for working in a checkout of this repository: layout, environment,
-checks, conventions and release. It is not the API reference and it does not
-ship.
+Orientation for working in a checkout of this repository: layout, environments,
+commands, CI and release. It is not the API reference and it does not ship.
 
-| Shipped header | Covers |
+| Header | Covers |
 | --- | --- |
-| [`src/pathlib_next/AGENTS.md`](src/pathlib_next/AGENTS.md) | The public API contract: every export, signature and gotcha, for the core and the URI layer. It ships in the wheel, so it must stay self-contained (no repo-relative links) and must be updated in the same commit as any public API change. |
+| [`src/uripath/AGENTS.md`](src/uripath/AGENTS.md) | The public API: `Uri`, `UriPath`, `Source`, `Query` and every built-in scheme, with signatures and gotchas. It ships in the wheel, so it stays self-contained (no repo-relative links) and changes in the same commit as any public API change. |
 
-Deliberate differences from `pathlib.Path` are in
-[`docs/divergences.md`](docs/divergences.md). `pathlib.Path` parity is the
-contract; a behavioral divergence that is not recorded there is a bug.
+[`docs/divergences.md`](docs/divergences.md) records every deliberate difference
+from `pathlib.Path`. `pathlib.Path` parity is the contract; a behavioral
+divergence that is not recorded there is a bug.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
-| `src/pathlib_next/` | The package (`src/` layout). `py.typed` and the API header ship with it. A module whose name has no leading underscore is public and declares `__all__`; every other module is private. |
-| `src/pathlib_next/{path,sync,glob,testing}/` | Packages of private modules; each `__init__` re-exports the public names. |
-| `src/pathlib_next/{ftp,archive}/` | The standard-library providers: `FTPPath` and `FTPBackend`; `ZipPath`, `TarPath` and `ArchivePath`. |
-| `src/pathlib_next/providers.py` | What a class built on `Path` calls, defined in private modules beside it; `exceptions.py` holds `PathError` and `NonRelativePatternError`. |
-| `src/pathlib_next/uri/` | The URI layer: `Uri`, `UriPath`, `Source`, `Query`. |
-| `src/pathlib_next/uri/schemes/` | One module per URI scheme; registered through the `pathlib_next.schemes` entry points in `pyproject.toml`. |
-| `src/pathlib_next/tools/` | The `uripath` command. |
-| `tests/` | The pytest suite. |
-| `tests/mutation/` | The mutation list; see Checks. Ships in the sdist with `tests/`. |
-| `benchmarks/` | `bench.py` and committed JSON results; see [`benchmarks/README.md`](benchmarks/README.md). Not shipped. |
+| `src/uripath/` | The package (`src/` layout). `py.typed` and the API header ship with it. |
+| `src/uripath/schemes/` | One module or package per URI scheme, registered through the `uripath.schemes` entry points in `pyproject.toml` and the built-in table in `uripath/__init__.py`. |
+| `src/uripath/schemes/_elsewhere.py` | The schemes and the HTTP transport that other distributions provide, and the `ImportError` naming what to install. |
+| `tests/` | The pytest suite. `tests/conftest.py` holds the loopback servers. |
+| `benchmarks/` | `bench.py`; see [`benchmarks/README.md`](benchmarks/README.md). Not shipped. |
 | `examples/` | Runnable scripts. Networked ones skip (exit 0) unless their environment variables are set. |
 | `docs/`, `mkdocs.yml` | MkDocs site: hand-written pages plus a `mkdocstrings` API reference. |
 | `CHANGELOG.md` | Keep a Changelog. Released sections are frozen records. |
@@ -41,53 +35,73 @@ is the architecture the interpreter was built for:
 
 ```bash
 python -m venv .venv/3.14-posix-x86_64
-.venv/3.14-posix-x86_64/bin/python -m pip install -e ".[dev,docs,uri,http,sftp,sftp-async,s3,gs,az]"
+.venv/3.14-posix-x86_64/bin/python -m pip install -e ".[dev]"
 ```
 
 On Windows the interpreter is `.venv\<name>\Scripts\python.exe`.
 
-Install every extra that has tests. A missing extra does not fail the suite:
-its tests are skipped instead, so check `pytest -rs` before trusting a green run.
-The `gs`/`az` SDKs are the ones most likely to be unavailable for an older
-interpreter or a less common platform; without them their contract suites skip.
+`pathlib-next` is a dependency. To test against an unreleased core, install it
+editable from its checkout first (`pip install -e ../pathlib-next`). Its version
+may then sit below the range `pyproject.toml` declares, so install this package
+with `--no-deps` and its remaining dependencies by name.
+
+A missing test server does not fail the suite: its tests are skipped instead, so
+check `pytest -rs` before trusting a green run.
 
 ## Checks
 
 ```bash
-python -m pytest -q                                  # full suite (pythonpath=src is configured)
-python -m pytest -q --cov=pathlib_next --cov-report=term-missing
+python -m pytest -q -rs                              # full suite (pythonpath=src is configured)
+python -m pytest -q --cov=uripath --cov-report=term-missing
 python -m black src/ tests/ benchmarks/ examples/    # formatting; --check to verify
 mkdocs build --strict                                # docs must build with no warnings
 python -m build                                      # sdist + wheel into dist/
 python tests/mutation/run.py --jobs 4                # every guard's tests must fail on a broken copy
 ```
 
-- **The mutation list** (`tests/mutation/`) applies one single-line change to a guard
-  of a temporary copy of `src/pathlib_next` and checks that the tests named for
+- **The mutation list** (`tests/mutation/`) applies one single-line change to a
+  guard of a temporary copy of `src/uripath` and checks that the tests named for
   it fail. Run it on demand, never in CI, after writing or changing a safety
   test; a mutant whose line has moved is `STALE` and fails the run. Its
   `README.md` says how to add one. It ships in the sdist with `tests/`.
-- No linter or type checker is enforced; formatting is black (see Conventions).
+- **Tests block non-loopback network access** and starting any program but the
+  interpreter (`tests/hermetic.py`, applied in `tests/conftest.py`). Mark a test
+  `@pytest.mark.allow_network` only when it must resolve a real name,
+  `@pytest.mark.allow_program("tool")` when it runs one. `filterwarnings = error`
+  includes `ResourceWarning`: close what a fixture opens.
+- A test asserts what the server received, not just that no exception was
+  raised, and never asserts how fast something happened or how far an
+  operation got.
 
-### Benchmarks
+## Conventions
 
-`python benchmarks/bench.py --help` lists the suites. `--save` writes a JSON
-result per (version, interpreter, platform) into `benchmarks/results/`; the
-schema and the reproduce command are in
-[`benchmarks/README.md`](benchmarks/README.md). A local run is a sanity check;
-performance claims in the changelog or release notes come from CI runs.
+- **Formatting is black**, pinned to `target-version = ["py39"]` so it never
+  emits syntax the floor cannot parse. No linter or type checker is enforced.
+- **Every file is LF** (`.gitattributes` sets `* text=auto eol=lf`). On Windows,
+  black writes CRLF: convert the files back to LF after formatting and check
+  `git diff --stat` for whitespace-only churn.
+- **3.9 compatibility**: any module using `X | Y` in a runtime-evaluated
+  annotation needs `from __future__ import annotations`.
+- **`*.local.*` files** are per-machine overrides: gitignored and excluded from
+  both build targets. Keep hostnames and credentials in those, never in tracked
+  files.
+- Logical commits in `type: description` form (`feat:`, `fix:`, `docs:`,
+  `chore:`); keep code with its tests, and docs, config and CI in separate
+  commits. No agent attribution in commit messages.
 
-### CI
+## CI
 
 Workflows live in `.github/workflows/`:
 
-- `test.yml` runs on `workflow_dispatch` (optional `ref` input) or on a pushed
-  `ci-*` tag, never on ordinary pushes. To test a commit without the dashboard,
-  push a uniquely named throwaway tag (`ci-<topic>-<timestamp>`), follow the run
-  to completion, then delete the tag locally and on the remote. Its `floors` job
-  installs every dependency at the lower bound `pyproject.toml` declares, on
-  Python 3.9. Change a range in `pyproject.toml` only, and name the API that
-  needs a raised floor in a comment beside it.
+- `test.yml` runs on `workflow_dispatch` (inputs: `ref`, and `pathlib_next_ref`
+  to install `pathlib-next` from a git ref of `jose-pr/pathlib-next` instead of
+  the release) or on a pushed `ci-*` tag, never on ordinary pushes. To test a
+  commit without the dashboard, push a uniquely named throwaway tag
+  (`ci-<topic>-<timestamp>`), follow the run to completion, then delete the tag
+  locally and on the remote. Its `floors` job installs every dependency at the
+  lower bound `pyproject.toml` declares, on Python 3.9. Change a range in
+  `pyproject.toml` only, and name the API that needs a raised floor in a comment
+  beside it.
 - `release.yml` runs on a `v*` tag: test and `floors` gates, build (the tag must
   name the version built, `twine check`), an installed-wheel smoke test, a strict
   docs build, then the GitHub release whose notes come from that version's
@@ -97,27 +111,6 @@ Workflows live in `.github/workflows/`:
   docs sources and on `workflow_dispatch`, which `release.yml` fires for a final
   tag.
 
-## Conventions
-
-- **Formatting is black**, pinned to `target-version = ["py39"]` so it never
-  emits syntax the floor cannot parse.
-- **Every file is LF** (`.gitattributes` sets `* text=auto eol=lf`). On Windows,
-  black writes CRLF: convert the files back to LF after formatting and check
-  `git diff --stat` for whitespace-only churn.
-- **3.9 compatibility**: any module using `X | Y` in a runtime-evaluated
-  annotation needs `from __future__ import annotations`.
-- **`*.local.*` files** are per-machine overrides: gitignored and excluded from
-  both build targets. Keep hostnames and credentials in those, never in tracked
-  files.
-
-### Commits
-
-- Logical commits in `type: description` form (`feat:`, `fix:`, `docs:`,
-  `chore:`); keep code with its tests, and docs/config/CI in separate commits.
-- No agent attribution in commit messages: no `Co-Authored-By:` naming a model
-  or assistant, no `*-Session:` trailers, no session URLs, no "generated with"
-  footers.
-
 ## Releasing
 
 1. Move the `[Unreleased]` entries under a new `## [x.y.z] - <date>` heading and
@@ -126,10 +119,6 @@ Workflows live in `.github/workflows/`:
    SemVer in tags and the changelog).
 3. Before 1.0, bump the minor only when the documented API breaks. New methods,
    new optional arguments and fixes are patch releases.
-   A fix that corrects behaviour (to `pathlib` parity, to what the
-   documentation intends, or to remove a way to lose data) is a patch even
-   where an earlier header described the old behaviour; when a caller can
-   notice it, its changelog entry goes under `Changed` and says what to do.
 4. Run the full suite on the floor and latest interpreters, `mkdocs build
    --strict`, `python -m build`, and the maintainer's leak check (a scan for
    private references and agent-attribution commit trailers). Judge it by exit
