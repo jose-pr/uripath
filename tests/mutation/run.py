@@ -197,7 +197,7 @@ def main(argv=None) -> int:
         return 0
 
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix="pathlib-next-mutation-") as scratch_name:
+    with tempfile.TemporaryDirectory(prefix="uripath-mutation-") as scratch_name:
         scratch = Path(scratch_name)
         if not args.no_control and not control(selected, scratch, args.timeout):
             return 2
