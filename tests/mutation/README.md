@@ -44,7 +44,7 @@ mutant(
     "        if self.is_dir():\n            raise IsADirectoryError(\n",   # exact text, once
     "        if False:\n            raise IsADirectoryError(\n",           # its replacement
     "tests/test_http.py::test_http_unlink_on_directory_sends_no_delete",
-    "HttpPath.unlink() sends DELETE for a collection",             # the note
+    "HTTPURIPath.unlink() sends DELETE for a collection",             # the note
 )
 ```
 

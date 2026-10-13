@@ -52,7 +52,7 @@ mutant(
     "        if self.is_dir():\n            raise IsADirectoryError(\n",
     "        if False:\n            raise IsADirectoryError(\n",
     "tests/test_http.py::test_http_unlink_on_directory_sends_no_delete",
-    "HttpPath.unlink() sends DELETE for a collection",
+    "HTTPURIPath.unlink() sends DELETE for a collection",
 )
 mutant(
     "http-rmdir-of-a-file",
@@ -60,7 +60,7 @@ mutant(
     "        if not self.is_dir():\n            raise NotADirectoryError(self)\n",
     "        if False:\n            raise NotADirectoryError(self)\n",
     "tests/test_http.py::test_http_rmdir_on_file_raises_notadirectoryerror",
-    "HttpPath.rmdir() sends DELETE for a file",
+    "HTTPURIPath.rmdir() sends DELETE for a file",
 )
 mutant(
     "http-rmdir-of-a-non-empty-directory",
@@ -68,7 +68,7 @@ mutant(
     '        for _ in self._scandir():\n            raise OSError(_errno.ENOTEMPTY, "Directory not empty", str(self))\n        self._delete()\n',
     "        self._delete()\n",
     "tests/test_http.py::test_http_rmdir_not_empty",
-    "HttpPath.rmdir() sends DELETE for a directory that lists children",
+    "HTTPURIPath.rmdir() sends DELETE for a directory that lists children",
 )
 mutant(
     "http-delete-answered-404-with-missing-ok",
@@ -110,7 +110,7 @@ mutant(
     "            if not _providers.is_safe_child_name(name):\n",
     "            if False:\n",
     "tests/test_http.py::test_http_listing_leaves_out_a_name_that_is_not_a_safe_component",
-    "HttpPath listing filter no-op",
+    "HTTPURIPath listing filter no-op",
 )
 mutant(
     "dav-listing-keeps-unsafe-names",
@@ -118,7 +118,7 @@ mutant(
     "            if _providers.is_safe_child_name(name):\n",
     "            if True:\n",
     "tests/test_webdav.py::test_propfind_dot_entries_are_not_children",
-    "DavPath listing filter no-op",
+    "DAVURIPath listing filter no-op",
 )
 mutant(
     "uri-same-filesystem-always-true",
@@ -126,7 +126,7 @@ mutant(
     "        return mine is None or theirs is None or mine is theirs\n",
     "        return True\n",
     "tests/test_same_filesystem_uri.py::test_two_supplied_backends_are_two_hosts",
-    "UriPath._same_filesystem always True",
+    "URIPath._same_filesystem always True",
 )
 mutant(
     "uri-same-filesystem-always-false",
@@ -134,7 +134,7 @@ mutant(
     "        return mine is None or theirs is None or mine is theirs\n",
     "        return False\n",
     "tests/test_same_filesystem_uri.py::test_separately_built_paths_to_one_url_are_the_same_file",
-    "UriPath._same_filesystem always False (self-copy guard off for remote)",
+    "URIPath._same_filesystem always False (self-copy guard off for remote)",
 )
 mutant(
     "http-404-is-a-generic-oserror",
@@ -166,7 +166,7 @@ mutant(
     "        return self.as_uri(sanitize=True)\n",
     "        return self.as_uri(sanitize=False)\n",
     "tests/test_transport_security.py::test_http_error_text_and_traceback_carry_no_password",
-    "str(Uri) shows the password",
+    "str(URI) shows the password",
 )
 mutant(
     "http-request-url-keeps-the-password",
