@@ -19,3 +19,6 @@ Both run on the standard library, through a transport that can be replaced
 ::: uripath.schemes.HTTPAppendStream
 
 ::: uripath.schemes.DAVURIPath
+
+`uripath.schemes.MAX_LISTING_BYTES` (8 MiB) bounds a reply the backend reads
+whole, such as a directory index; assign a larger number to allow more.

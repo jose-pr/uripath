@@ -8,6 +8,8 @@
       show_if_no_docstring: true
       filters: ["!^_"]
 
+::: uripath.schemes.DerivedBackend
+
 ::: uripath.source
     options:
       show_if_no_docstring: true

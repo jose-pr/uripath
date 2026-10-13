@@ -29,8 +29,8 @@ and `az:` are provided by other distributions (see "Other distributions").
 | `git:` / `git+github:` / `git+gitlab:` | As `github:`/`gitlab:` |  |  |  |  |  |  |  |
 
 `stat()` works everywhere. `st_mtime` is real on every implementation except
-`data:` and `github:`/`gitlab:`, where it is `0`. `symlink_to()` is
-implemented by `file:` only; `readlink()` by `file:` and the archive schemes.
+`data:` and `github:`/`gitlab:`, where it is `0`. `readlink()` is implemented
+by the archive schemes; no scheme in this package implements `symlink_to()`.
 
 ## Common behavior
 

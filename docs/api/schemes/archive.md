@@ -9,3 +9,7 @@
 ::: uripath.schemes.ZipURIPath
 
 ::: uripath.schemes.TarURIPath
+
+`uripath.schemes.MEMBER_SPOOL_BYTES` is the size above which the content of an
+archive member read into memory is spooled to a temporary file; assign a
+different number to change it.
