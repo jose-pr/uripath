@@ -78,9 +78,9 @@ def test_example_query():
     uri = _uri()
     query = uri.Query({"test": "://$#!1", "test2&": [1, 2]})
     assert str(query) == "test=://$%23!1&test2%26=1&test2%26=2"
-    q2 = uri.Query(str(query)).to_dict()
+    q2 = uri.Query.parse(str(query)).to_dict()
     assert q2 == {"test": ["://$#!1"], "test2&": ["1", "2"]}
-    assert list(query) == [("test", "://$#!1"), ("test2&", "1"), ("test2&", "2")]
+    assert query.to_pairs() == [("test", "://$#!1"), ("test2&", "1"), ("test2&", "2")]
 
 
 def test_example_source():

@@ -22,6 +22,7 @@ HEADER = PACKAGE / "AGENTS.md"
 DOCUMENTED = {
     "uripath": {
         "Query",
+        "QueryLike",
         "Source",
         "URI",
         "URILike",
@@ -43,7 +44,7 @@ DOCUMENTED = {
         "is_drive",
         "same_authority",
     },
-    "uripath.query": {"Query"},
+    "uripath.query": {"Query", "QueryLike"},
     "uripath.schemes": {
         "ArchiveTarURIPath",
         "ArchiveURIPath",

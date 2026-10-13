@@ -623,10 +623,11 @@ _pairs = st.lists(
 def test_query_pairs_survive_a_uri_round_trip(pairs):
     from uripath import Query
 
-    assert Query(pairs).decode() == [(k, v) for k, v in pairs]
+    assert Query(pairs).to_pairs() == [(k, v) for k, v in pairs]
+    assert Query.parse(str(Query(pairs))) == Query(pairs)
     if pairs:
         uri = URI("http://host/p").with_query(Query(pairs))
-        assert Query(URI(uri.as_uri()).query).decode() == [(k, v) for k, v in pairs]
+        assert URI(uri.as_uri()).query.to_pairs() == [(k, v) for k, v in pairs]
 
 
 _userinfo = st.one_of(

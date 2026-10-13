@@ -566,7 +566,7 @@ def test_rename_destination_carries_the_targets_query_not_the_sources(site):
     host = site.base[len("http://") :]
     assert request.headers["Destination"] == f"http://{host}/d/g.txt"
     assert request.path == "/d/f.txt?sig=SOURCE"
-    assert moved.path == "/d/g.txt" and moved.query == ""
+    assert moved.path == "/d/g.txt" and not moved.query
 
 
 def test_rename_to_a_uri_keeps_that_uris_query_and_drops_its_fragment(site):

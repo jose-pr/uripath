@@ -13,8 +13,8 @@ exception types are those of `pathlib.Path`, and every deliberate difference is
 listed, with its rationale, at <https://jose-pr.github.io/uripath/divergences/>.
 
 Names are imported from the module named in the heading of the section that
-documents them; the root `uripath` exports `URI`, `URIPath`, `URILike`, `Source`, `Query` and
-the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`. A
+documents them; the root `uripath` exports `URI`, `URIPath`, `URILike`, `Source`, `Query`,
+`QueryLike` and the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`. A
 module or name that starts with an underscore is private and nothing there is
 contract; every scheme lives in a private module and is exported by
 `uripath.schemes`. The schemes
@@ -38,7 +38,7 @@ class URI(Pathname):
     def __init__(self, *uris, **options): ...
     source: Source
     path: str
-    query: str
+    query: Query
     fragment: str
     stem
     suffix
@@ -84,13 +84,13 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
 
 - Properties: `source -> Source`, `path -> str` (percent-decoded),
   `query -> Query` (**percent-encoded as received**, sent unchanged; empty
-  when there is none), `fragment -> str` (`""` when there is none),
+  when there is none; not a `str`: compare `str(uri.query)`), `fragment -> str` (`""` when there is none),
   `parts -> (source, path, query, fragment)` (not path
   segments; use `segments`), `normalized_path`, `segments`, `parent`
   (`http://h/a` → `http://h/`; a trailing `/` is kept, so
   `URI("http://h/d/").name == ""`).
 - Methods: `as_uri(sanitize=False)`, `with_source()`, `with_path()`,
-  `with_segments()`, `with_query(str | mapping | pairs)` (a `str` is taken as
+  `with_segments()`, `with_query(QueryLike)` (a `str` is taken as
   already encoded), `with_fragment()`; `with_name`/`with_suffix`/`with_stem`
   keep query and fragment. `with_path(path)` gives a relative path under an
   authority the leading `/` the constructor gives it; `with_segments(*segments)`
@@ -276,24 +276,48 @@ kept for 60 seconds for at most 256 hosts, so a miss does DNS.
 ### `Query` (`uripath.query`)
 
 ```python
-class Query(str):
+class Query:
     ENCODING = "utf-8"
     SEPARATOR = "&"
-    def __init__(self, query, *, encoding="utf-8", separator="&"): ...
-    def decode(self) -> list[tuple[str, str | None]]: ...
+    def __init__(self, pairs=(), *, separator=None, encoding=None): ...
+    @classmethod
+    def parse(cls, text, *, separator="&", encoding="utf-8") -> Query: ...
+    separator: str
+    encoding: str
+    def to_pairs(self) -> list[tuple[str, str | None]]: ...
     def to_dict(self, *, single=False): ...
 ```
 
-`str` subclass holding the encoded query; built from a `str` (taken as
-encoded and kept byte for byte), a mapping (a sequence value repeats the
-key) or `(key, value)` pairs, which are encoded so that `decode()` returns
-what was given: `+`, `=`, the separator, `#`, `%` and white space are
-escaped (`{"sig": "ab+cd=="}` is `sig=ab%2Bcd%3D%3D`).
-`decode() -> list[tuple[str, str | None]]` follows RFC 3986, not
-form-urlencoding: only `%XX` escapes are decoded and a `+` stays a plus
-(`urllib.parse.parse_qsl` reads form text). Iteration yields the decoded
-pairs, `to_dict(*, single=False)`. `Query.ENCODING` (`"utf-8"`) and
-`Query.SEPARATOR` (`"&"`) are the defaults of `encoding=` and `separator=`.
+An immutable value: the percent-encoded text and the pairs it stands for; it
+is not a `str` and has no length, items or iteration (`len(query)` and
+`for pair in query` are `TypeError`), and `isinstance(query, str)` is False.
+
+- `Query.parse(text)` — any `str` parses, and is kept byte for byte: this is
+  what `URI.query` holds, as received, and what is sent. `TypeError` for what
+  is not a `str`. `Query(text)` is a `TypeError` pointing at `parse()`.
+- `Query(pairs)` — from a mapping (a sequence value repeats the name) or from
+  `(name, value)` pairs (`None` is a bare name), encoded so that `to_pairs()`
+  returns what was given: `+`, `=`, the separator, `#`, `%` and white space
+  are escaped (`{"sig": "ab+cd=="}` is `sig=ab%2Bcd%3D%3D`). `Query(query)`
+  keeps the separator and encoding of the query it wraps unless they are given.
+- `str(query)` is the text; `repr(query)` is `Query.parse('a=1')`, with
+  `separator=` and `encoding=` when they are not the defaults; `bool(query)` is
+  False for empty text.
+- `to_pairs()` — the decoded pairs, in order. `to_dict(*, single=False)` —
+  each name to the list of its values, or with `single` to its last. Decoding
+  follows RFC 3986, not form-urlencoding: only `%XX` escapes are decoded and a
+  `+` stays a plus (`urllib.parse.parse_qsl` reads form text); an escape that is
+  not valid in `encoding` becomes a surrogate escape (`ERRORS`) and never
+  raises.
+- Equality and `hash()` are those of the decoded pairs, so `a=%41` equals
+  `a=A`, and the separator decides the pairs: `a=1;b=2` is two pairs with
+  `separator=";"` and one with `&`. A query is equal to nothing that is not a
+  query (a `str` included).
+- `Query.parse(str(query), separator=query.separator, encoding=query.encoding)
+  == query`. Copies and pickles keep the separator and encoding.
+- `QueryLike` = `str | Query | Mapping | Sequence[tuple[str, str | None]]` is
+  what `URI.with_query()` accepts: text (taken as already percent-encoded), a
+  mapping, pairs, or a `Query`.
 
 ### For scheme implementers (`uripath`, `uripath.schemes`, `uripath.source`)
 

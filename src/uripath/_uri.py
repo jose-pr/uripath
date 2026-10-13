@@ -15,7 +15,7 @@ else:
 from pathlib_next import Path, Pathname
 from pathlib_next.providers import name_stem as _name_stem
 from pathlib_next.providers import name_suffix as _name_suffix
-from .query import Query
+from .query import Query, QueryLike, _coerce
 from .source import Source
 from .source._compose import _encode
 from .source._parse import _ERRORS, _is_drive, _remove_dot_segments
@@ -26,7 +26,7 @@ URILike: TypeAlias = "str | URI | os.PathLike"
 
 
 _NOSOURCE = Source(None, None, None, None)
-_NO_QUERY = Query("")
+_NO_QUERY = Query.parse("")
 
 
 def _segments_of(path: str) -> list[str]:
@@ -225,7 +225,7 @@ class URI(Pathname):
         `urisplit()`'s raw fields with the authority split once. It differs
         from uritools' getters in three ways: the query is not decoded (`.query`
         stays percent-encoded and is decoded per key and value by
-        `Query.decode()`, because decoding it makes an escaped `&`, `=` or `+`
+        `Query.to_pairs()`, because decoding it makes an escaped `&`, `=` or `+`
         look like a delimiter); escapes that are not UTF-8 decode with
         `surrogateescape` (`source._ERRORS`) instead of raising; and a `data:`
         payload (RFC 2397) is an opaque octet string that gets no dot-segment
@@ -246,7 +246,7 @@ class URI(Pathname):
         path = decoded
         if fragment is not None:
             fragment = uritools.uridecode(fragment, errors=_ERRORS)
-        return source, path, Query(query or ""), fragment or ""
+        return source, path, Query.parse(query or ""), fragment or ""
 
     @property
     def parts(self):
@@ -327,18 +327,25 @@ class URI(Pathname):
 
         self._init(source, _path, query, fragment)
 
-    def _init(self, source: Source, path: str, query: str, fragment: str, **kwargs):
+    def _init(
+        self,
+        source: Source,
+        path: str,
+        query: Query | str | None,
+        fragment: str,
+        **kwargs,
+    ):
         # Re-init of an initiated instance is relied upon (`with_source()` runs
         # `_init()` a second time over the first): audit every call site before making
         # it raise. `_initiated` is set LAST: the properties read the raw slots once set.
         if query.__class__ is not Query:
-            query = Query(query) if query else _NO_QUERY
+            query = Query.parse(query) if query else _NO_QUERY
         fragment = fragment or ""
         if (
             self._initiated
             and path == self._path
             and fragment == self._fragment
-            and query == self._query
+            and str(query) == str(self._query)
             and source == self._source
         ):
             # A second thread finishing its own first parse stores what is
@@ -571,17 +578,23 @@ class URI(Pathname):
         cls,
         source: Source,
         path: str,
-        query: str,
+        query: Query | str | None,
         fragment: str,
         /,
         sanitize=True,
     ) -> str:
         # Direct string assembly, not uricompose()'s re-validation: the parts come from
         # a parse or from our own normalized join state (see `_compose_uri` in
-        # source.py for the equivalence notes).
+        # source/_compose.py for the equivalence notes).
         scheme, userinfo, host, port = _source_parts(source, sanitize)
         return _compose_uri(
-            scheme, userinfo, host, port, path, query or None, fragment or None
+            scheme,
+            userinfo,
+            host,
+            port,
+            path,
+            str(query) if query else None,
+            fragment or None,
         )
 
     def __str__(self):
@@ -669,10 +682,10 @@ class URI(Pathname):
         return self._path
 
     @property
-    def query(self) -> str:
+    def query(self) -> Query:
         """The query exactly as received: still percent-encoded, so an
         escaped `&`, `=` or `+` inside a value survives the round trip. Use
-        `Query.decode()`/`to_dict()` for decoded pairs."""
+        `Query.to_pairs()`/`to_dict()` for decoded pairs."""
         if not self._initiated:
             self._load_parts()
         return self._query
@@ -714,14 +727,13 @@ class URI(Pathname):
             path = "/" + path
         return self._from_parsed_parts(self.source, path, self.query, self.fragment)
 
-    def with_query(self, query: str):
+    def with_query(self, query: QueryLike):
         """Return a new URI with the query replaced.
 
         A `str` is taken in the percent-encoded form `.query` returns and is
         sent as given; a mapping or a sequence of pairs is encoded by
         `Query`."""
-        if not isinstance(query, Query):
-            query = Query(query)
+        query = _coerce(query)
         return self._from_parsed_parts(self.source, self.path, query, self.fragment)
 
     def with_fragment(self, fragment: str):

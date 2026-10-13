@@ -36,11 +36,11 @@ from uripath.source import Source
 def test_a_uri_without_a_query_or_fragment_has_an_empty_one(build):
     uri = build()
     assert isinstance(uri.query, Query)
-    assert uri.query == ""
+    assert str(uri.query) == "" and not uri.query
     assert uri.query.to_dict() == {}
-    assert list(uri.query) == []
+    assert uri.query.to_pairs() == []
     assert uri.fragment == ""
-    assert uri.parts[2] == "" and uri.parts[3] == ""
+    assert str(uri.parts[2]) == "" and uri.parts[3] == ""
 
 
 def test_a_query_keeps_its_type_and_text_through_every_derivation():

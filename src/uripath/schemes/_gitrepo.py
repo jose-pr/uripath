@@ -361,9 +361,7 @@ class _RepoAPIPath(URIPath):
 
     @property
     def ref(self) -> "str | None":
-        from ..query import Query
-
-        return Query(self.query or "").to_dict(single=True).get("ref") or None
+        return self.query.to_dict(single=True).get("ref") or None
 
     def _backend_cache(self) -> "dict | None":
         """The backend's memoization dict, or None for a custom

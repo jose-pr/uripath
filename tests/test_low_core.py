@@ -132,7 +132,7 @@ def test_str_rtruediv_uri_is_a_decoded_path():
     assert joined.path == "a/b"
     # Not URI syntax: no scheme, query or fragment is parsed out of the str.
     odd = "C:/x?y#z" / URI("b")
-    assert (odd.source, odd.path, odd.query, odd.fragment) == (
+    assert (odd.source, odd.path, str(odd.query), odd.fragment) == (
         Source(None, None, None, None),
         "C:/x?y#z/b",
         "",

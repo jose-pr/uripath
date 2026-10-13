@@ -52,7 +52,7 @@ class DataURIPath(URIPath):
         text = self.path
         if self.query:
             # Decoded like the path: `.query` is kept as received.
-            text += "?" + _uritools.uridecode(self.query, errors=ERRORS)
+            text += "?" + _uritools.uridecode(str(self.query), errors=ERRORS)
         header, sep, data = text.partition(",")
         if not sep:
             raise FileNotFoundError(self)

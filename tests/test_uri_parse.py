@@ -212,12 +212,12 @@ def test_join_query_fragment_last_setting_segment_wins():
     # segment's -- only a later segment that actually sets one should win.
     base = URI("http://h/a?x=1#frag")
     joined = URI(base, "b")
-    assert joined.query == "x=1"
+    assert str(joined.query) == "x=1"
     assert joined.fragment == "frag"
 
 
 def test_join_query_fragment_later_segment_overrides():
     base = URI("http://h/a?x=1")
     joined = URI(base, "b?y=2#frag2")
-    assert joined.query == "y=2"
+    assert str(joined.query) == "y=2"
     assert joined.fragment == "frag2"

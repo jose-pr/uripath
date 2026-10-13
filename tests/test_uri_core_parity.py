@@ -73,12 +73,12 @@ def test_http_request_with_dict_query_is_encoded_once(recording_http_server):
 
 def test_parsed_query_is_the_received_encoded_string():
     uri = URI("http://h/download?name=a%26b&sig=ab%2Bcd%3D%3D")
-    assert uri.query == "name=a%26b&sig=ab%2Bcd%3D%3D"
+    assert str(uri.query) == "name=a%26b&sig=ab%2Bcd%3D%3D"
     assert uri.as_uri() == "http://h/download?name=a%26b&sig=ab%2Bcd%3D%3D"
 
 
 def test_query_to_dict_decodes_each_value_exactly_once():
-    query = Query(URI("http://h/?q=a%26b&x=1%3D2&t=abc%2Bdef%3D&v=%2541").query)
+    query = URI("http://h/?q=a%26b&x=1%3D2&t=abc%2Bdef%3D&v=%2541").query
     assert query.to_dict() == {
         "q": ["a&b"],
         "x": ["1=2"],
@@ -88,7 +88,7 @@ def test_query_to_dict_decodes_each_value_exactly_once():
 
 
 def test_query_key_containing_equals_round_trips():
-    assert Query({"a=b": "c"}).decode() == [("a=b", "c")]
+    assert Query({"a=b": "c"}).to_pairs() == [("a=b", "c")]
     assert Query([("k=", "v")]).to_dict() == {"k=": ["v"]}
 
 

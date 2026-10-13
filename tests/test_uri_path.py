@@ -52,7 +52,7 @@ def test_with_suffix_keeps_query_fragment():
     p = URIPath("http://h/a.txt?x=1#frag")
     renamed = p.with_suffix(".py")
     assert renamed.name == "a.py"
-    assert renamed.query == "x=1"
+    assert str(renamed.query) == "x=1"
     assert renamed.fragment == "frag"
 
 
@@ -60,7 +60,7 @@ def test_with_name_keeps_query_fragment():
     p = URIPath("http://h/a.txt?x=1#frag")
     renamed = p.with_name("b.txt")
     assert renamed.name == "b.txt"
-    assert renamed.query == "x=1"
+    assert str(renamed.query) == "x=1"
     assert renamed.fragment == "frag"
 
 
@@ -130,7 +130,7 @@ def test_uri_with_fragment_and_segments():
     # test with_fragment
     u_f = u.with_fragment("newfrag")
     assert u_f.fragment == "newfrag"
-    assert u_f.query == "query=1"
+    assert str(u_f.query) == "query=1"
 
     # test with_segments empty
     u_seg = u.with_segments()
@@ -249,8 +249,8 @@ def test_join_with_a_uri_argument_is_still_scheme_aware():
 
 def test_join_keeps_the_query_of_a_uri_argument():
     base = URIPath("http://h/a")
-    assert (base / URIPath("b?q=1")).query == "q=1"
-    assert (base / "b?q=1").query in (None, "")
+    assert str((base / URIPath("b?q=1")).query) == "q=1"
+    assert not (base / "b?q=1").query
 
 
 # --- copy()/move() read a str destination by its shape --------------------

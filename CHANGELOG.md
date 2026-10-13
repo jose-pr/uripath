@@ -41,7 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   | `source.compose_uri`, `compose_host`, `percent_encode`, `is_drive`, `SAFE_PATH`, `ERRORS` | the same names in `uripath.source` |
   | `same_authority` | `uripath.source.same_authority` |
   | `DerivedBackend` | `uripath.schemes.DerivedBackend` |
-  | `query.Query` | `uripath.Query`, also `uripath.query.Query` |
+  | `query.Query` | `uripath.Query`, also `uripath.query.Query`; no longer a `str` (see below) |
+  | `Query(text)`, `Query.decode()` | `Query.parse(text)`, `Query.to_pairs()` |
   | `schemes.file.FileUri`, `schemes.data.DataUri` | `uripath.schemes.FileURIPath`, `DataURIPath` |
   | `schemes.archive.ZipUri`, `TarUri`, `ArchiveUri` | `uripath.schemes.ZipURIPath`, `TarURIPath`, `ArchiveURIPath` |
   | `schemes.archive.ArchiveZipUri`, `ArchiveTarUri` | `uripath.schemes.ArchiveZipURIPath`, `ArchiveTarURIPath` |
@@ -63,6 +64,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   The `ftp:` backends are not `pathlib_next.ftp.FTPBackend` and `BaseFTPBackend`:
   those belong to one host, while `FTPURIBackend` connects to whichever server a
   path names.
+- `Query` is an immutable value and no longer a subclass of `str`. Was: a `str`
+  that also took pairs, so `len(query)`, `query[0]`, `"x" in query`,
+  `query.split("&")` and `query == "a=1"` worked as on a string while iterating
+  it gave decoded pairs; equality and hash were those of the text, so
+  `Query("a=1;b=2", separator=";") == Query("a=1;b=2")`; `Query(query)` reset the
+  separator; `Query("a=%E9").decode()` raised `UnicodeDecodeError`. Is: `str(query)`
+  is the text, `Query.parse(text)` builds one from text (kept byte for byte, as
+  `URI.query` holds it), `Query(pairs)` from a mapping or pairs, and
+  `query.to_pairs()` and `query.to_dict()` give the pairs; two queries are equal
+  when they decode to the same pairs, a query is equal to nothing that is not a
+  query, and an escape that is not valid UTF-8 survives as a surrogate escape
+  instead of raising. A query has no length, items or iteration. What to do:
+  `Query("a=1")` becomes `Query.parse("a=1")` (it is a `TypeError` now),
+  `query.decode()` becomes `query.to_pairs()`, `for pair in query` becomes
+  `for pair in query.to_pairs()`, and a comparison of `uri.query` with text
+  becomes `str(uri.query) == text`. `URI.query` is still a `Query` and
+  `with_query()` still takes text, a mapping, pairs or a `Query`.
 - Text that is not a URI raises `URISyntaxError` where it raised a bare
   `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
   `Source.from_str()` of text with a path, a `git:` URI on a host with no

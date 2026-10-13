@@ -186,7 +186,7 @@ class DAVURIPath(HTTPURIPath):
             self.source.host,
             self.source.port,
             self.path,
-            self.query or None,
+            str(self.query) or None,
             self.fragment or None,
         )
 

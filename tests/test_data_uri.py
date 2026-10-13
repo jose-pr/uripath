@@ -101,6 +101,6 @@ def test_a_question_mark_in_a_data_payload_is_payload(url, content):
 def test_a_data_payload_with_a_query_reads_the_whole_text():
     path = URIPath("data:,a?b")
     assert path.read_text() == "a?b"
-    assert path.query == "b"
+    assert str(path.query) == "b"
     assert path.as_uri() == "data:,a?b"
     assert path.stat().st_size == 3
