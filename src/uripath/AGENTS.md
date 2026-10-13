@@ -619,9 +619,8 @@ class HTTPResponse:
   built-in transport on first use (`HTTPBackend.close()` or leaving its
   `with` block closes a transport the backend built); the environment variable
   `URIPATH_HTTP_TRANSPORT` (`builtin` or `requests`) names that default
-  for the process. `HTTPBackend` is a class, no longer a named
-  tuple: `HTTPBackend(transport=None, *, headers=None, timeout, write_method,
-  append_mode)`.
+  for the process. `HTTPBackend(transport=None, *, headers=None, timeout,
+  write_method, append_mode)` is the backend a path holds.
 - **What the backend does for every transport.** It follows redirects, adds
   credentials and default headers (`User-Agent: uripath/<version>`, `Accept: */*`),
   applies the default timeout, and maps a status to a pathlib exception.
@@ -1236,6 +1235,20 @@ unrecognised one raises `ValueError` naming the choices. It is read when a
 backend first needs its transport, once per backend, so a change reaches
 backends built afterwards. `with_transport()` and `with_session()` do not read
 it.
+
+### Proxy variables (URI layer)
+
+`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY`, in upper or lower case:
+`HTTPTransport` reads them, through `urllib.request`, when it is built with
+`proxies=None`. A `proxies=` argument, `{}` included, is used instead and the
+environment is not read.
+
+### `URIPATH_MCP` and `AGENT_HELP` (command line)
+
+`URIPATH_MCP=stdio` makes `uripath` serve its five commands as tools instead of
+running one; `AGENT_HELP=1` makes `uripath --help` print one JSON document for
+the command tree. `duho` reads both when the command starts; the library does
+not.
 
 ## Gotchas
 

@@ -16,26 +16,27 @@ server, a web directory or a GitHub or GitLab repository. It builds on
 
 ## Features
 
-| Scheme (class) | Extra | Read | Write | List | Stat | mkdir | Delete | rename |
+| Scheme (class) | Needs | Read | Write | List | Stat | mkdir | Delete | rename |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `file:` (`FileURIPath`) | none | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `data:` (`DataURIPath`, RFC 2397) | none | Yes | No | No | Yes | No | No | No |
-| `zip:` (`ZipURIPath`) | none | Yes | Local `file:` archive only | Yes | Yes | Local archive only | Local archive only | Local archive only |
-| `tar:` (`TarURIPath`, incl. gz/bz2/xz) | none | Yes | No | Yes | Yes | No | No | No |
-| `archive:`, `archive+zip:`, `archive+tar:` | none | As `zip:`/`tar:` for the detected or pinned format | | | | | | |
-| `ftp:` / `ftps:` (`FTPURIPath`) | none | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
-| `http:` / `https:` (`HTTPURIPath`) | none | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
-| `dav:` / `davs:` (`DAVURIPath`, WebDAV) | none | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
-| `github:` / `gitlab:` / `git:` | none | Yes | No | Yes | Yes | No | No | No |
+| `file:` (`FileURIPath`) | nothing | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `data:` (`DataURIPath`, RFC 2397) | nothing | Yes | No | No | Yes | No | No | No |
+| `zip:` (`ZipURIPath`) | nothing | Yes | Local `file:` archive only | Yes | Yes | Local archive only | Local archive only | Local archive only |
+| `tar:` (`TarURIPath`, incl. gz/bz2/xz) | nothing | Yes | No | Yes | Yes | No | No | No |
+| `archive:`, `archive+zip:`, `archive+tar:` | nothing | As `zip:`/`tar:` for the detected or pinned format | | | | | | |
+| `ftp:` / `ftps:` (`FTPURIPath`) | nothing | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
+| `http:` / `https:` (`HTTPURIPath`) | nothing | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
+| `dav:` / `davs:` (`DAVURIPath`, WebDAV) | nothing | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
+| `github:` / `gitlab:` / `git:` (also `git+github:`, `git+gitlab:`) | nothing | Yes | No | Yes | Yes | No | No | No |
+| `sftp:` | `uripath-sftp[paramiko]` or `[asyncssh]` | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `s3:` | `uripath-objstore[s3]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
+| `gs:` | `uripath-objstore[gs]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
+| `az:` | `uripath-objstore[az]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker blob) | Yes | Yes (same container) |
 
-The schemes that need a third-party library are other distributions, and
-using one without it raises an `ImportError` that names what to install:
-
-| Scheme | Distribution | Install |
-| --- | --- | --- |
-| `sftp:` | `uripath-sftp` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
-| `s3:`, `gs:`, `az:` | `uripath-objstore` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
-| the `requests` HTTP transport | `uripath-http-requests` | `pip install uripath-http-requests` |
+The last four rows are other distributions: a path of one of those schemes
+builds, joins and prints without it, and its first use of the server raises an
+`ImportError` that names what to install. The `requests` HTTP transport
+(`with_session()`, `~/.netrc`, SOCKS proxies) is the distribution
+`uripath-http-requests`.
 
 Every scheme gets `glob()`, `walk()`, `copy()`/`move()`, `rm()` and `PathSyncer`
 from the `pathlib-next` base classes. The per-scheme notes (timeouts,
@@ -196,7 +197,7 @@ Changes are recorded in the
 ### Releasing
 
 This project follows [Semantic Versioning](https://semver.org/) and keeps a
-[`CHANGELOG.md`](CHANGELOG.md). Pushing a tag matching `v*` triggers the release
+[`CHANGELOG.md`](https://github.com/jose-pr/uripath/blob/main/CHANGELOG.md). Pushing a tag matching `v*` triggers the release
 workflow: test gate → build (checking the tag names the version built) → a strict
 docs build as a gate → GitHub release → publish. The release workflow never deploys
 the docs site itself: for a final release its last job dispatches the docs workflow
@@ -204,4 +205,4 @@ at the tag, which owns every Pages deploy.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/jose-pr/uripath/blob/main/LICENSE).
