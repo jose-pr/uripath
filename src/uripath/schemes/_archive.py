@@ -6,6 +6,7 @@ import typing as _ty
 from pathlib_next.archive import ArchivePath, LinkTarget, TarPath, ZipPath
 from pathlib_next.providers import as_error_handler, check_follow
 from .._uri import URI
+from ..exceptions import URISyntaxError
 from ..source import SAFE_PATH, Source, percent_encode
 from ._path import URIPath
 from ._delegate import DelegatingPath
@@ -70,7 +71,7 @@ def _parse_archive_uri(raw: str, scheme: str) -> "tuple[str, str, object, str] |
 
 def _open_outer(archive_uri: str, schemesmap=None) -> "URIPath":
     if not _SCHEME_RE.match(archive_uri):
-        raise ValueError(
+        raise URISyntaxError(
             f"Archive URI {archive_uri!r} has no scheme -- prefix it "
             "explicitly, e.g. 'file:///path/to/archive.zip'."
         )

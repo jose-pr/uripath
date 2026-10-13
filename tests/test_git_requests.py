@@ -9,11 +9,8 @@ import pytest
 
 from http_fakes import FakeTransport, reply
 from uripath import URIPath
-from uripath.schemes._gitrepo import (
-    BaseRepoBackend,
-    InsecureTransportWarning,
-    RepoBackend,
-)
+from uripath.exceptions import InsecureTransportWarning
+from uripath.schemes import BaseRepoBackend, RepoBackend
 
 API = "https://api.example.test/base"
 

@@ -12,6 +12,7 @@ from pathlib_next import FileStat, Path
 from pathlib_next import providers as _providers
 from .._uri import URI, URILike
 from .._uri import _DEFAULT_CHILD_BUILDERS
+from ..exceptions import UnsupportedSchemeError
 from ..source import Source
 from ..source._source import _same_authority
 from ._registry import (
@@ -165,14 +166,14 @@ class URIPath(URI, Path):
         """The class registered for the scheme `name` (case-insensitive),
         importing its module or loading its entry point first when needed.
 
-        Raises `ValueError` naming the registered schemes when there is
+        Raises `UnsupportedSchemeError` naming the registered schemes when there is
         none, and `ImportError` for a built-in module that cannot be
         imported and for a scheme another distribution provides that is not
         installed (the error names what to install).
         """
         found = cls._find_scheme(name.lower(), strict=True)
         if found is None:
-            raise ValueError(
+            raise UnsupportedSchemeError(
                 f"no URI scheme {name!r} is registered; registered: "
                 + ", ".join(cls.schemes())
             )

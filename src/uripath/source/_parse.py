@@ -5,6 +5,8 @@ import typing as _ty
 
 import uritools as _uritools
 
+from ..exceptions import URISyntaxError
+
 _IPAddress = _ty.Union[_ip.IPv4Address, _ip.IPv6Address]
 
 
@@ -65,7 +67,7 @@ def _parse_port(text: str) -> "int | None":
         return None
     digits = text.lstrip("0") or "0"
     if len(digits) > 5 or int(digits) > 65535:
-        raise ValueError("port out of range 0-65535")
+        raise URISyntaxError("port out of range 0-65535")
     return int(digits)
 
 
@@ -84,7 +86,7 @@ def _split_authority(
       digits alone (`s3://20240101/key`) stays the host; uritools reads it
       as a port and returns an empty host;
     * the port is 0-65535; a ':' followed by anything else that is not a
-      bracketed address is an invalid port (`ValueError`), not part of the
+      bracketed address is an invalid port (`URISyntaxError`), not part of the
       host name."""
     if authority is None:
         return None, None, None
@@ -95,7 +97,7 @@ def _split_authority(
     if colon and not tail.lstrip(_DIGITS):
         return userinfo, host, _parse_port(tail)
     if colon and not hostinfo.startswith("["):
-        raise ValueError("invalid port: it must be digits")
+        raise URISyntaxError("invalid port: it must be digits")
     return userinfo, hostinfo, None
 
 
@@ -107,7 +109,10 @@ def _ipv6_from_literal(literal: str) -> _ip.IPv6Address:
     address, sep, zone = literal.partition("%25")
     if sep:
         literal = f"{address}%{_uritools.uridecode(zone, errors=_ERRORS)}"
-    return _ip.IPv6Address(literal)
+    try:
+        return _ip.IPv6Address(literal)
+    except ValueError:
+        raise URISyntaxError("invalid IPv6 address in the host") from None
 
 
 def _decode_host(host: str) -> "str | _IPAddress":
@@ -122,10 +127,10 @@ def _decode_host(host: str) -> "str | _IPAddress":
     if host.startswith("[") and host.endswith("]"):
         literal = host[1:-1]
         if literal.startswith("v"):
-            raise ValueError("address mechanism not supported")
+            raise URISyntaxError("address mechanism not supported")
         return _ipv6_from_literal(literal)
     if host.startswith("[") or host.endswith("]"):
-        raise ValueError(f"Invalid host {host!r}: mismatched brackets")
+        raise URISyntaxError(f"Invalid host {host!r}: mismatched brackets")
     try:
         return _ip.IPv4Address(host)
     except ValueError:

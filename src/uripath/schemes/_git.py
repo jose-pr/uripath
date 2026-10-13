@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .._uri import URI
+from ..exceptions import URISyntaxError
 from ._path import URIPath
 from ._github import GitHubURIPath
 from ._gitlab import GitLabURIPath
@@ -38,7 +39,7 @@ class GitURIPath(URIPath):
         shown = GitHubURIPath._format_parsed_parts(
             source, path, query, fragment, sanitize=True
         )
-        raise ValueError(
+        raise URISyntaxError(
             f"git: can only auto-detect github.com and gitlab.com; "
             f"use github:, gitlab:, git+github:, or git+gitlab: for {shown!r}"
         )

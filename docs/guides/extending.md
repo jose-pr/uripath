@@ -109,7 +109,7 @@ name, is still refused.
 and entry-point schemes whose module is not imported yet and the schemes
 that other distributions provide (those fail where they are used, naming the
 distribution to install). `URIPath.scheme_class(name)` returns the class registered for a
-name, importing or loading it first, or raises `ValueError` naming the
+name, importing or loading it first, or raises `UnsupportedSchemeError` naming the
 registered schemes:
 
 ```python

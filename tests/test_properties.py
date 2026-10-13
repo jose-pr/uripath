@@ -326,6 +326,12 @@ def _uri_string(draw):
 _ERRORS = "surrogateescape"
 
 
+def _kind(error: Exception) -> str:
+    """The name of the builtin an error is: uritools raises `ValueError`, the
+    parser a subclass of it."""
+    return "ValueError" if isinstance(error, ValueError) else type(error).__name__
+
+
 def _oracle_authority(uri: str, parsed):
     """`(host, port)` of uritools, with the three documented differences."""
     authority = parsed.authority
@@ -382,7 +388,7 @@ def test_fast_parse_matches_uritools_getters(uri):
     try:
         fast = _fast_parse(uri)
     except Exception as e:
-        fast = ("EXC", type(e).__name__)
+        fast = ("EXC", _kind(e))
     try:
         oracle = _oracle_parse(uri)
     except Exception as e:
@@ -408,7 +414,7 @@ def test_uri_parse_uri_matches_oracle_components(uri):
             fragment,
         )
     except Exception as e:
-        fast = ("EXC", type(e).__name__)
+        fast = ("EXC", _kind(e))
     try:
         oracle = _oracle_parse(uri)
     except Exception as e:
@@ -508,7 +514,7 @@ def test_uri_format_parsed_parts_matches_uricompose(
             source, path, query, fragment, sanitize=sanitize
         )
     except Exception as e:
-        fast = ("EXC", type(e).__name__)
+        fast = ("EXC", _kind(e))
     try:
         oracle = _oracle_format_parsed_parts(source, path, query, fragment, sanitize)
     except Exception as e:
@@ -545,7 +551,7 @@ def test_compose_uri_matches_uricompose_direct(
             scheme, userinfo, host, port, path, query or None, fragment or None
         )
     except Exception as e:
-        fast = ("EXC", type(e).__name__)
+        fast = ("EXC", _kind(e))
     try:
         if (port or 0) > 65535:  # the documented difference, see above
             raise ValueError("port out of range 0-65535")

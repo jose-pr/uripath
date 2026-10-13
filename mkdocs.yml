@@ -32,6 +32,7 @@ nav:
   - Divergences from pathlib: divergences.md
   - API Reference:
       - URI: api/uri.md
+      - Exceptions: api/exceptions.md
       - Schemes:
           - "file: and data:": api/schemes/local.md
           - "http: and dav:": api/schemes/http.md

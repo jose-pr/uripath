@@ -26,30 +26,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Import from `uripath` where the code imported from `pathlib_next.uri`:
-  `from uripath import URI, URIPath`, `uripath.source`, `uripath.query` and
-  `uripath.schemes.<scheme>`. `pathlib_next.uri` and `pathlib_next.tools.uripath`
-  are not in this distribution.
-- The classes spell their acronyms in capitals, and the class of a scheme is
-  named `<Scheme>URIPath`, so `<Scheme>Path` stays the class that needs no URI.
-  There is no alias for an old name: rename it where it is imported.
+- Import from `uripath` where the code imported from `pathlib_next.uri`.
+  `pathlib_next.uri` and `pathlib_next.tools.uripath` are not in this
+  distribution. The classes spell their acronyms in capitals, and the class of a
+  scheme is named `<Scheme>URIPath`, so `<Scheme>Path` stays the class that needs
+  no URI. A scheme's module is private: every public name of a scheme is
+  exported by `uripath.schemes`. There is no alias for an old name or path:
+  change the import. Everything that moved or was renamed is in this table.
 
-  | Was | Is |
+  | Was (in `pathlib_next.uri`) | Is (in `uripath`) |
   | --- | --- |
-  | `Uri`, `UriPath`, `UriLike` | `URI`, `URIPath`, `URILike` |
-  | `FileUri`, `DataUri` | `FileURIPath`, `DataURIPath` |
-  | `ZipUri`, `TarUri`, `ArchiveUri` | `ZipURIPath`, `TarURIPath`, `ArchiveURIPath` |
-  | `ArchiveZipUri`, `ArchiveTarUri` | `ArchiveZipURIPath`, `ArchiveTarURIPath` |
-  | `FtpPath`, `HttpPath`, `DavPath` | `FTPURIPath`, `HTTPURIPath`, `DAVURIPath` |
-  | `GitHubPath`, `GitLabPath`, `GitPath` | `GitHubURIPath`, `GitLabURIPath`, `GitURIPath` |
-  | `GitHubGitPath`, `GitLabGitPath` | `GitHubGitURIPath`, `GitLabGitURIPath` |
-  | `HttpBackend` | `HTTPBackend` |
-  | `FtpBackend`, `BaseFtpBackend` | `FTPURIBackend`, `BaseFTPURIBackend` |
-  | `HttpWriteStream`, `HttpAppendStream` | `HTTPWriteStream`, `HTTPAppendStream` |
+  | `Uri`, `UriPath`, `UriLike` | `uripath.URI`, `URIPath`, `URILike` |
+  | `source.Source` | `uripath.Source`, also `uripath.source.Source` |
+  | `source.compose_uri`, `compose_host`, `percent_encode`, `is_drive`, `SAFE_PATH`, `ERRORS` | the same names in `uripath.source` |
+  | `same_authority` | `uripath.source.same_authority` |
+  | `DerivedBackend` | `uripath.schemes.DerivedBackend` |
+  | `query.Query` | `uripath.Query`, also `uripath.query.Query` |
+  | `schemes.file.FileUri`, `schemes.data.DataUri` | `uripath.schemes.FileURIPath`, `DataURIPath` |
+  | `schemes.archive.ZipUri`, `TarUri`, `ArchiveUri` | `uripath.schemes.ZipURIPath`, `TarURIPath`, `ArchiveURIPath` |
+  | `schemes.archive.ArchiveZipUri`, `ArchiveTarUri` | `uripath.schemes.ArchiveZipURIPath`, `ArchiveTarURIPath` |
+  | `schemes.ftp.FtpPath` | `uripath.schemes.FTPURIPath` |
+  | `schemes.ftp.FtpBackend`, `BaseFtpBackend` | `uripath.schemes.FTPURIBackend`, `BaseFTPURIBackend` |
+  | `schemes.ftp.DEFAULT_TIMEOUT`, `IDLE_PROBE_SECONDS`; `schemes.archive.MAX_LINKS`, `LinkTarget` | `pathlib_next.ftp` and `pathlib_next.archive`, which define them |
+  | `schemes.http.HttpPath`, `HttpBackend` | `uripath.schemes.HTTPURIPath`, `HTTPBackend` |
+  | `schemes.http.HttpWriteStream`, `HttpAppendStream` | `uripath.schemes.HTTPWriteStream`, `HTTPAppendStream` |
+  | `schemes.http.HTTPTransport`, `HTTPResponse` | `uripath.schemes.HTTPTransport`, `HTTPResponse` |
+  | `schemes.http.MAX_LISTING_BYTES` | `uripath.schemes.MAX_LISTING_BYTES` (assign it there) |
+  | `schemes.http.DEFAULT_TIMEOUT` | none: the default is the `timeout=` of the backend, `(10, 60)` |
+  | `schemes.archive._base.MEMBER_SPOOL_BYTES` | `uripath.schemes.MEMBER_SPOOL_BYTES` |
+  | `schemes.dav.DavPath` | `uripath.schemes.DAVURIPath` |
+  | `schemes.github.GitHubPath`, `RepoBackend`; `schemes._gitrepo.BaseRepoBackend` | `uripath.schemes.GitHubURIPath`, `RepoBackend`, `BaseRepoBackend` |
+  | `schemes.gitlab.GitLabPath` | `uripath.schemes.GitLabURIPath` |
+  | `schemes.git.GitPath`, `GitHubGitPath`, `GitLabGitPath` | `uripath.schemes.GitURIPath`, `GitHubGitURIPath`, `GitLabGitURIPath` |
+  | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `uripath.exceptions.InsecureTransportWarning` |
 
   The `ftp:` backends are not `pathlib_next.ftp.FTPBackend` and `BaseFTPBackend`:
   those belong to one host, while `FTPURIBackend` connects to whichever server a
   path names.
+- Text that is not a URI raises `URISyntaxError` where it raised a bare
+  `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
+  `Source.from_str()` of text with a path, a `git:` URI on a host with no
+  provider, a `zip:` URI without the scheme of its archive. It is a subclass of
+  `ValueError`, so `except ValueError` still catches it. `URIPath.scheme_class()`
+  of a scheme nobody registered raises `UnsupportedSchemeError`, also a
+  `ValueError`. Both derive from `URIPathError`, which `uripath` exports with
+  them; a caller's bad argument stays a plain `ValueError` or `TypeError`.
 - The environment variable that chooses the default HTTP transport is
   `URIPATH_HTTP_TRANSPORT`. `PATHLIB_NEXT_HTTP_TRANSPORT` is not read: set the
   new one.

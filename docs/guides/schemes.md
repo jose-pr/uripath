@@ -290,7 +290,7 @@ HTTP transport.
   `null`, a truncated body, an array where an object belongs) raises
   `OSError` (`EIO`) naming the path; `exists()` is `False`.
 - **`git:`** detects the provider for `github.com` and `gitlab.com` only;
-  other hosts raise `ValueError` and need `github:`/`gitlab:` or the pinned
+  other hosts raise `URISyntaxError` and need `github:`/`gitlab:` or the pinned
   `git+github:`/`git+gitlab:` forms.
 
 See [Divergences from pathlib](../divergences.md) for the reasons behind these

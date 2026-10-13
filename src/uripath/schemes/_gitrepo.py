@@ -9,6 +9,7 @@ import urllib.parse as _urlparse
 import warnings as _warnings
 
 from pathlib_next import providers as _providers
+from ..exceptions import InsecureTransportWarning
 from ..source import Source
 from ._path import URIPath
 from ..source import compose_host
@@ -30,12 +31,6 @@ per request); `timeout=None` waits without a limit."""
 
 _UNSET = object()
 """The `timeout` of a call that did not give one: the backend's own."""
-
-
-class InsecureTransportWarning(UserWarning):
-    """A `RepoBackend` is about to send an `Authorization` header (its token,
-    or one given in `headers=`) over plain `http://` to a host that is not
-    this machine, where anyone on the route can read it."""
 
 
 def _is_loopback(host: "str | None") -> bool:

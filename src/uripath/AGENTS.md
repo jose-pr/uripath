@@ -13,7 +13,8 @@ exception types are those of `pathlib.Path`, and every deliberate difference is
 listed, with its rationale, at <https://jose-pr.github.io/uripath/divergences/>.
 
 Names are imported from the module named in the heading of the section that
-documents them; the root `uripath` exports `URI`, `URIPath` and `URILike`. A
+documents them; the root `uripath` exports `URI`, `URIPath`, `URILike`, `Source`, `Query` and
+the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`. A
 module or name that starts with an underscore is private and nothing there is
 contract; every scheme lives in a private module and is exported by
 `uripath.schemes`. The schemes
@@ -109,7 +110,7 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   `str()`/`repr()`.
 - Authority: the first unescaped `:` of the userinfo separates user from
   password (`us%3Aer:pw` is the user `us:er`); a host of digits only
-  (`http://20240101/key`) is the host; a port is 0-65535 (`ValueError`
+  (`http://20240101/key`) is the host; a port is 0-65535 (`URISyntaxError`
   otherwise, as for a `:` followed by anything but digits); an IPv6 zone is
   written `[fe80::1%25eth0]` (a bare `%` is read too). A name that holds a
   lone surrogate (a Windows file name can) renders as its UTF-8 bytes, so
@@ -177,8 +178,8 @@ class does.
   group, whether or not its module is imported yet, and the schemes another
   distribution provides (`sftp`, `s3`, `gs`, `az`).
   `scheme_class(name)` — the class for `name` (case-insensitive), importing
-  its module or loading its entry point first; `ValueError` naming the
-  registered schemes when there is none, and the `ImportError` of a
+  its module or loading its entry point first; `UnsupportedSchemeError` naming
+  the registered schemes when there is none, and the `ImportError` of a
   built-in module that cannot be imported. Both are classmethods of the
   one registry, whichever class they are called on.
 - `backend` — per-instance connection state from `_initbackend()` (base:
@@ -262,7 +263,7 @@ falsy when all fields are empty; indexes by position, slice or field name.
 empty host; an invalid scheme or port is a `ValueError`); `str()`/`repr()`
 redact the password, and the whole userinfo for `github:`/`gitlab:`/`git:`
 (the fields keep it). `Source.from_str(source, strict=True)` reads the
-authority as `URI` does (`ValueError` for a path/query/fragment when
+authority as `URI` does (`URISyntaxError` for a path/query/fragment when
 strict, naming the component and never the input),
 `parsed_userinfo() -> (user, password)` (`""` when absent; `userinfo`
 stays the decoded `user:password` text),
@@ -885,7 +886,7 @@ class GitLabGitURIPath(GitLabURIPath): ...
 
 `git://github.com/...` constructs a
 `GitHubURIPath`, `git://gitlab.com/...` a `GitLabURIPath`; any other host →
-`ValueError`. `git+github:` (`GitHubGitURIPath`) and `git+gitlab:`
+`URISyntaxError`. `git+github:` (`GitHubGitURIPath`) and `git+gitlab:`
 (`GitLabGitURIPath`) pin the provider for any host.
 
 ### Archives — `zip:`, `tar:`, `archive:` (`uripath.schemes`)
@@ -917,7 +918,7 @@ with the scheme it was written with.
   time, and a failure to read the outer propagates and decides nothing, so
   the next call tries again.
 - Syntax `<scheme>:<archive-uri>!/<member>`; `<archive-uri>` must carry a
-  scheme (`ValueError` otherwise) and may be any URI, including another
+  scheme (`URISyntaxError` otherwise) and may be any URI, including another
   archive (each leading archive scheme consumes one `!/`; nested archives
   are read-only). A member name containing `!/` is written `%21/`.
   `name`/`parent`/`glob()` work on the member path; `as_uri()`
@@ -964,21 +965,37 @@ For the `requests` transport, `HTTPURIPath.with_session()`, a
 
 ## Exceptions
 
-### Warnings (`uripath.schemes._gitrepo`)
+### `uripath.exceptions`
 
 ```python
-class InsecureTransportWarning(UserWarning): ...  # also in schemes.gitlab
+class URIPathError(Exception): ...
+class URISyntaxError(URIPathError, ValueError): ...
+class UnsupportedSchemeError(URIPathError, ValueError): ...
+class InsecureTransportWarning(UserWarning): ...
 ```
 
-Unsupported
-operations raise `NotImplementedError`. Network errors map to pathlib types
+`URIPathError` is the base of what goes wrong at run time; the root `uripath`
+exports it and the two below.
+
+- `URISyntaxError` — text that is not a URI, or not the part of one that was
+  asked for: a port that is not 0-65535, a malformed host or IPv6 address, a
+  `git:` URI on a host with no provider, a `zip:` URI without the scheme of its
+  archive, `Source.from_str()` of text with a path. The message names the
+  fault and never the text, which can carry a password.
+- `UnsupportedSchemeError` — `URIPath.scheme_class(name)` for a scheme nobody
+  registered; the message lists the registered ones.
+- `InsecureTransportWarning` — a `RepoBackend` is about to send an
+  `Authorization` header over plain `http://` to a host that is not this
+  machine (see `GitHubURIPath`).
+
+A caller's bad argument stays a plain `ValueError` or `TypeError`: a name
+another class holds (`ValueError` at the class statement), a path outside its
+base (`relative_to()`), an object that is no path. Unsupported operations
+raise `NotImplementedError`. Network errors map to pathlib types
 (`FileNotFoundError`, `PermissionError`, `FileExistsError`,
 `IsADirectoryError`, `NotADirectoryError`, `OSError(ENOTEMPTY)`), timeouts to
 `TimeoutError`, anything else to `OSError`; transport exceptions are not
 chained (their text can carry credentials).
-
-`InsecureTransportWarning` is the warning a `RepoBackend` gives before it
-sends an `Authorization` header over plain `http://` (see `GitHubURIPath`).
 
 ## Command line
 

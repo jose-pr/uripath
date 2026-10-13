@@ -4,6 +4,8 @@ import typing as _ty
 
 import uritools as _uritools
 
+from ..exceptions import URISyntaxError
+
 from ._compose import _compose_uri
 from ._locality import _host_is_local
 from ._parse import (
@@ -116,17 +118,17 @@ class Source(_ty.NamedTuple):
     @classmethod
     def from_str(cls, source: str, strict=True):
         """The `Source` a URI string names. With `strict` (the default) a
-        path, query or fragment is a `ValueError` that names the component
+        path, query or fragment is a `URISyntaxError` that names the component
         and not the input, which may carry a password. A port outside
         0-65535, or a ':' followed by anything but digits in a name that is
-        not a bracketed address, is a `ValueError` as well."""
+        not a bracketed address, is a `URISyntaxError` as well."""
         uri = _uritools.urisplit(source)
         if strict:
             extra = [
                 name for name in ("path", "query", "fragment") if getattr(uri, name)
             ]
             if extra:
-                raise ValueError(
+                raise URISyntaxError(
                     "expected scheme and authority only, found a "
                     + " and a ".join(extra)
                 )

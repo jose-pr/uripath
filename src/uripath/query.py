@@ -4,6 +4,8 @@ import collections.abc as _abc
 import typing as _ty
 import uritools as _uritools
 
+__all__ = ["Query"]
+
 # Same reserved/safe set uritools' own (private, version-fragile) query
 # helpers use -- reimplemented here against the *public* uriencode() so this
 # doesn't break across uritools versions (B25).

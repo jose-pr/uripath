@@ -20,7 +20,22 @@ HEADER = PACKAGE / "AGENTS.md"
 
 # The names the shipped header documents, by the module they are imported from.
 DOCUMENTED = {
-    "uripath": {"URI", "URILike", "URIPath"},
+    "uripath": {
+        "Query",
+        "Source",
+        "URI",
+        "URILike",
+        "URIPath",
+        "URIPathError",
+        "URISyntaxError",
+        "UnsupportedSchemeError",
+    },
+    "uripath.exceptions": {
+        "InsecureTransportWarning",
+        "URIPathError",
+        "URISyntaxError",
+        "UnsupportedSchemeError",
+    },
     "uripath.source": {
         "Source",
         "compose_host",
@@ -75,6 +90,30 @@ def test_the_package_exports_exactly_the_documented_names():
     assert set(schemes._EXPORTS) <= set(schemes.__all__)
     for name in schemes.__all__:
         assert hasattr(schemes, name), name
+
+
+def test_every_public_module_declares_all_and_the_others_are_private():
+    import pkgutil
+
+    public = sorted(
+        info.name
+        for info in pkgutil.walk_packages(uripath.__path__, "uripath.")
+        if not any(part.startswith("_") for part in info.name.split(".")[1:])
+    )
+    assert public == [
+        "uripath.exceptions",
+        "uripath.query",
+        "uripath.schemes",
+        "uripath.source",
+    ]
+    for name in ["uripath", *public]:
+        module = importlib.import_module(name)
+        assert isinstance(module.__all__, (list, tuple)), name
+        assert all(hasattr(module, member) for member in module.__all__), name
+
+
+def test_the_root_exports_exactly_the_documented_names():
+    assert set(uripath.__all__) == DOCUMENTED["uripath"]
 
 
 def _header_import_lines():
