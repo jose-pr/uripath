@@ -122,10 +122,6 @@ class _EndpointBackend(BaseFTPBackend):
     def client(self):
         return self.owner.client(self.source, self.tls)
 
-    # Drops the cached connections of the backend it is called on and reads
-    # nothing else of it.
-    close = FTPBackend.close
-
 
 _ENDPOINTS: "_weakref.WeakValueDictionary[tuple, _EndpointBackend]" = (
     _weakref.WeakValueDictionary()
