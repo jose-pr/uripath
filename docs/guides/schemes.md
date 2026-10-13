@@ -157,9 +157,11 @@ exception, so every transport behaves alike.
   proxy use the `requests` transport of `uripath-http-requests`.
 - **The `requests` transport** is provided by the `uripath-http-requests`
   distribution (`~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi, SOCKS proxies,
-  digest and NTLM authentication, cookies, mounted adapters). Without it,
-  `path.with_session(...)` and `URIPATH_HTTP_TRANSPORT=requests` raise an
-  `ImportError` that names it.
+  digest and NTLM authentication, cookies, mounted adapters). Once it is
+  installed, `path.with_session(...)` and `URIPATH_HTTP_TRANSPORT=requests` use
+  it; without it they raise an `ImportError` that names it.
+  `uripath.transports.names()` lists the transports, and a distribution adds
+  its own by declaring an entry point in the `uripath.http_transports` group.
 
 ## FTP
 
