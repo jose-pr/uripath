@@ -1204,10 +1204,21 @@ class UriPath(Uri, Path):
         """The registered scheme names, sorted: those of every class defined
         so far, every built-in scheme and every entry point of the
         `uripath.schemes` group, whether or not its module is imported
-        yet. A scheme whose client library is not installed is listed too."""
+        yet. The schemes another distribution provides are listed too."""
+        from .schemes import _elsewhere
+
         with _CLAIMS_LOCK:
             claimed = list(_CLAIMS)
-        return tuple(sorted({*claimed, *_BUILTIN_SCHEMES, *_declared_entry_points()}))
+        return tuple(
+            sorted(
+                {
+                    *claimed,
+                    *_BUILTIN_SCHEMES,
+                    *_elsewhere.SCHEMES,
+                    *_declared_entry_points(),
+                }
+            )
+        )
 
     @classmethod
     def scheme_class(cls, name: str) -> "type[UriPath]":
@@ -1215,8 +1226,9 @@ class UriPath(Uri, Path):
         importing its module or loading its entry point first when needed.
 
         Raises `ValueError` naming the registered schemes when there is
-        none, and the `ImportError` of a built-in module that cannot be
-        imported.
+        none, and `ImportError` for a built-in module that cannot be
+        imported and for a scheme another distribution provides that is not
+        installed (the error names what to install).
         """
         found = cls._find_scheme(name.lower(), strict=True)
         if found is None:
@@ -1229,15 +1241,25 @@ class UriPath(Uri, Path):
     @classmethod
     def _find_scheme(cls, scheme: str, strict: bool = False):
         """The class that registered `scheme`, or `None`: a class already
-        defined, then the built-in module, then an entry point. With `strict`
-        a built-in module that fails to import raises instead of reading as
-        "no class"."""
+        defined, then the built-in module, then an entry point, then the class
+        that stands for a scheme another distribution provides. With `strict`
+        a built-in module that fails to import, and a scheme provided
+        elsewhere that is not installed, raise instead of reading as "no
+        class" and as that stand-in."""
         found = _CLAIMS.get(scheme)
         if found is None and (
             cls._load_builtin_scheme(scheme, strict=strict)
             or cls._load_entry_point(scheme)
         ):
             found = _CLAIMS.get(scheme)
+        if found is None:
+            from .schemes import _elsewhere
+
+            if scheme not in _elsewhere.SCHEMES:
+                return None
+            if strict:
+                raise _elsewhere.not_installed(scheme)
+            found = _elsewhere.ProvidedElsewhere
         return found
 
     @classmethod

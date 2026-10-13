@@ -311,7 +311,7 @@ def test_a_proxy_scheme_that_is_not_http_is_refused_naming_the_other_transport(
         get(transport_for(Provider(url)), "http://backend.test/f")
     assert excinfo.value.errno == errno.EPROTONOSUPPORT
     message = str(excinfo.value)
-    assert scheme in message and "RequestsTransport" in message
+    assert scheme in message and "uripath-http-requests" in message
     assert "PROXYSECRET" not in message and "carol" not in message
 
 

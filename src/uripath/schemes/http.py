@@ -13,7 +13,7 @@ import urllib.parse as _urlparse
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
 from .. import DerivedBackend, UriPath
-from . import _httpdate
+from . import _elsewhere, _httpdate
 from ._http import (
     HTTPResponse,
     HTTPTransport,
@@ -39,7 +39,7 @@ from ._http._headers import peer_text
 DEFAULT_TIMEOUT = (10, 60)
 """`(connect, read)` timeout, in seconds, `HttpBackend` sends with every
 request unless the caller supplies `timeout` (`HttpBackend(timeout=...)`,
-`with_transport(timeout=...)`, or per
+`with_transport(timeout=...)`, `with_session(..., timeout=...)`, or per
 request); `timeout=None` there waits without a limit."""
 
 MAX_LISTING_BYTES = 8 * 1024 * 1024
@@ -1172,3 +1172,15 @@ class HttpPath(UriPath):
             append_mode=append_mode,
         )
         return type(self)(self, backend=backend)
+
+    def with_session(
+        self,
+        session,
+        write_method: str = "PUT",
+        append_mode: str = "rewrite",
+        **requests_args,
+    ):
+        """This path with a backend that sends through a `requests.Session`.
+        That transport is provided by the `uripath-http-requests`
+        distribution: without it this raises `ImportError` naming it."""
+        raise _elsewhere.requests_transport_missing()

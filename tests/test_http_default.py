@@ -1,5 +1,6 @@
 """Which transport a backend sends with when it is not given one: the built-in
-one, and nothing imported that is not needed."""
+one, the `requests` one only when asked (and then provided elsewhere), and
+nothing imported that is not needed."""
 
 import os
 import pathlib
@@ -40,7 +41,7 @@ def test_the_variable_chooses_the_transport(monkeypatch):
         assert type(backend.transport) is HTTPTransport
 
 
-@pytest.mark.parametrize("value", ["", "BUILTIN", "urllib3", " builtin"])
+@pytest.mark.parametrize("value", ["", "Requests", "BUILTIN", "urllib3", " builtin"])
 def test_a_value_that_is_not_a_choice_is_a_value_error_naming_the_choices(
     monkeypatch, value
 ):
@@ -49,7 +50,7 @@ def test_a_value_that_is_not_a_choice_is_a_value_error_naming_the_choices(
     with pytest.raises(ValueError) as excinfo:
         backend.transport
     message = str(excinfo.value)
-    assert VARIABLE in message and "'builtin'" in message
+    assert VARIABLE in message and "'builtin'" in message and "'requests'" in message
 
 
 def test_a_path_reports_a_bad_setting_when_it_sends_not_when_it_is_built(monkeypatch):
@@ -147,6 +148,10 @@ github = UriPath("github://github.com/o/r/f.txt")
 github.backend.api_base = "http://" + host
 print(github.read_bytes())
 print(sorted(m for m in ("requests", "urllib3") if sys.modules.get(m) is not None))
+try:
+    page.with_session(None)
+except ImportError as error:
+    print(error)
 server.shutdown()
 server.server_close()
 """
@@ -167,4 +172,5 @@ def test_http_dav_and_git_work_with_requests_and_urllib3_hidden():
     )
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines == ["True b'hello' 5", "5", "b'from github'", "[]"]
+    assert lines[:4] == ["True b'hello' 5", "5", "b'from github'", "[]"]
+    assert "uripath-http-requests" in lines[4]

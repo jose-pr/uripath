@@ -250,9 +250,6 @@ _IDENTITY_URLS = [
     "https://h/x",
     "dav://h/x",
     "ftp://h/x",
-    "s3://bkt/x",
-    "gs://bkt/x",
-    "az://acct/c/x",
     "file:///tmp/x",
     "data:,abc",
 ]
@@ -263,10 +260,7 @@ _IDENTITY_URLS = [
 def test_equality_hash_and_filesystem_answers_survive(url, how):
     first, second = UriPath(url), UriPath(url)
     for path in (first, second):
-        try:
-            path.backend
-        except ImportError:
-            pytest.skip("the client library for this scheme is not installed")
+        path.backend
     expected = (
         first == second,
         hash(first) == hash(second),

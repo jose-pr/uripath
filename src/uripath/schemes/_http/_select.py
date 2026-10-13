@@ -9,21 +9,27 @@ import typing as _ty
 from ._builtin import HTTPTransport
 
 TRANSPORT_ENV = "PATHLIB_NEXT_HTTP_TRANSPORT"
-"""Names the transport a backend builds for itself: `builtin`. Read when that
-transport is first needed; unset means `DEFAULT_TRANSPORT`."""
+"""Names the transport a backend builds for itself: `builtin`, or `requests`
+(provided by `uripath-http-requests`). Read when that transport is first
+needed; unset means `DEFAULT_TRANSPORT`."""
 
 DEFAULT_TRANSPORT = "builtin"
 
-CHOICES = ("builtin",)
+CHOICES = ("builtin", "requests")
 
 
 def default_transport():
     """A new transport of the kind `PATHLIB_NEXT_HTTP_TRANSPORT` names. A value
-    that is empty, differently cased or unknown is `ValueError`."""
+    that is empty, differently cased or unknown is `ValueError`; `requests` is
+    `ImportError` naming the distribution that provides it."""
     value = _os.environ.get(TRANSPORT_ENV)
     kind = DEFAULT_TRANSPORT if value is None else value
     if kind == "builtin":
         return HTTPTransport()
+    if kind == "requests":
+        from .. import _elsewhere
+
+        raise _elsewhere.requests_transport_missing()
     raise ValueError(
         f"{TRANSPORT_ENV}={kind!r} is not an HTTP transport "
         f"(expected one of {', '.join(map(repr, CHOICES))})"

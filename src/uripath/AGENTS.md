@@ -18,6 +18,8 @@ module or name that starts with an underscore is private: where this file names
 one (`uripath.schemes._gitrepo`, `uripath.schemes.archive._base`) it names the
 public names to use from it, and nothing else there is contract. The schemes
 need no client library: they run on the standard library and on `pathlib_next`.
+`sftp:`, `s3:`, `gs:` and `az:` and the `requests` HTTP transport are provided by
+other distributions ("Provided by other distributions").
 
 `pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11`,
 `netimps>=0.4.0,<0.5` and `uritools>=5.0,<7`. There are no extras.
@@ -172,8 +174,8 @@ class does.
   defined after a replacement leaves the replacement in place.
 - `schemes() -> tuple[str, ...]` — the registered names, sorted: every
   class defined so far, every built-in scheme and every entry point of the
-  group, whether or not its module is imported yet. A scheme whose client
-  library is missing is listed and fails where it is used.
+  group, whether or not its module is imported yet, and the schemes another
+  distribution provides (`sftp`, `s3`, `gs`, `az`).
   `scheme_class(name)` — the class for `name` (case-insensitive), importing
   its module or loading its entry point first; `ValueError` naming the
   registered schemes when there is none, and the `ImportError` of a
@@ -486,6 +488,10 @@ class HttpPath(UriPath):
         self, transport, *, headers=None, timeout=(10, 60),
         write_method="PUT", append_mode="rewrite",
     ): ...
+    def with_session(
+        self, session, write_method="PUT", append_mode="rewrite",
+        **requests_args,
+    ): ...
     def stat(self, *, follow_symlinks=True, walk_up_last_modified=False): ...
 
 class HttpBackend:
@@ -614,16 +620,19 @@ class HTTPResponse:
   proxies work: absolute-form requests for `http:` and `CONNECT` for
   `https:`, with `Proxy-Authorization: Basic` from the proxy URL's userinfo
   (sent to the proxy only); any other scheme (`socks5`, `https`) is
-  `OSError(EPROTONOSUPPORT)` naming the scheme and `RequestsTransport`. A
+  `OSError(EPROTONOSUPPORT)` naming the scheme and `uripath-http-requests`. A
   proxy that refuses `CONNECT` is a `ConnectionError` and the next proxy is
   not tried. Proxy credentials are in no message, `repr()` or traceback.
 - **Choosing the transport.** `path.with_transport(transport, headers=None,
   timeout=(10, 60), write_method="PUT", append_mode="rewrite")` installs a
-  backend over any transport (the caller closes it). Without it, a path's
-  backend builds the built-in transport on first use (`HttpBackend.close()`
-  or leaving its `with` block closes a transport the backend built); the
-  environment variable `PATHLIB_NEXT_HTTP_TRANSPORT` (`builtin`) names that
-  default for the process. `HttpBackend` is a class, no longer a named
+  backend over any transport (the caller closes it). `path.with_session(
+  session, ...)` is the same over a `requests.Session`; that transport is
+  provided by `uripath-http-requests`, and without it the call raises
+  `ImportError` naming it. Without either, a path's backend builds the
+  built-in transport on first use (`HttpBackend.close()` or leaving its
+  `with` block closes a transport the backend built); the environment variable
+  `PATHLIB_NEXT_HTTP_TRANSPORT` (`builtin` or `requests`) names that default
+  for the process. `HttpBackend` is a class, no longer a named
   tuple: `HttpBackend(transport=None, *, headers=None, timeout, write_method,
   append_mode)`.
 - **What the backend does for every transport.** It follows redirects, adds
@@ -935,6 +944,31 @@ with the scheme it was written with.
   `schemes.archive._base.MEMBER_SPOOL_BYTES` is the same setting as
   `pathlib_next.archive.MEMBER_SPOOL_BYTES`.
 
+## Provided by other distributions
+
+`uripath` knows these schemes and this transport by name and does not contain
+them:
+
+| Name | Distribution | Install |
+| --- | --- | --- |
+| `sftp:` | `uripath-sftp` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
+| `s3:`, `gs:`, `az:` | `uripath-objstore` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
+| the `requests` HTTP transport | `uripath-http-requests` | `pip install uripath-http-requests` |
+
+A path of one of the schemes builds, joins, compares and prints without its
+distribution, and is listed by `UriPath.schemes()`. Every operation that needs
+the server (`stat()`, `exists()`, `open()`, `iterdir()`, a write, `rename()`,
+`chmod()`, ...) raises `ImportError`, with a message that names the scheme and
+the install command and never the URI (it can carry a password). So does
+`UriPath.scheme_class(name)`. The installed distribution registers its own
+class for the name, through an entry point of the group `uripath.schemes`, and
+that class is used.
+
+For the `requests` transport, `HttpPath.with_session()`, a
+`RepoBackend(session=...)` or `RepoBackend(**requests_args)` and
+`PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise `ImportError` naming
+`uripath-http-requests`.
+
 ## Exceptions
 
 ### Warnings (`uripath.schemes.github`)
@@ -990,15 +1024,21 @@ Windows too, where a closed pipe reports `EINVAL`).
 
 ### `PATHLIB_NEXT_HTTP_TRANSPORT` (URI layer)
 
-`builtin` (the default when unset): the transport that `http(s):`, `dav(s):`,
-`github:`, `gitlab:` and `git:` build for a backend that was not given one
-(`HTTPTransport`). The value is case-sensitive, and an empty or unrecognised
-one raises `ValueError` naming the choices. It is read when a backend first
-needs its transport, once per backend, so a change reaches backends built
-afterwards. `with_transport()` does not read it.
+`builtin` (the default when unset) or `requests`: the transport that `http(s):`,
+`dav(s):`, `github:`, `gitlab:` and `git:` build for a backend that was not
+given one (`HTTPTransport`, or the `requests` transport of
+`uripath-http-requests`; without that distribution `requests` raises
+`ImportError` naming it). The value is case-sensitive, and an empty or
+unrecognised one raises `ValueError` naming the choices. It is read when a
+backend first needs its transport, once per backend, so a change reaches
+backends built afterwards. `with_transport()` and `with_session()` do not read
+it.
 
 ## Gotchas
 
 Importing `uripath` and constructing a path of any scheme does no I/O. A path
 joins, compares and prints without touching a server; the first operation that
 needs one (`exists()`, `stat()`, a read, a listing, `is_local()`) connects.
+That holds for the schemes another distribution provides as well: without the
+distribution their paths join, compare and print, and the first operation that
+needs the server raises `ImportError`.

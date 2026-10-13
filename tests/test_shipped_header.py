@@ -362,6 +362,7 @@ def test_the_sections_come_in_the_order_a_user_meets_them():
     titles = _headings(HEADER.read_text(encoding="utf-8"), 2)
     assert titles[0].startswith("URIs") and titles[1].startswith("Built-in schemes")
     assert titles[2:] == [
+        "Provided by other distributions",
         "Exceptions",
         "Command line",
         "Environment variables",

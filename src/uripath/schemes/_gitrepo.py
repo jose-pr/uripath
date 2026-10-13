@@ -11,6 +11,7 @@ import warnings as _warnings
 from pathlib_next import providers as _providers
 from .. import Source, UriPath
 from ..source import compose_host
+from . import _elsewhere
 from ._http import HTTPResponse, TransportOwner
 from ._http import _follow
 from ._http._headers import check_headers as _check_headers
@@ -153,8 +154,10 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
 
     `transport` is any object with a `send()` method as
     `HTTPTransport.send()`; without one the built-in `HTTPTransport` is built
-    on first use (see `HttpBackend`). `headers` go with every request, under
-    the request's own.
+    on first use (see `HttpBackend`). `session=` (a `requests.Session`) and
+    `requests_args` (`verify=`, `proxies=`, ...) select the `requests`
+    transport of `uripath-http-requests`; without it they raise `ImportError`.
+    `headers` go with every request, under the request's own.
     `api_base`, when set, overrides the scheme's convention-derived API root
     entirely (e.g. `https://api.github.com`/`https://{host}/api/v3`) -- the
     seam a test fake (or a reverse-proxied self-hosted setup) plugs into,
@@ -180,7 +183,7 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         **requests_args,
     ):
         if session is not None or requests_args:
-            raise TypeError("a session is a requests transport; give a transport")
+            raise _elsewhere.requests_transport_missing()
         super().__init__(transport)
         self.token = token or None
         self.api_base = api_base.rstrip("/") if api_base else None

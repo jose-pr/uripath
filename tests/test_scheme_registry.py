@@ -337,17 +337,17 @@ def test_schemes_lists_every_built_in_name_without_importing_its_module():
         print(isinstance(names, tuple), list(names) == sorted(set(names)))
         print(" ".join(sorted(set(names) & {
             "file", "data", "zip", "tar", "archive", "archive+zip", "archive+tar",
-            "ftp", "ftps", "http", "https", "dav", "davs",
-            "github", "gitlab", "git", "git+github", "git+gitlab",
+            "ftp", "ftps", "http", "https", "dav", "davs", "sftp", "s3", "gs",
+            "az", "github", "gitlab", "git", "git+github", "git+gitlab",
         })))
         print([m for m in sys.modules if m.startswith("uripath.schemes.")
-               and m.split(".")[3] in {"ftp", "http"}])
+               and m.split(".")[2] in {"sftp", "s3", "gs", "az", "ftp", "http"}])
         """)
     shape, names, imported = result.stdout.splitlines()
     assert shape == "True True"
     assert names.split() == sorted(
         "file data zip tar archive archive+zip archive+tar ftp ftps http https "
-        "dav davs github gitlab git git+github git+gitlab".split()
+        "dav davs sftp s3 gs az github gitlab git git+github git+gitlab".split()
     )
     assert imported == "[]"
 

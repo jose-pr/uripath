@@ -132,8 +132,8 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
     """Every `__SCHEMES` value a builtin scheme class declares must resolve
     through the entry points AND `_load_builtin_scheme` -- `ftps` was
     declared by `FtpPath` but missing from both, so `UriPath("ftps://...")`
-    returned a do-nothing `UriPath` in a fresh process. Only classes whose
-    optional dependencies import here are checked."""
+    returned a do-nothing `UriPath` in a fresh process. The schemes another
+    distribution provides are not built in and are left out."""
     try:
         eps = importlib.metadata.entry_points(group="uripath.schemes")
     except TypeError:  # Python 3.9
@@ -143,12 +143,13 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
     for ep in eps:
         UriPath._load_builtin_scheme(ep.name)
 
+    from uripath.schemes import _elsewhere
+
     declared = {
         scheme
         for scheme in UriPath.schemes()
-        if UriPath.scheme_class(scheme).__module__.startswith(
-            "uripath.schemes"
-        )
+        if scheme not in _elsewhere.SCHEMES
+        and UriPath.scheme_class(scheme).__module__.startswith("uripath.schemes")
     }
     assert "ftps" in declared
     assert sorted(declared - {ep.name for ep in eps}) == []
