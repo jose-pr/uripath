@@ -11,7 +11,7 @@ import tempfile
 import zipfile
 
 from pathlib_next import Path
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 def data_uri_example():
@@ -36,7 +36,7 @@ def zip_archive_example(tmpdir_path: Path):
         zf.writestr("hello.txt", "Hello from ZIP!")
         zf.writestr("sub/nested.txt", "Nested content.")
 
-    # Access the zip entries using pathlib_next
+    # Access the zip entries using uripath
     # Format: zip:file:///<absolute_path>!/<inner_path>
     zip_root_uri = f"zip:{zip_file.as_uri()}!/"
     zip_root = UriPath(zip_root_uri)
@@ -76,7 +76,7 @@ def tar_archive_example(tmpdir_path: Path):
         info2.size = len(content2)
         tf.addfile(info2, tarfile.io.BytesIO(content2))
 
-    # Access the tar entries using pathlib_next
+    # Access the tar entries using uripath
     tar_root_uri = f"tar:{tar_file.as_uri()}!/"
     tar_root = UriPath(tar_root_uri)
 

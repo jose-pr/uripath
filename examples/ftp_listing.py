@@ -16,7 +16,7 @@ import os
 import sys
 from urllib.parse import quote
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 def list_ftp(remote: UriPath):

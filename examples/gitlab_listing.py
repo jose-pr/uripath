@@ -1,5 +1,5 @@
 """List files in a GitLab project using GitLabPath.
-Requires the `uri` extra (`pip install pathlib_next[uri]`) -- the
+Needs only `uripath` -- the
 standard library sends the requests, no python-gitlab SDK. Works unauthenticated for public
 projects; set GITLAB_TOKEN for a private one -- guarded under
 `if __name__ == "__main__"` so importing this module is always safe, and
@@ -19,7 +19,7 @@ Run directly:
 import os
 import sys
 
-from pathlib_next.uri.schemes.gitlab import GitLabPath, RepoBackend
+from uripath.schemes.gitlab import GitLabPath, RepoBackend
 
 
 def list_gitlab(host: str, owner_repo: str, path: str, ref: str, token: str):

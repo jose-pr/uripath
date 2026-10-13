@@ -1,5 +1,5 @@
 """List files in a GitHub repository using GitHubPath.
-Requires the `uri` extra (`pip install pathlib_next[uri]`) -- the
+Needs only `uripath` -- the
 standard library sends the requests, no PyGithub SDK. Works unauthenticated for public repos
 (subject to GitHub's 60 req/h anonymous rate limit); set GITHUB_TOKEN for
 a higher limit or a private repo -- guarded under `if __name__ == "__main__"`
@@ -18,7 +18,7 @@ Run directly:
 import os
 import sys
 
-from pathlib_next.uri.schemes.github import GitHubPath, RepoBackend
+from uripath.schemes.github import GitHubPath, RepoBackend
 
 
 def list_github(owner_repo: str, path: str, ref: str, token: str):

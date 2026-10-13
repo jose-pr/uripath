@@ -15,7 +15,7 @@ import os
 import sys
 from urllib.parse import quote, urlsplit, urlunsplit
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 def webdav_roundtrip(root: UriPath):
@@ -23,7 +23,7 @@ def webdav_roundtrip(root: UriPath):
     print(f"Connecting to WebDAV: {root}")
 
     # 1. Create a directory
-    test_dir = root / "pathlib_next_test"
+    test_dir = root / "uripath_test"
     print(f"Creating directory: {test_dir}")
     test_dir.mkdir(exist_ok=True)
 

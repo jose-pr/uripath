@@ -1,5 +1,4 @@
-"""List and read files over HTTP against a real directory index. Requires
-the `uri` extra (`pip install pathlib_next[uri]`) and network access --
+"""List and read files over HTTP against a real directory index. Needs network access --
 guarded under `if __name__ == "__main__"` so importing this module is
 always safe, and skipped (prints setup instructions, exit 0, no request) unless
 HTTP_LISTING_URL is set.
@@ -16,7 +15,7 @@ Run directly:
 import os
 import sys
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 def list_and_stat(root: UriPath):
