@@ -48,16 +48,17 @@ PROVIDER_HELPERS = [
     ("pathlib_next.providers", "check_follow"),
 ]
 
-# (module, public name, the underscore name it replaced)
+# (public module, module that defines it, public name, the underscore name it
+# replaced)
 PUBLIC_HELPERS = [
-    ("uripath", "same_authority", "_same_authority"),
-    ("uripath", "DerivedBackend", "_DerivedBackend"),
-    ("uripath.source", "compose_uri", "_compose_uri"),
-    ("uripath.source", "compose_host", "_compose_host"),
-    ("uripath.source", "percent_encode", "_encode"),
-    ("uripath.source", "is_drive", "_is_drive"),
-    ("uripath.source", "SAFE_PATH", "_SAFE_PATH"),
-    ("uripath.source", "ERRORS", "_ERRORS"),
+    ("uripath", "uripath", "same_authority", "_same_authority"),
+    ("uripath", "uripath", "DerivedBackend", "_DerivedBackend"),
+    ("uripath.source", "uripath.source._compose", "compose_uri", "_compose_uri"),
+    ("uripath.source", "uripath.source._compose", "compose_host", "_compose_host"),
+    ("uripath.source", "uripath.source._compose", "percent_encode", "_encode"),
+    ("uripath.source", "uripath.source._parse", "is_drive", "_is_drive"),
+    ("uripath.source", "uripath.source._compose", "SAFE_PATH", "_SAFE_PATH"),
+    ("uripath.source", "uripath.source._parse", "ERRORS", "_ERRORS"),
 ]
 
 
@@ -84,8 +85,14 @@ def core_sources() -> dict[str, str]:
         for p in _files(CORE)
         if not any(s in p.parents for s in skipped) and p.name != "testing.py"
     }
-    for name in ("__init__.py", "source.py", "query.py"):
-        found["uripath/" + name] = (PACKAGE / name).read_text(encoding="utf-8")
+    for path in (
+        PACKAGE / "__init__.py",
+        PACKAGE / "query.py",
+        *_files(PACKAGE / "source"),
+    ):
+        found["uripath/" + path.relative_to(PACKAGE).as_posix()] = path.read_text(
+            encoding="utf-8"
+        )
     return found
 
 
@@ -94,7 +101,7 @@ def scheme_sources() -> dict[str, str]:
     return {
         p.relative_to(PACKAGE).as_posix(): p.read_text(encoding="utf-8")
         for p in _files(PACKAGE)
-        if p.parent != PACKAGE or p.name == "_oldcli.py"
+        if "schemes" in p.relative_to(PACKAGE).parts or p.name == "_oldcli.py"
     }
 
 
@@ -298,19 +305,19 @@ def test_every_name_taken_from_pathlib_next_is_public_but_the_listed_ones():
     assert private == PRIVATE_FROM_PATHLIB_NEXT
 
 
-@pytest.mark.parametrize(("module", "public", "private"), PUBLIC_HELPERS)
+@pytest.mark.parametrize(("module", "owner", "public", "private"), PUBLIC_HELPERS)
 def test_a_public_helper_is_the_object_its_underscore_name_stays_as(
-    module, public, private
+    module, owner, public, private
 ):
     imported = importlib.import_module(module)
-    assert getattr(imported, public) is getattr(imported, private)
+    assert getattr(imported, public) is getattr(importlib.import_module(owner), private)
     if hasattr(imported, "__all__"):
         assert public in imported.__all__
         assert private not in imported.__all__
 
 
-@pytest.mark.parametrize(("module", "public", "private"), PUBLIC_HELPERS)
-def test_a_public_helper_is_documented_in_the_header(module, public, private):
+@pytest.mark.parametrize(("module", "owner", "public", "private"), PUBLIC_HELPERS)
+def test_a_public_helper_is_documented_in_the_header(module, owner, public, private):
     assert public in documented_names()
 
 

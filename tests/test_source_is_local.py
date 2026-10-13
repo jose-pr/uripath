@@ -9,7 +9,7 @@ import pytest
 pytest.importorskip("uritools")
 netimps = pytest.importorskip("netimps")
 
-from uripath import source as source_module
+from uripath.source import _locality as source_module
 from uripath.source import Source
 
 

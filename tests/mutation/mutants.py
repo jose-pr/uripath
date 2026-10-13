@@ -90,7 +90,7 @@ mutant(
 # --- guards of the library, from the first review of the suite -------------
 mutant(
     "source-repr-shows-the-password",
-    "source.py",
+    "source/_source.py",
     'f"userinfo={self._redacted_userinfo()!r}, host={self.host!r}, "',
     'f"userinfo={self.userinfo!r}, host={self.host!r}, "',
     "tests/test_uri_parse.py::test_source_str_and_repr_redact_password",
@@ -98,7 +98,7 @@ mutant(
 )
 mutant(
     "source-str-shows-the-password",
-    "source.py",
+    "source/_source.py",
     "        return self.as_str(sanitize=True)\n",
     "        return self.as_str(sanitize=False)\n",
     "tests/test_uri_parse.py::test_source_str_and_repr_redact_password",

@@ -15,9 +15,9 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from uripath import URI
-from uripath.source import (
-    Source,
-    _compose_uri,
+from uripath.source import Source
+from uripath.source._compose import _compose_uri
+from uripath.source._parse import (
     _decode_host,
     _remove_dot_segments,
     _split_authority,

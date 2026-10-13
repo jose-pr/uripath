@@ -21,16 +21,18 @@ from pathlib_next import providers as _providers
 from pathlib_next.providers import name_stem as _name_stem
 from pathlib_next.providers import name_suffix as _name_suffix
 from .query import Query
-from .source import (
+from .source import Source
+from .source._compose import _compose_uri, _encode
+from .source._parse import (
     _ERRORS,
-    Source,
-    _compose_uri,
-    _encode,
     _is_drive,
-    _parse_source,
     _remove_dot_segments,
+)
+from .source._source import (
+    _parse_source,
+    _same_authority,
     _source_parts,
-    _split_userinfo_text,
+    same_authority,
 )
 
 URILike: TypeAlias = "str | URI | os.PathLike"
@@ -41,33 +43,6 @@ _NO_QUERY = Query("")
 #: An RFC 3986 scheme followed by its colon, used to tell a URI destination
 #: from a path one (see `_looks_like_uri`).
 _URI_SCHEME_RE = _re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*:")
-
-
-def _port_key(port) -> "int | str | None":
-    if port in (None, ""):
-        return None
-    text = str(port)
-    return int(text) if text.isascii() and text.isdigit() else port
-
-
-def _authority_key(source: Source) -> tuple:
-    scheme, userinfo, host, port = source
-    return (
-        scheme.lower() if scheme else None,
-        _split_userinfo_text(userinfo) if userinfo else None,
-        str(host).lower() if host else None,
-        _port_key(port),
-    )
-
-
-def same_authority(a: Source, b: Source) -> bool:
-    """Whether two sources name the same endpoint (scheme, userinfo, host,
-    port), treating `""` and `None` alike. The test for whether a backend,
-    connection or rename may cross from one path to another."""
-    return _authority_key(a) == _authority_key(b)
-
-
-_same_authority = same_authority
 
 
 #: Backends a path built for itself through `_initbackend()`, by `id()` (the `is`
