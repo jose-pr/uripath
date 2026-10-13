@@ -135,8 +135,15 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   written `[fe80::1%25eth0]` (a bare `%` is read too). A name that holds a
   lone surrogate (a Windows file name can) renders as its UTF-8 bytes, so
   `str()`, `hash()` and `==` work on it.
-- `==`/`hash` use the URI text; equal to another `URI` or a URI string,
-  never to a non-URI `Pathname`.
+- `==` compares the URI text. The other operand is a `URI` or a `str`, which is
+  parsed first and so compared by what it names, not by its spelling
+  (`URI("http://h/a b") == "http://h/a%20b"`); text that is not a URI is not
+  equal, and nothing else is (a non-URI `Pathname` included). `hash` is that of
+  the URI text, so a `str` that is not already in canonical form is equal to
+  the `URI` but hashes differently: key a `set` or `dict` by `URI`.
+- An authority is written back as it was read. An empty one (`file:///x`, host
+  `""`) and none (`file:/x`, host `None`) are different URIs with different
+  text, and name the same endpoint for backend sharing.
 - `__fspath__()` — the path for a `file:` URI on this machine (a named host
   on Windows is a UNC path) or for a scheme with `_host_filesystem_path =
   True` (a scheme whose path is meaningful on **its** host); otherwise
@@ -284,8 +291,9 @@ class Source(NamedTuple):
 
 `NamedTuple`,
 falsy when all fields are empty; indexes by position, slice or field name.
-`str(source)` is the canonical text: the composer `URI.as_uri()` uses (`file:`
-for an empty host; an invalid scheme or port is a `ValueError`), without the
+`str(source)` is the canonical text: the composer `URI.as_uri()` uses (`file://`
+for an empty host and `file:` for none; an invalid scheme or port is a
+`ValueError`), without the
 password; `repr()` redacts it too, and both drop the whole userinfo for
 `github:`/`gitlab:`/`git:` (the fields keep it). `reveal()` is the text with
 the password, as `URI.as_uri(sanitize=False)` is for a URI; it is named as an
@@ -364,11 +372,15 @@ class FileURIPath(URIPath):
     filepath
 ```
 
-`file:///abs`, `file:rel`,
-`file://localhost/C:/x`. `filepath -> LocalPath`; all I/O delegates to it
+`file:///abs`, `file:/abs`, `file:rel`,
+`file://localhost/C:/x`. A path built from a local path object writes the
+empty authority, as `pathlib.Path.as_uri()` does (`file:///C:/Windows/win.ini`,
+`file:///etc/passwd`; the characters `!$&'()*+,;=:@` stay literal in the path
+where `pathlib` escapes them, and both spellings read back as the same file);
+a relative one has none (`file:rel/x`). `filepath -> LocalPath`; all I/O delegates to it
 (listing reuses `LocalPath`'s scandir). `rename()` accepts local targets
 only and returns a `FileURIPath`. No `symlink_to()`/`readlink()`. On Windows a
-drive is the anchor: `parents` ends at the drive root (`file:/C:/`) and
+drive is the anchor: `parents` ends at the drive root (`file:///C:/`) and
 equals the repeated `parent`, dot segments never climb above it, and a
 `str` join key or `copy()`/`move()`/`rename()` destination reads `\` as a
 separator (`C:\Temp\x` is an absolute path). A path with a named host is a

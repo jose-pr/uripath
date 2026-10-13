@@ -333,13 +333,16 @@ def _kind(error: Exception) -> str:
 
 
 def _oracle_authority(uri: str, parsed):
-    """`(host, port)` of uritools, with the three documented differences."""
+    """`(host, port)` of uritools, with the documented differences, and a host of
+    `None` for no authority where uritools has none for both."""
     authority = parsed.authority
     hostinfo = "" if authority is None else authority.rpartition("@")[2]
     _, colon, tail = hostinfo.rpartition(":")
     if colon and tail.lstrip("0123456789") and not hostinfo.startswith("["):
         raise ValueError("invalid port: it must be digits")
     host, port = parsed.gethost(errors=_ERRORS) or "", parsed.getport()
+    if authority is None:
+        host = None
     if hostinfo and ":" not in hostinfo and hostinfo.isascii() and hostinfo.isdigit():
         host = hostinfo
     if port is not None and port > 65535:
@@ -372,7 +375,7 @@ def _fast_parse(uri: str):
     userinfo, host, port = _split_authority(authority)
     if userinfo is not None:
         userinfo = uritools.uridecode(userinfo, errors=_ERRORS)
-    host = _decode_host(host) if host is not None else ""
+    host = _decode_host(host) if host is not None else None
     if scheme != "data":
         path = _remove_dot_segments(path)
     path = uritools.uridecode(path, errors=_ERRORS)
@@ -480,17 +483,21 @@ def _oracle_format_parsed_parts(source, path, query, fragment, sanitize=True):
     parts = {"path": path}
     if fragment:
         parts["fragment"] = fragment
-    if source:
-        source_ = source._asdict()
-        if sanitize:
-            source_["userinfo"] = (source_["userinfo"] or "").split(":", maxsplit=1)[0]
-        parts.update(source_)
+    source_ = source._asdict()
+    if sanitize:
+        source_["userinfo"] = (source_["userinfo"] or "").split(":", maxsplit=1)[0]
+    parts.update(source_)
     # Documented differences from uricompose: a port of 0 is kept (it is a
     # valid port and part of the endpoint's identity), and a port above
     # 65535 is a ValueError.
     if (parts.get("port") or 0) > 65535:
         raise ValueError("port out of range 0-65535")
-    kept = {k: v for k, v in parts.items() if v or (k == "port" and v == 0)}
+    # An empty host is an empty authority, which uricompose writes as "//".
+    kept = {
+        k: v
+        for k, v in parts.items()
+        if v or (k == "port" and v == 0) or (k == "host" and v == "")
+    }
     return _with_raw_query(uritools.uricompose(**kept), query or None)
 
 

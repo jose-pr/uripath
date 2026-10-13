@@ -45,7 +45,8 @@ def _source_parts(source: "Source", sanitize: bool) -> tuple:
     userinfo = source.userinfo or None
     if sanitize and userinfo:
         userinfo = _redact_userinfo(userinfo, scheme)
-    host = source.host if source.host else None
+    # An empty host is an empty authority (`file:///x`), which is not no host.
+    host = source.host if source.host is not None else None
     port = source.port if source.port not in (None, "") else None
     return scheme, userinfo, host, port
 
@@ -57,13 +58,15 @@ def _parse_source(scheme: "str | None", authority: "str | None") -> "Source":
     userinfo, host, port = _split_authority(authority)
     if userinfo is not None:
         userinfo = _decode_userinfo(userinfo)
-    host = _decode_host(host) if host is not None else ""
+    host = _decode_host(host) if host is not None else None
     return Source(scheme, userinfo, host, port)
 
 
 class Source(_ty.NamedTuple):
     """A URI's scheme/userinfo/host/port -- everything before the path.
-    Falsy (`bool(source) is False`) when every field is empty/None."""
+    Falsy (`bool(source) is False`) when every field is empty/None. A host of
+    `""` is an authority with no host (`file:///x`) and `None` is no authority
+    (`file:/x`): they render differently and name the same endpoint."""
 
     scheme: str | None
     userinfo: str | None
@@ -86,7 +89,7 @@ class Source(_ty.NamedTuple):
 
     def __str__(self) -> str:
         """The canonical text of this source (`scheme://userinfo@host:port`;
-        `file:` for an empty host), without the password: `str()` is what
+        `file://` for an empty host, `file:` for none), without the password: `str()` is what
         logging and printing reach for, and a `Source` on a failing call stack
         must not leak a credential. It is the composer `URI.as_uri()` uses, so
         a non-ASCII host renders as IDNA, and a scheme or port that is not

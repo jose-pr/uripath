@@ -218,7 +218,7 @@ def test_with_path_gives_a_relative_path_under_an_authority_its_slash():
     assert uri.with_segments("y", "z").as_uri() == "http://h/y/z"
     assert uri.with_path("").as_uri() == "http://h"
     assert URI("a/b").with_path("c").as_uri() == "c"
-    assert URI("file:///x").with_path("y").as_uri() == "file:y"
+    assert URI("file:///x").with_path("y").as_uri() == "file:///y"
     assert URIPath("sftp://h/x").with_path("y").as_uri() == "sftp://h/y"
 
 

@@ -184,7 +184,7 @@ def test_a_destination_with_dots_resolves_like_a_join():
 @pytest.mark.parametrize("cls", [URI, URIPath])
 def test_dot_segments_never_climb_above_a_windows_drive(cls):
     assert cls("file:///D:/data/../../x").path.removeprefix("/") == "D:/x"
-    assert cls("file:///C:/d/../../../x").as_uri() == "file:/C:/x"
+    assert cls("file:///C:/d/../../../x").as_uri() == "file:///C:/x"
     assert cls("file:///C:/d/..").path.removeprefix("/") == "C:/"
     assert cls("file:///C:/d/%2e%2e/%2e%2e/x").path.removeprefix("/") == "C:/x"
 
@@ -195,7 +195,7 @@ def test_a_join_never_climbs_above_a_windows_drive():
     assert (base / "../../../x").path == "C:/x"
     assert (base / "..").path == "C:/"
     assert (base / "../..").path == "C:/"
-    assert (base / "../../..").as_uri() == "file:/C:/"
+    assert (base / "../../..").as_uri() == "file:///C:/"
     assert URIPath("file:///C:/d", "../../../x").path == "C:/x"
     assert (base / "D:/e/../../f").path == "D:/f"
 

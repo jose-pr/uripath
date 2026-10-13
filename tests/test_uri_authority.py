@@ -261,8 +261,8 @@ def test_a_child_named_with_a_lone_surrogate_can_be_printed_hashed_and_sorted():
     base = URIPath("file:///tmp/dir")
     child = base / "a\ud800b.txt"
     other = base / "z"
-    assert str(child) == "file:/tmp/dir/a%ED%A0%80b.txt"
-    assert repr(child) == "FileURIPath('file:/tmp/dir/a%ED%A0%80b.txt')"
+    assert str(child) == "file:///tmp/dir/a%ED%A0%80b.txt"
+    assert repr(child) == "FileURIPath('file:///tmp/dir/a%ED%A0%80b.txt')"
     assert hash(child) == hash(child)
     assert child == child
     assert {child, other} == {other, child}

@@ -724,6 +724,29 @@ mutant(
     "a token in the query stops following the names joined onto it",
 )
 
+# --- file: text and == with text -----------------------------------------------
+
+_FILE_TEXT = "tests/test_file_uri_text.py"
+mutant(
+    "empty-authority-is-dropped",
+    "source/_source.py",
+    "    host = source.host if source.host is not None else None\n",
+    "    host = source.host if source.host else None\n",
+    (
+        f"{_FILE_TEXT}::test_a_file_uri_is_written_back_as_it_was_read",
+        f"{_FILE_TEXT}::test_a_file_path_is_written_as_pathlib_writes_it",
+    ),
+    "file:///x is written file:/x and no longer equals the text pathlib gives",
+)
+mutant(
+    "uri-equals-text-as-written",
+    "_uri.py",
+    "                uri = URI(other).as_uri()\n",
+    "                uri = other\n",
+    f"{_FILE_TEXT}::test_a_uri_equals_the_text_that_names_it",
+    "a URI is false against the canonical text of its own file",
+)
+
 # --- constructor keywords -----------------------------------------------------
 
 mutant(

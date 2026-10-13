@@ -66,7 +66,7 @@ class _RelativeLocalPath(str):
     __slots__ = ()
 
 
-_FILE_SOURCE = Source("file", None, "", None)
+_FILE_SOURCE = Source("file", None, None, None)
 
 
 def _remove_dots(path: str, scheme: "str | None") -> str:
@@ -125,6 +125,16 @@ def _as_uri(value) -> "URI":
     converted = URI.__new__(URI)
     converted.__init__(value)
     return converted
+
+
+def _authority_of(source: Source) -> bool:
+    """Whether `source` has an authority: a host (an empty one too, as in
+    `file:///x`), a userinfo or a port."""
+    return (
+        source.host is not None
+        or bool(source.userinfo)
+        or source.port not in (None, "")
+    )
 
 
 def _has_dot_segment(path: str) -> bool:
@@ -279,7 +289,8 @@ class URI(Pathname):
         first absolute segment, and then RFC 3986 5.2.4 removes the dot
         segments of the joined path (`URI("http://h/d/", "../x")` is
         `http://h/x`). `source` is taken from the last (rightmost) segment
-        that has one; `query`/`fragment` likewise come from the last
+        that has one, unless it names the endpoint an earlier segment gave
+        (that spelling is kept); `query`/`fragment` likewise come from the last
         segment that actually sets one (a later segment with no
         query/fragment does not blank out an earlier one).
         """
@@ -300,7 +311,9 @@ class URI(Pathname):
                     _uri.parts if isinstance(_uri, URI) else self._parse_uri(_uri)
                 )
                 local = local or isinstance(_uri, _RelativeLocalPath)
-                if bool(src):
+                if bool(src) and not (source and _same_authority(src, source)):
+                    # A later segment that names the same endpoint keeps the
+                    # spelling of the first (`file:///d` / `file:rel`).
                     source = src
                 if q:
                     query = q
@@ -332,11 +345,7 @@ class URI(Pathname):
                 # still a local file.
                 source = _FILE_SOURCE
 
-        if (
-            (source.host or source.userinfo or source.port not in (None, ""))
-            and _path
-            and not _path.startswith("/")
-        ):
+        if _authority_of(source) and _path and not _path.startswith("/"):
             _path = "/" + _path
 
         if len(uris) > 1 and _has_dot_segment(_path) and source.scheme != "data":
@@ -804,8 +813,7 @@ class URI(Pathname):
         return self.with_path("/".join(segments[:-1]))
 
     def _has_authority(self) -> bool:
-        source = self.source
-        return bool(source.host or source.userinfo or source.port not in (None, ""))
+        return _authority_of(self.source)
 
     def _match_parts(self) -> tuple[bool, list[str]]:
         # An authority with an empty path ("http://h") is that authority's
@@ -886,13 +894,17 @@ class URI(Pathname):
         return self.source.is_local()
 
     def __eq__(self, other: URI | str):
-        # Only a URI or a URI string, which hash as their URI text like __hash__;
-        # another Pathname (MemPath, LocalPath) hashes by its own rule, and a
-        # relative LocalPath's as_uri() raises.
-        if isinstance(other, URI):
+        # Only a URI or a URI string, read as one so that the text is compared by
+        # what it names and not by its spelling; another Pathname (MemPath,
+        # LocalPath) hashes by its own rule, and a relative LocalPath's as_uri()
+        # raises. Text that is not a URI names nothing, so it is not equal.
+        if isinstance(other, str):
+            try:
+                uri = URI(other).as_uri()
+            except ValueError:
+                return False
+        elif isinstance(other, URI):
             uri = other.as_uri()
-        elif isinstance(other, str):
-            uri = other
         else:
             return NotImplemented
         return self.as_uri() == uri

@@ -119,6 +119,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   there.
 - `URI.with_query(None)` removes the query. Was: a `TypeError` ("'NoneType' object
   is not iterable"). `with_fragment("")` removes the fragment as before.
+- `file:` URIs keep an empty authority, and `==` reads a `str` operand as a
+  URI. Was: `Uri("file:///etc/passwd")` was written `file:/etc/passwd` and
+  `UriPath(LocalPath("C:/Windows/win.ini")).as_uri()` was
+  `file:/C:/Windows/win.ini`, where `pathlib.Path.as_uri()` gives
+  `file:///C:/Windows/win.ini`; `Uri("file:///etc/passwd") ==
+  "file:///etc/passwd"` was false, and so were `Uri("HTTP://H/x") ==
+  "HTTP://H/x"` and `Uri("http://h/a b") == "http://h/a b"`, because the text
+  was compared as written. Is: an empty authority (`file:///x`,
+  `Source.host == ""`) and none (`file:/x`, `Source.host is None`) are
+  different URIs, each written as it was read; a path built from a local path
+  object is written as `pathlib.Path.as_uri()` writes it (the characters
+  `!$&'()*+,;=:@` stay literal in the path, where `pathlib` escapes them); and
+  `==` parses a `str` operand before comparing it, so a URI equals any text
+  that names it, and text that is not a URI is not equal to anything. What to
+  do: compare URIs with `==` instead of comparing their text, and expect
+  `file:///` where code tested `file:/`. A `Source` built by hand with host
+  `""` now means an empty authority (`file://`): use `None` for none.
 - A constructor raises `TypeError` for a keyword argument it does not name.
   Was: `URI("x", anything=1)` and `URIPath("https://h/x", backnd=backend)`
   were accepted and the keyword ignored, so a misspelt `backend=` meant "use

@@ -71,9 +71,9 @@ def test_parents_equal_the_repeated_parent(shape):
 def test_parents_of_a_posix_path_end_at_the_root():
     path = URIPath("file:///usr/lib/x")
     assert [p.as_uri() for p in path.parents] == [
-        "file:/usr/lib",
-        "file:/usr",
-        "file:/",
+        "file:///usr/lib",
+        "file:///usr",
+        "file:///",
     ]
 
 
@@ -81,7 +81,11 @@ def test_parents_of_a_posix_path_end_at_the_root():
 def test_parents_of_a_drive_path_end_at_the_drive_root():
     path = URIPath(LocalPath("C:/Windows/System32/drivers"))
     parents = [p.as_uri() for p in path.parents]
-    assert parents == ["file:/C:/Windows/System32", "file:/C:/Windows", "file:/C:/"]
+    assert parents == [
+        "file:///C:/Windows/System32",
+        "file:///C:/Windows",
+        "file:///C:/",
+    ]
     assert parents == [
         URIPath(p).as_uri() for p in LocalPath("C:/Windows/System32/drivers").parents
     ]
@@ -273,15 +277,15 @@ def test_off_windows_the_root_of_a_host_ends_the_chain():
 def test_a_file_uri_argument_with_a_drive_restarts_the_join():
     base = URIPath("file:///C:/d/")
     other = URIPath("file:///D:/f")
-    assert (base / other).as_uri() == "file:/D:/f"
-    assert base.joinpath(other, "x").as_uri() == "file:/D:/f/x"
-    assert URIPath(base, other).as_uri() == "file:/D:/f"
-    assert (base / URIPath("file:///D:/f/g/")).as_uri() == "file:/D:/f/g/"
+    assert (base / other).as_uri() == "file:///D:/f"
+    assert base.joinpath(other, "x").as_uri() == "file:///D:/f/x"
+    assert URIPath(base, other).as_uri() == "file:///D:/f"
+    assert (base / URIPath("file:///D:/f/g/")).as_uri() == "file:///D:/f/g/"
     # The same answer whichever class carries the argument.
-    assert (base / URI("file:///D:/f")).as_uri() == "file:/D:/f"
-    assert (base / "D:/f").as_uri() == "file:/D:/f"
-    assert (base / "rel").as_uri() == "file:/C:/d/rel"
-    assert (base / URIPath("file:rel")).as_uri() == "file:/C:/d/rel"
+    assert (base / URI("file:///D:/f")).as_uri() == "file:///D:/f"
+    assert (base / "D:/f").as_uri() == "file:///D:/f"
+    assert (base / "rel").as_uri() == "file:///C:/d/rel"
+    assert (base / URIPath("file:rel")).as_uri() == "file:///C:/d/rel"
 
 
 @posix_only

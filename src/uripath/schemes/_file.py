@@ -79,6 +79,15 @@ class FileURIPath(DelegatingPath):
                 return segments[:2]
         return super()._anchor_segments()
 
+    def with_segments(self, *segments):
+        # A Windows path string separates its names with backslashes.
+        if _os.name == "nt":
+            segments = tuple(
+                item.replace("\\", "/") if isinstance(item, str) else item
+                for item in segments
+            )
+        return super().with_segments(*segments)
+
     def _join_decoded(self, key: str):
         # A Windows path string separates its names with backslashes;
         # elsewhere a backslash is an ordinary character of a file name.
