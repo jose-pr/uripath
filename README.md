@@ -62,7 +62,7 @@ Requires `pathlib-next` and `netimps`, which pip installs with it.
 
 | Install | Adds |
 | --- | --- |
-| `pip install uripath` | every scheme in the first table above |
+| `pip install uripath` | every scheme whose Needs is nothing in the table above |
 | `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
 | `pip install "uripath-sftp[paramiko]"` or `[asyncssh]` | `sftp:` |
 | `pip install "uripath-objstore[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
