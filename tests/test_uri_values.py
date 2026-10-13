@@ -10,7 +10,6 @@ import threading
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from uripath import URI, URIPath
 from uripath.query import Query

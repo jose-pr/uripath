@@ -13,7 +13,6 @@ import inspect
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from pathlib_next import Path
 from uripath.schemes import _dav as dav

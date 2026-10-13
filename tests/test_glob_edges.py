@@ -327,8 +327,6 @@ _LINKED_IMPLS = {
 
 @pytest.fixture(params=sorted(_LINKED_IMPLS))
 def linked_impl(request, linked):
-    if request.param == "FileURIPath":
-        pytest.importorskip("uritools")
     return _LINKED_IMPLS[request.param](linked)
 
 

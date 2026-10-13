@@ -3,9 +3,6 @@ children a meaning of its own, in which case it is asked for every name."""
 
 from __future__ import annotations
 
-import pytest
-
-pytest.importorskip("uritools")
 
 from uripath import URIPath
 

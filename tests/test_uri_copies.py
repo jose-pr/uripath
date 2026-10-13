@@ -12,7 +12,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from http_fakes import FakeTransport
 from uripath import URI, URIPath

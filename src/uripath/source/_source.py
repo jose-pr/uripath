@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import typing as _ty
 
-import uritools as _uritools
-
+from .. import _rfc3986
 from ..exceptions import URISyntaxError
 
 from ._compose import _compose_uri
@@ -126,7 +125,7 @@ class Source(_ty.NamedTuple):
         for what is not a `str`."""
         if not isinstance(text, str):
             raise TypeError(f"source text must be a str, not {type(text).__name__!r}")
-        uri = _uritools.urisplit(text)
+        uri = _rfc3986.split(text)
         if strict:
             extra = [
                 name for name in ("path", "query", "fragment") if getattr(uri, name)

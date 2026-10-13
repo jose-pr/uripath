@@ -13,7 +13,7 @@ import pathlib
 import subprocess
 
 import pytest
-from capabilities import can_make_junctions, requires_junctions, requires_uri_extra
+from capabilities import can_make_junctions, requires_junctions
 
 import pathlib_next
 from pathlib_next.mempath import MemPath
@@ -25,7 +25,6 @@ LocalPath = pathlib_next.LocalPath
 # --- copy -----------------------------------------------------------------
 
 
-@requires_uri_extra
 def test_copy_http_404_source_leaves_local_target_intact(http_server, tmp_path):
     from uripath import URIPath
 
@@ -88,7 +87,6 @@ def _as_another_class(kind, path):
         return SubLocal(path)
     if kind == "stdlib":
         return pathlib.Path(path)
-    pytest.importorskip("uritools")
     from uripath import URIPath
 
     return URIPath(path)
@@ -152,7 +150,6 @@ def _victim(tmp_path):
 
 
 def test_file_uri_rm_recursive_does_not_descend_into_junction(tmp_path):
-    pytest.importorskip("uritools")
     from uripath import URIPath
 
     victim = _victim(tmp_path)
@@ -165,7 +162,6 @@ def test_file_uri_rm_recursive_does_not_descend_into_junction(tmp_path):
 
 
 def test_file_uri_rm_recursive_does_not_follow_directory_symlink(tmp_path):
-    pytest.importorskip("uritools")
     from uripath import URIPath
 
     outside = tmp_path / "outside"
@@ -186,7 +182,6 @@ def test_file_uri_rm_recursive_does_not_follow_directory_symlink(tmp_path):
 
 
 def test_file_uri_scandir_reports_symlink_not_directory(tmp_path):
-    pytest.importorskip("uritools")
     from uripath import URIPath
 
     (tmp_path / "real").mkdir()

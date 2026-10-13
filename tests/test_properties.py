@@ -10,13 +10,14 @@ import ipaddress
 import pathlib
 import sys
 
+import pytest
 import uritools
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from uripath import URI
-from uripath.source import Source, fold_host
-from uripath.source._compose import _compose_uri
+from uripath import URI, Query, _rfc3986
+from uripath.source import ERRORS, Source, fold_host, percent_encode
+from uripath.source._compose import _compose_uri, _lenient_utf8
 from uripath.source._parse import (
     _decode_host,
     _remove_dot_segments,
@@ -248,13 +249,12 @@ def test_generic_parents_and_parent_match_pure_posix_path(rooted, segs):
 _mem_piece = st.sampled_from(["", ".", "a", "b", "cd"])
 
 
-# --- uritools oracle: one-pass parse/compose fast paths ---
-# `URI._parse_uri`/`URI._format_parsed_parts` bypass uritools' get*()
-# accessors and uricompose() for speed (one-pass authority/path extraction,
-# direct string assembly) but must remain byte-for-byte equivalent to them
-# -- uritools stays installed as the oracle here specifically so that
-# equivalence stays enforced, not just true at the moment the bypass was
-# written. A mismatch means the fast path is wrong, not these tests.
+# --- uritools oracle: the standard-library split, decoding and encoding ---
+# `URI._parse_uri`/`URI._format_parsed_parts` split, decode and compose with
+# `uripath._rfc3986` and string assembly, and must stay equal to what the
+# `uritools` accessors and `uricompose()` return. uritools is a development
+# dependency for this purpose only: it is the oracle, and a mismatch means the
+# code is wrong, not these tests.
 
 _scheme_st = st.one_of(
     st.none(), st.from_regex(r"[a-zA-Z][a-zA-Z0-9+.-]{0,8}", fullmatch=True)
@@ -370,18 +370,16 @@ def _oracle_parse(uri: str):
 
 
 def _fast_parse(uri: str):
-    scheme, authority, path, query, fragment = uritools.urisplit(uri)
+    scheme, authority, path, query, fragment = _rfc3986.split(uri)
     scheme = scheme.lower() if scheme is not None else None
     userinfo, host, port = _split_authority(authority)
     if userinfo is not None:
-        userinfo = uritools.uridecode(userinfo, errors=_ERRORS)
+        userinfo = _rfc3986.decode(userinfo, _ERRORS)
     host = _decode_host(host) if host is not None else None
     if scheme != "data":
         path = _remove_dot_segments(path)
-    path = uritools.uridecode(path, errors=_ERRORS)
-    fragment = (
-        uritools.uridecode(fragment, errors=_ERRORS) if fragment is not None else None
-    )
+    path = _rfc3986.decode(path, _ERRORS)
+    fragment = _rfc3986.decode(fragment, _ERRORS) if fragment is not None else None
     return scheme, userinfo, host, port, path, (query or ""), (fragment or "")
 
 
@@ -703,3 +701,212 @@ def test_a_password_in_the_userinfo_is_not_in_the_text_a_log_would_show(
     assert password not in repr(source)
     assert password not in str(source)
     assert password not in str(URI(source.reveal() + "/x"))
+
+
+# --- uritools oracle: the functions of uripath._rfc3986 ---------------------
+#
+# Each property compares an outcome: the value, or the name of the exception
+# that was raised. The differences from uritools that are deliberate are the
+# tests at the end of this section, each with its reason.
+
+#: Lone surrogates of the three kinds the code meets: the escaped bytes of
+#: `surrogateescape` (DC80-DCFF), the ones it cannot carry (DC00-DC7F) and a
+#: high surrogate, which a Windows file name may hold.
+_SURROGATES = ["\ud800", "\udbff", "\udc00", "\udc7f", "\udc80", "\udcff"]
+
+_text_pieces = st.one_of(
+    st.sampled_from(list("ab%:/?#@[]=&+ .~-_AF09\n")),
+    st.sampled_from(
+        ["%41", "%e9", "%C3%A9", "%zz", "%4", "%", "%%41", "\u00e9", "\u20ac"]
+    ),
+    st.sampled_from(_SURROGATES),
+    st.characters(max_codepoint=0x2FFF, exclude_categories=("Cs",)),
+)
+_any_text = st.lists(_text_pieces, max_size=12).map("".join)
+_error_handlers = st.sampled_from(["strict", "surrogateescape", "replace", "ignore"])
+_encodings = st.sampled_from(["utf-8", "latin-1", "ascii", "utf-16"])
+
+
+def _outcome(call):
+    try:
+        return ("value", call())
+    except Exception as error:  # noqa: BLE001 - the type is what is compared
+        return ("error", type(error).__name__)
+
+
+@given(text=_any_text)
+@settings(max_examples=1000)
+def test_split_matches_urisplit(text):
+    assert tuple(_rfc3986.split(text)) == tuple(uritools.urisplit(text))
+
+
+@given(uri=_uri_string())
+@settings(max_examples=500)
+def test_split_matches_urisplit_on_generated_uris(uri):
+    ours, theirs = _rfc3986.split(uri), uritools.urisplit(uri)
+    assert tuple(ours) == tuple(theirs)
+    assert (ours.scheme, ours.authority, ours.path, ours.query, ours.fragment) == (
+        theirs.scheme,
+        theirs.authority,
+        theirs.path,
+        theirs.query,
+        theirs.fragment,
+    )
+
+
+@given(text=_any_text, errors=_error_handlers, encoding=_encodings)
+@settings(max_examples=1500)
+def test_decode_matches_uridecode(text, errors, encoding):
+    assert _outcome(lambda: _rfc3986.decode(text, errors, encoding)) == _outcome(
+        lambda: uritools.uridecode(text, encoding, errors)
+    )
+
+
+@given(text=_any_text)
+@settings(max_examples=500)
+def test_decode_defaults_match_uridecode(text):
+    assert _outcome(lambda: _rfc3986.decode(text)) == _outcome(
+        lambda: uritools.uridecode(text)
+    )
+
+
+_safe_sets = st.one_of(
+    st.just(""),
+    st.just("/"),
+    st.just("!$&'()*+,;=:@/"),
+    st.just("!$&'()*+,;=:@/?"),
+    st.text(alphabet=st.characters(min_codepoint=32, max_codepoint=126), max_size=8),
+)
+_encode_data = st.one_of(
+    _any_text,
+    st.binary(max_size=12),
+    st.lists(_text_pieces, max_size=6).map(
+        lambda p: "".join(p).encode("utf-8", "surrogatepass")
+    ),
+)
+
+
+@given(data=_encode_data, safe=_safe_sets, errors=_error_handlers, encoding=_encodings)
+@settings(max_examples=1500)
+def test_encode_matches_uriencode(data, safe, errors, encoding):
+    def ours():
+        return _rfc3986.encode(data, safe, encoding=encoding, errors=errors)
+
+    def theirs():
+        return uritools.uriencode(data, safe, encoding, errors).decode()
+
+    assert _outcome(ours) == _outcome(theirs)
+
+
+@given(data=_encode_data)
+@settings(max_examples=300)
+def test_encode_defaults_match_uriencode(data):
+    assert _outcome(lambda: _rfc3986.encode(data)) == _outcome(
+        lambda: uritools.uriencode(data).decode()
+    )
+
+
+@given(text=_any_text, safe=_safe_sets)
+@settings(max_examples=1000)
+def test_percent_encode_matches_uriencode_with_the_fallback_for_lone_surrogates(
+    text, safe
+):
+    def oracle():
+        try:
+            return uritools.uriencode(text, safe, errors=ERRORS).decode()
+        except UnicodeEncodeError:
+            return uritools.uriencode(_lenient_utf8(text), safe).decode()
+
+    assert _outcome(lambda: percent_encode(text, safe)) == _outcome(oracle)
+
+
+def test_encode_ignores_a_safe_character_that_is_not_ascii_where_uriencode_raises():
+    # `urllib.parse.quote_from_bytes` drops a non-ASCII character of `safe`;
+    # uritools encodes `safe` as ASCII and raises. Every safe set in this
+    # package is a constant of ASCII characters.
+    assert _rfc3986.encode("a b", "\u00e9") == "a%20b"
+    with pytest.raises(UnicodeEncodeError):
+        uritools.uriencode("a b", "\u00e9")
+
+
+def test_decode_takes_text_where_uridecode_also_takes_bytes():
+    # Every caller decodes the `str` component of a URI. `uridecode` of bytes
+    # gives bytes (or text for an encoding); nothing here needs that.
+    with pytest.raises(TypeError):
+        _rfc3986.decode(b"a%41")
+
+
+_term_pieces = st.sampled_from(list("ab%+ ;&=#?/\u00e9") + ["%41", "%26", "%3D", "%e9"])
+_term_text = st.lists(_term_pieces, max_size=6).map("".join)
+_query_pair_values = st.one_of(
+    st.none(), _term_text, st.binary(max_size=4), st.integers(0, 99)
+)
+_query_pairs_st = st.lists(st.tuples(_term_text, _query_pair_values), max_size=5)
+
+
+def _oracle_querylist(items, sep, encoding):
+    """What `Query(pairs)` was made of when it called uritools: every name and
+    value escapes the separator, "=" and "+" besides what a query escapes."""
+    safe = "!$&'()*+,;=:@/?".replace(sep, "").replace("=", "").replace("+", "")
+    terms = []
+    for key, value in items:
+        name = uritools.uriencode(key, safe, encoding)
+        if value is None:
+            terms.append(name)
+        elif isinstance(value, (bytes, str)):
+            terms.append(name + b"=" + uritools.uriencode(value, safe, encoding))
+        else:
+            terms.append(name + b"=" + uritools.uriencode(str(value), safe, encoding))
+    return sep.encode("ascii").join(terms).decode()
+
+
+@given(
+    pairs=_query_pairs_st,
+    separator=st.sampled_from(["&", ";", "|"]),
+    encoding=st.sampled_from(["utf-8", "latin-1"]),
+)
+@settings(max_examples=600)
+def test_a_query_built_from_pairs_is_the_text_uritools_encodes(
+    pairs, separator, encoding
+):
+    assert _outcome(
+        lambda: str(Query(pairs, separator=separator, encoding=encoding))
+    ) == _outcome(lambda: _oracle_querylist(pairs, separator, encoding))
+
+
+@given(
+    pairs=st.dictionaries(
+        _term_text, st.one_of(_term_text, st.lists(_term_text, max_size=3)), max_size=4
+    )
+)
+@settings(max_examples=300)
+def test_a_query_built_from_a_mapping_is_the_text_uritools_encodes(pairs):
+    items = []
+    for key, value in pairs.items():
+        if isinstance(value, list):
+            items.extend((key, v) for v in value)
+        else:
+            items.append((key, value))
+    assert str(Query(pairs)) == _oracle_querylist(items, "&", "utf-8")
+
+
+@given(text=_any_text, encoding=st.sampled_from(["utf-8", "latin-1"]))
+@settings(max_examples=800)
+def test_the_pairs_of_query_text_are_the_terms_uritools_decodes(text, encoding):
+    def oracle():
+        found = []
+        for term in text.split("&"):
+            if not term:
+                continue
+            name, equals, value = term.partition("=")
+            found.append(
+                (
+                    uritools.uridecode(name, encoding, ERRORS),
+                    uritools.uridecode(value, encoding, ERRORS) if equals else None,
+                )
+            )
+        return found
+
+    assert _outcome(
+        lambda: Query.parse(text, encoding=encoding).to_pairs()
+    ) == _outcome(oracle)

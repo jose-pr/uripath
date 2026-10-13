@@ -12,7 +12,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from uripath import URIPath
 

@@ -3,8 +3,7 @@ from __future__ import annotations
 import ipaddress as _ip
 import typing as _ty
 
-import uritools as _uritools
-
+from .. import _rfc3986
 from ..exceptions import URISyntaxError
 
 _IPAddress = _ty.Union[_ip.IPv4Address, _ip.IPv6Address]
@@ -54,8 +53,8 @@ def _decode_userinfo(raw: str) -> _Userinfo:
     decode each half, so an escaped `%3A` stays part of the name."""
     user, colon, password = raw.partition(":")
     return _Userinfo(
-        _uritools.uridecode(user, errors=_ERRORS),
-        _uritools.uridecode(password, errors=_ERRORS) if colon else None,
+        _rfc3986.decode(user, _ERRORS),
+        _rfc3986.decode(password, _ERRORS) if colon else None,
     )
 
 
@@ -76,15 +75,13 @@ def _split_authority(
 ) -> "tuple[str | None, str | None, int | None]":
     """One-pass split of a raw URI authority into (userinfo, host, port) --
     RAW/undecoded strings, port as int-or-None. Ported from
-    `uritools.SplitResult`'s `.userinfo`/`.host`/`.port` properties (each
-    independently re-`rpartition`s `authority`, ~3-4x redundant work per
-    `URI()` construction) -- verified equivalent by fuzzing against uritools
-    as the oracle (tests/test_properties.py), with the differences listed
-    there:
+    the RFC 3986 reading of `userinfo@host:port`, with one split of the
+    authority; the tests compare it with the `uritools` reading and name
+    where it differs:
 
     * a host is followed by a port only when a ':' was found, so a host of
-      digits alone (`s3://20240101/key`) stays the host; uritools reads it
-      as a port and returns an empty host;
+      digits alone (`s3://20240101/key`) stays the host, where `uritools`
+      reads it as a port and returns an empty host;
     * the port is 0-65535; a ':' followed by anything else that is not a
       bracketed address is an invalid port (`URISyntaxError`), not part of the
       host name."""
@@ -108,7 +105,7 @@ def _ipv6_from_literal(literal: str) -> _ip.IPv6Address:
     `ipaddress` does."""
     address, sep, zone = literal.partition("%25")
     if sep:
-        literal = f"{address}%{_uritools.uridecode(zone, errors=_ERRORS)}"
+        literal = f"{address}%{_rfc3986.decode(zone, _ERRORS)}"
     try:
         return _ip.IPv6Address(literal)
     except ValueError:
@@ -116,14 +113,13 @@ def _ipv6_from_literal(literal: str) -> _ip.IPv6Address:
 
 
 def _decode_host(host: str) -> "str | _IPAddress":
-    """Decode a raw (still percent-encoded, undecoded) host string --
-    ported from `uritools.SplitResult.gethost()`'s bracket/IP-literal
-    handling (private there). Bracket-mismatch and bare-`v`-prefixed
-    IP-literal-version rejection match uritools' actual behavior exactly
-    (including its case-sensitive-only `v` check, despite RFC 3986
-    describing it as case-insensitive -- verified by fuzzing, don't
-    "correct" this without checking uritools itself doesn't diverge).
-    An IPv6 zone is read as RFC 6874 says (`_ipv6_from_literal`)."""
+    """Decode a raw (still percent-encoded) host string. A bracketed
+    literal is an IPv6 address; mismatched brackets and a literal that starts
+    with a lower-case `v` (an IPvFuture version flag; RFC 3986 spells it in
+    either case, and only the lower-case one is refused) raise
+    `URISyntaxError`; a dotted quad is an IPv4 address; anything else is a
+    name, percent-decoded. An IPv6 zone is read as RFC 6874 says
+    (`_ipv6_from_literal`)."""
     if host.startswith("[") and host.endswith("]"):
         literal = host[1:-1]
         if literal.startswith("v"):
@@ -134,7 +130,7 @@ def _decode_host(host: str) -> "str | _IPAddress":
     try:
         return _ip.IPv4Address(host)
     except ValueError:
-        return _uritools.uridecode(host, errors=_ERRORS)
+        return _rfc3986.decode(host, _ERRORS)
 
 
 def fold_host(host: "str | _IPAddress | None") -> "str | _IPAddress | None":
@@ -154,9 +150,8 @@ _is_drive = is_drive
 
 
 def _remove_dot_segments(path: str, *, drive: bool = False) -> str:
-    """RFC 3986 5.2.4 dot-segment removal on a path -- ported from
-    `uritools.SplitResult.getpath()`'s private `__remove_dot_segments`
-    helper. Apply it to a raw (still percent-encoded) path before decoding,
+    """RFC 3986 5.2.4 dot-segment removal on a path. Apply it to a raw
+    (still percent-encoded) path before decoding,
     and again to the decoded path: a `%2e` only becomes a `.` segment
     once decoded. A `..` that would pass the root of an absolute path is
     dropped; a relative path keeps its leading `..`.

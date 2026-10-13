@@ -3,9 +3,8 @@ from __future__ import annotations
 import io as _io
 from base64 import b64decode as _b64decode
 
-import uritools as _uritools
-
 from pathlib_next import FileStat
+from .. import _rfc3986
 from ._path import URIPath
 from ..source import ERRORS
 
@@ -72,7 +71,7 @@ class DataURIPath(URIPath):
         text = self.path
         if self.query:
             # Decoded like the path: `.query` is kept as received.
-            text += "?" + _uritools.uridecode(str(self.query), errors=ERRORS)
+            text += "?" + _rfc3986.decode(str(self.query), ERRORS)
         header, sep, data = text.partition(",")
         if not sep:
             raise FileNotFoundError(self)

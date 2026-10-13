@@ -11,7 +11,6 @@ import os
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from pathlib_next.mempath import MemPath
 from uripath import URIPath

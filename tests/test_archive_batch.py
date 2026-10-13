@@ -12,7 +12,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath

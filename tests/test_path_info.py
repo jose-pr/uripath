@@ -82,7 +82,6 @@ stdlib_copy = pytest.mark.skipif(not _stdlib_copy_hooks_exist(), reason=STDLIB_H
 
 @stdlib_copy
 def test_stdlib_path_copy_reaches_a_file_uri(tmp_path):
-    pytest.importorskip("uritools")
     from uripath.schemes import FileURIPath
 
     source = tmp_path / "f.txt"

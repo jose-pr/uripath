@@ -17,7 +17,6 @@ from pathlib import PurePosixPath
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from pathlib_next import LocalPath
 from uripath import URIPath

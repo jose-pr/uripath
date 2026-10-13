@@ -17,8 +17,6 @@ import sys
 
 import pytest
 
-pytest.importorskip("uritools")
-
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DOCUMENTS = ["README.md", "docs/index.md", "docs/guides/extending.md"]
 SKIP = re.compile(r"^<!--\s*example:\s*skip:\s*(?P<reason>\S.*?)\s*-->$")

@@ -17,7 +17,6 @@ import textwrap
 
 import pytest
 
-pytest.importorskip("uritools")
 pytest.importorskip("netimps")
 
 import uripath

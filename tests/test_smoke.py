@@ -51,6 +51,29 @@ def test_import_does_not_load_netimps_or_unrelated_backends():
     assert out.split("\n")[:2] == ["[]", "[]"]
 
 
+def test_import_loads_no_helper_library_and_a_file_uri_reads_without_uritools(
+    tmp_path,
+):
+    """Parsing and composing are the standard library's, and netimps is
+    imported where it is used: with `uritools` hidden, `import uripath` loads
+    neither it, `netimps` nor `duho`, and a `file:` URI builds and reads."""
+    (tmp_path / "a.txt").write_text("hello", encoding="utf-8")
+    out = _run_python(f"""
+        import sys
+        sys.modules["uritools"] = None
+        import uripath
+        loaded = {{"uritools", "netimps", "duho"}} & {{
+            name for name, module in sys.modules.items() if module is not None
+        }}
+        print(sorted(loaded))
+        path = uripath.URIPath({(tmp_path / "a.txt").as_uri()!r})
+        print(type(path).__name__, path.read_text())
+        print(uripath.URI("http://u:p@h:8080/a%20b?q=1#f").path)
+        print(sorted(m for m in ("uritools", "netimps", "duho") if sys.modules.get(m)))
+        """)
+    assert out.splitlines() == ["[]", "FileURIPath hello", "/a b", "[]"]
+
+
 def test_import_optional_submodules_guarded():
     # Every scheme with an optional dependency is resolved lazily by
     # schemes/__init__.py; importing the package must not require

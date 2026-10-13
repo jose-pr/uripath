@@ -9,8 +9,7 @@ from __future__ import annotations
 import ipaddress as _ip
 import re as _re
 
-import uritools as _uritools
-
+from .. import _rfc3986
 from ._parse import (
     ERRORS,
     _IPAddress,
@@ -54,9 +53,9 @@ def percent_encode(text: str, safe: str) -> str:
     A decoded path may hold escaped bytes (`ERRORS`) and, from a Windows
     listing, a lone surrogate; neither may make the composer raise."""
     try:
-        return _uritools.uriencode(text, safe, errors=ERRORS).decode()
+        return _rfc3986.encode(text, safe, errors=ERRORS)
     except UnicodeEncodeError:
-        return _uritools.uriencode(_lenient_utf8(text), safe).decode()
+        return _rfc3986.encode(_lenient_utf8(text), safe)
 
 
 _encode = percent_encode
@@ -99,15 +98,10 @@ def _compose_ipv6(address: _ip.IPv6Address) -> str:
 
 
 def compose_host(host: "str | _IPAddress") -> str:
-    """Encode a host for composition -- mirrors `uritools`' private
-    `_authority()`/`_host()` composer helpers, including the fact that a
-    bare (non-bracketed) string that happens to parse as IPv6 gets
-    auto-bracketed (matches `uricompose`'s own behavior for a manually
-    -constructed `Source(..., host="::1", ...)`, not just an
-    already-bracketed literal). Deliberately NOT replaced by netimps'
-    `join_host`/`FQDN`: those implement the RFC reading, this function the
-    uritools one this module's output must round-trip through (and `FQDN`
-    would reject names this composes), except where noted: an IPv6 zone is
+    """Encode a host for composition: an IPv6 address is bracketed, and so is a
+    bare (non-bracketed) string that parses as one, as a manually constructed
+    `Source(..., host="::1", ...)` holds it. Deliberately not netimps'
+    `join_host`/`FQDN`: those would reject names this composes. An IPv6 zone is
     written as RFC 6874 says."""
     if isinstance(host, _ip.IPv6Address):
         return _compose_ipv6(host)
@@ -174,13 +168,12 @@ def compose_uri(
     cannot sit beside the authority given (or beside none) is a `ValueError`,
     as is an invalid scheme or port.
 
-    This is direct string assembly, not `uritools.uricompose()`'s re-validation
-    of every component (a scheme regex, authority re-parsing, IP-literal
-    detection), which only matters for untrusted input. It reuses uritools'
-    `uriencode()` and replicates only what changes the output string
-    (lowercasing, IP-literal bracketing, the "./" escape of a colon in the first
-    segment), and was checked against `uricompose()` on generated (scheme,
-    userinfo, host, port, path, query, fragment) combinations."""
+    This is direct string assembly, with no re-validation of every component
+    (a scheme regex, authority re-parsing, IP-literal detection), which only
+    matters for untrusted input. It replicates only what changes the output
+    string (IP-literal bracketing, the "./" escape of a colon in the first
+    segment); the tests compare it with `uritools.uricompose()` on generated
+    (scheme, userinfo, host, port, path, query, fragment) combinations."""
     parts = []
     if scheme is not None:
         if not _SCHEME_RE.fullmatch(scheme):

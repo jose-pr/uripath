@@ -10,7 +10,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from uripath import URIPath
 from uripath import schemes

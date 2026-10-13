@@ -5,8 +5,6 @@ import pathlib as _pathlib
 import posixpath as _posix
 import typing as _ty
 
-import uritools
-
 if _ty.TYPE_CHECKING:
     from typing import TypeAlias
 else:
@@ -15,6 +13,7 @@ else:
 from pathlib_next import Path, Pathname
 from pathlib_next.providers import name_stem as _name_stem
 from pathlib_next.providers import name_suffix as _name_suffix
+from . import _rfc3986
 from .query import Query, QueryLike, _coerce
 from .source import Source
 from .source._compose import _encode
@@ -250,23 +249,20 @@ class URI(Pathname):
 
     @classmethod
     def _parse_uri(cls, uri: str) -> tuple[Source, str, Query, str]:
-        """`(source, path, query, fragment)` of `uri`, in one pass over
-        `urisplit()`'s raw fields with the authority split once. It differs
-        from uritools' getters in three ways: the query is not decoded (`.query`
-        stays percent-encoded and is decoded per key and value by
+        """`(source, path, query, fragment)` of `uri`, in one pass over its raw
+        components with the authority split once. The query is not decoded
+        (`.query` stays percent-encoded and is decoded per key and value by
         `Query.to_pairs()`, because decoding it makes an escaped `&`, `=` or `+`
         look like a delimiter); escapes that are not UTF-8 decode with
         `surrogateescape` (`source._ERRORS`) instead of raising; and a `data:`
         payload (RFC 2397) is an opaque octet string that gets no dot-segment
         removal (`data:,a/./b` is the bytes `a/./b`)."""
-        # One pass over `urisplit()`'s raw fields, authority split once; where this
-        # differs from uritools' getters is in the docstring.
-        scheme, authority, path, query, fragment = uritools.urisplit(uri)
+        scheme, authority, path, query, fragment = _rfc3986.split(uri)
         scheme = scheme.lower() if scheme is not None else None
         source = _parse_source(scheme, authority)
         if scheme != "data":
             path = _remove_dots(path, scheme)
-        decoded = uritools.uridecode(path, errors=_ERRORS)
+        decoded = _rfc3986.decode(path, _ERRORS)
         if decoded != path and scheme != "data":
             # An escaped dot (`%2e%2e`) or separator (`..%2Fx`) is a dot
             # segment only now; `as_uri()` would otherwise render one that
@@ -274,7 +270,7 @@ class URI(Pathname):
             decoded = _remove_dots(decoded, scheme)
         path = decoded
         if fragment is not None:
-            fragment = uritools.uridecode(fragment, errors=_ERRORS)
+            fragment = _rfc3986.decode(fragment, _ERRORS)
         return source, path, Query.parse(query or ""), fragment or ""
 
     @property

@@ -13,7 +13,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from test_archive_batch import _fields, _members, _write_zip
 

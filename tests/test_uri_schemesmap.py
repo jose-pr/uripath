@@ -9,7 +9,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from uripath import URIPath
 from uripath.schemes import DataURIPath, FileURIPath, FTPURIPath, ZipURIPath

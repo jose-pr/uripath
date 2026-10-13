@@ -4,7 +4,6 @@ command it receives (tests/ftp_loopback.py)."""
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from pathlib_next.ftp import _backend as ftp_mod
 from uripath.schemes import FTPURIBackend, FTPURIPath

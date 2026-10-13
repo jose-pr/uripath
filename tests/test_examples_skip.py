@@ -10,8 +10,6 @@ import sys
 
 import pytest
 
-pytest.importorskip("uritools")
-
 REPO = pathlib.Path(__file__).resolve().parent.parent
 EXAMPLES = REPO / "examples"
 LOCAL = {"local_and_mem.py", "data_and_archive.py"}

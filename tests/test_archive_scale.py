@@ -11,7 +11,6 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from uripath import URIPath
 from pathlib_next.archive import _backend as _base

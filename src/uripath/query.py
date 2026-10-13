@@ -3,8 +3,7 @@ from __future__ import annotations
 import collections.abc as _abc
 import typing as _ty
 
-import uritools as _uritools
-
+from . import _rfc3986
 from .source import ERRORS
 
 if _ty.TYPE_CHECKING:
@@ -14,14 +13,13 @@ else:
 
 __all__ = ["Query", "QueryLike"]
 
-# The reserved/safe set of uritools' own query helpers (private there), written
-# against its public uriencode() so it does not depend on those internals.
+# The sub-delimiters, ":", "@", "/" and "?" (RFC 3986 3.4) stay literal in a query.
 _SAFE_QUERY = "!$&'()*+,;=:@/?"
 
 
 def _querylist(
     items: _ty.Sequence[_ty.Tuple[str, _ty.Any]], sep: str, encoding: str
-) -> bytes:
+) -> str:
     # Escaped in every name and value: the separator; "=", which ends a name
     # ({"a=b": "c"} would decode as ("a", "b=c")); and "+", which a form-urlencoded
     # reader takes for a space (a base64 signature or "+00:00" would arrive altered).
@@ -29,17 +27,19 @@ def _querylist(
     name_safe = safe
     terms = []
     for key, value in items:
-        name = _uritools.uriencode(key, name_safe, encoding)
+        name = _rfc3986.encode(key, name_safe, encoding=encoding)
         if value is None:
             terms.append(name)
         elif isinstance(value, (bytes, str)):
-            terms.append(name + b"=" + _uritools.uriencode(value, safe, encoding))
+            terms.append(name + "=" + _rfc3986.encode(value, safe, encoding=encoding))
         else:
-            terms.append(name + b"=" + _uritools.uriencode(str(value), safe, encoding))
-    return sep.encode("ascii").join(terms)
+            terms.append(
+                name + "=" + _rfc3986.encode(str(value), safe, encoding=encoding)
+            )
+    return sep.join(terms)
 
 
-def _querydict(mapping: _ty.Mapping[str, _ty.Any], sep: str, encoding: str) -> bytes:
+def _querydict(mapping: _ty.Mapping[str, _ty.Any], sep: str, encoding: str) -> str:
     items = []
     for key, value in mapping.items():
         if isinstance(value, (bytes, str)):
@@ -106,9 +106,9 @@ class Query:
             encoding = encoding or self.ENCODING
         if text is None:
             if isinstance(pairs, _abc.Mapping):
-                text = _querydict(pairs, separator, encoding).decode()
+                text = _querydict(pairs, separator, encoding)
             else:
-                text = _querylist(pairs, separator, encoding).decode()
+                text = _querylist(pairs, separator, encoding)
         self._set(text, separator, encoding)
 
     def _set(self, text: str, separator: str, encoding: str) -> None:
@@ -165,9 +165,9 @@ class Query:
                 name, equals, value = term.partition("=")
                 found.append(
                     (
-                        _uritools.uridecode(name, self._encoding, ERRORS),
+                        _rfc3986.decode(name, ERRORS, self._encoding),
                         (
-                            _uritools.uridecode(value, self._encoding, ERRORS)
+                            _rfc3986.decode(value, ERRORS, self._encoding)
                             if equals
                             else None
                         ),

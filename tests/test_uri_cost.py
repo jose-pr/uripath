@@ -6,9 +6,6 @@ from __future__ import annotations
 
 from unittest import mock
 
-import pytest
-
-pytest.importorskip("uritools")
 
 from uripath.schemes import _registry as uri_module
 from uripath import URI, URIPath

@@ -17,7 +17,6 @@ import pathlib_next
 from http_fakes import on_current_transport
 from pathlib_next.mempath import MemPath
 
-pytest.importorskip("uritools")
 
 from uripath import Source, URIPath  # noqa: E402
 

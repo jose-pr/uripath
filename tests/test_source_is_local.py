@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("uritools")
 netimps = pytest.importorskip("netimps")
 
 from uripath.source import _locality as source_module

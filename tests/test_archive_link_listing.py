@@ -16,7 +16,6 @@ import posixpath
 
 import pytest
 
-pytest.importorskip("uritools")
 
 from test_archive_links import FORMATS, _archive, _root
 
