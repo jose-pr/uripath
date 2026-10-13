@@ -686,3 +686,40 @@ mutant(
     f"{_BODY}::test_a_length_larger_than_a_body_whose_size_is_known_is_refused",
     "a Content-Length larger than a file or list is sent and the upload stalls",
 )
+
+# --- query and fragment through a derivation ----------------------------------
+
+_DERIVATION = "tests/test_uri_derivation_query.py"
+_LISTING = "tests/test_http_listing.py"
+mutant(
+    "destination-takes-the-sources-query",
+    "_uri.py",
+    "        return parent._from_parsed_parts(parent.source, parent.path, None, None)\n",
+    "        return parent\n",
+    (
+        f"{_DERIVATION}::test_a_str_destination_takes_neither_the_query_nor_the_fragment_of_its_source",
+        f"{_LISTING}::test_rename_destination_carries_the_targets_query_not_the_sources",
+    ),
+    "a rename or copy destination named by a string carries the source's signature",
+)
+mutant(
+    "http-listed-child-takes-the-index-query",
+    "schemes/_http/_path.py",
+    '        child = self._from_parsed_parts(self.source, directory + name, "", "", **kwargs)\n',
+    "        child = self._from_parsed_parts(\n"
+    "            self.source, directory + name, self.query, self.fragment, **kwargs\n"
+    "        )\n",
+    (
+        f"{_LISTING}::test_http_joined_child_keeps_the_directory_query_but_a_listed_one_has_none",
+        f"{_LISTING}::test_dav_joined_child_keeps_the_collection_query_but_a_listed_one_has_none",
+    ),
+    "a listed file is requested with the query that shaped its index",
+)
+mutant(
+    "join-drops-the-query",
+    "_uri.py",
+    "        return self._from_parsed_parts(self.source, path, self.query, self.fragment)\n\n    def _join_children",
+    '        return self._from_parsed_parts(self.source, path, "", "")\n\n    def _join_children',
+    f"{_DERIVATION}::test_a_path_only_derivation_keeps_the_query_and_the_fragment",
+    "a token in the query stops following the names joined onto it",
+)

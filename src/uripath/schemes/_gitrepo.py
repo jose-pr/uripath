@@ -399,12 +399,3 @@ class _RepoAPIPath(URIPath):
             inst._init(source, self.path, self.query, self.fragment)
             return inst
         return super().with_source(source)
-
-    def _make_child_relpath(self, name: str, **kwargs) -> _ty.Self:
-        # The base `_make_child_relpath` resets query and fragment for a child, which would
-        # drop `?ref=` on every iterdir()/glob()/walk() descendant and fall back to the
-        # default branch instead of the ref asked for.
-        inst = super()._make_child_relpath(name, **kwargs)
-        if self.query:
-            inst._query = self.query
-        return inst

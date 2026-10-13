@@ -101,6 +101,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   action because it carries the secret). `strict` is keyword-only. There is no
   alias: replace the call. `Source` is still a named tuple, so positional
   construction and unpacking are unchanged.
+- A join keeps the query and the fragment of the path it starts from. Was:
+  `Uri("unk://h/d?sig=abc#frag") / "f"` and `joinpath("f")` gave
+  `unk://h/d/f`, and so did the children `iterdir()`, `glob()` and `walk()`
+  yield, while `parent`, `with_name()`, `with_stem()`, `with_suffix()` and
+  `relative_to()` kept both (`pathlib_next.uri` 0.9.6 and earlier kept them in
+  a join too), so `p.parent / p.name == p` was false for a path with a query.
+  Is: every derivation that changes only the path keeps both, and a token in
+  the query follows the children (`unk://h/d/f?sig=abc#frag`). The children of
+  an `http:` or `dav:` listing are the exception: they are the `href`s of the
+  reply resolved against the directory, so they carry neither, and
+  `?sort=name`, which shapes an index, does not reach the files it lists
+  (`directory / "f.txt"` keeps it). A `str` destination of `rename()`,
+  `copy()` and `move()` is another resource and takes neither. What to do:
+  nothing, unless a caller relied on the join dropping them; call
+  `with_query("")` and `with_fragment("")` on the result (or on the base)
+  there.
 - Text that is not a URI raises `URISyntaxError` where it raised a bare
   `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
   `Source.parse()` of text with a path, a `git:` URI on a host with no

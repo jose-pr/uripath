@@ -438,7 +438,6 @@ class URI(Pathname):
         path = "/" if absolute else self.path
         has_authority = self._has_authority()
         empty = 0
-        named = False
         for segment in segments:
             if not segment:
                 empty += 1
@@ -447,14 +446,11 @@ class URI(Pathname):
                 path += "/" * _empty_slashes(path, empty, True)
                 empty = 0
             path = _child_path(path, segment, has_authority)
-            named = True
         if empty:
             # A trailing "/" is load-bearing: for http/dav it is how a
             # directory URL is spelled, and `name`/`parent` are documented
             # to keep it (see docs/divergences.md).
             path += "/" * _empty_slashes(path, empty, False)
-        if named:
-            return self._from_parsed_parts(self.source, path, "", "")
         return self._from_parsed_parts(self.source, path, self.query, self.fragment)
 
     def _join_children(self, segments: "list[str]", absolute: bool) -> "URI":
@@ -552,11 +548,11 @@ class URI(Pathname):
                 # The join `copy()` and `move()` use for a path destination, so dot segments
                 # resolve here too: `rename("../b")` must not send a literal "sub/../b",
                 # which an object store reads as another key.
-                result = self.parent._join_decoded(target)
+                result = self._sibling_base()._join_decoded(target)
             else:
                 # target is a URI by now, so this join re-uses `_load_parts`'
                 # existing right-to-left semantics without re-parsing it.
-                result = URI(self.parent, target)
+                result = URI(self._sibling_base(), target)
         if not self._same_location(result):
             # Every scheme renames over its own connection or bucket using only
             # `target.path`, so a target elsewhere would be renamed in the wrong place;
@@ -565,6 +561,13 @@ class URI(Pathname):
                 f"rename() cannot cross locations: {self} -> {result}"
             )
         return result
+
+    def _sibling_base(self) -> "URI":
+        """The directory a relative destination is resolved against: the
+        parent without its query and fragment, which are good for this
+        resource only (a signature in the query does not sign a sibling)."""
+        parent = self.parent
+        return parent._from_parsed_parts(parent.source, parent.path, None, None)
 
     def _same_location(self, other: "URI") -> bool:
         """Whether `other` lives where a native `rename()` of `self` can
@@ -700,8 +703,11 @@ class URI(Pathname):
         new_path = _child_path(self.path, name, self._has_authority())
         # Through `_from_parsed_parts`, so a scheme that carries per-instance
         # state rebuilds it (`SFTPURIPath._ssh_config`); `/` walks segments
-        # through here.
-        return self._from_parsed_parts(self.source, new_path, "", "", **kwargs)
+        # through here. The query and fragment stay, as in every path-only
+        # derivation.
+        return self._from_parsed_parts(
+            self.source, new_path, self.query, self.fragment, **kwargs
+        )
 
     def with_source(self, source: Source):
         """Return a new URI with the source replaced."""

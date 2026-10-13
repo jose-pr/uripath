@@ -95,8 +95,7 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   `URI("http://h/d/").name == ""`).
 - Methods: `as_uri(sanitize=False)`, `with_source()`, `with_path()`,
   `with_segments()`, `with_query(QueryLike)` (a `str` is taken as
-  already encoded), `with_fragment()`; `with_name`/`with_suffix`/`with_stem`
-  keep query and fragment. `with_path(path)` gives a relative path under an
+  already encoded), `with_fragment()`. `with_path(path)` gives a relative path under an
   authority the leading `/` the constructor gives it; `with_segments(*segments)`
   joins the spelling `segments` returns (a leading `""` is the root) with `/`,
   and an element may be `str`, `bytes`, a `PurePath` or an `os.PathLike`.
@@ -105,6 +104,22 @@ is a path with no scheme whose I/O raises `NotImplementedError` and
   (`http://h` counts as the root), `is_local()`
   (`Source.is_local()`), `as_posix()` (`user@host:path` when a host is
   present).
+- Query and fragment: every derivation that changes only the path keeps the
+  query and the fragment of the path it starts from, so
+  `p.parent / p.name == p`. That is `/` and `joinpath()` with a `str`
+  (whatever the key: nested, dotted, absolute, with empty segments),
+  `parent`, `parents`, `with_name()`, `with_stem()`, `with_suffix()`,
+  `with_segments()`, `with_path()`, `relative_to()`, and the children that
+  `iterdir()`, `glob()`, `rglob()` and `walk()` yield. A `URI` argument is
+  joined as the constructor joins it: the last segment that sets a query (or a
+  fragment) decides. The exception is a listing whose entries are named by
+  the server: a child of an `http:` or `dav:` directory is its `href` resolved
+  against the directory (RFC 3986 5.2), so the query that shapes an index
+  (`?sort=name`) and the fragment belong to the request for the listing and do
+  not reach the entries; `directory / "f.txt"` keeps them. A `str`
+  destination of `rename()`, `copy()` and `move()` is another resource and
+  takes neither (a signature in the query signs this resource only). To drop
+  them from any path, `with_query("")` and `with_fragment("")`.
 - `stem` and `suffix` are those of `name` (the last segment of the decoded
   path; the query and the fragment are not part of it). `URILike` =
   `str | URI | os.PathLike`, what the constructor and the join accept.
@@ -587,7 +602,9 @@ class HTTPResponse:
   one over `uripath.schemes.MAX_LISTING_BYTES` (8 MiB after decoding; assign a
   larger number to allow more) is `OSError(EFBIG)`. A name that is not
   UTF-8 (`caf%E9`) keeps its bytes (`surrogateescape`) and is requested as
-  listed.
+  listed. A listed child carries neither the query nor the fragment of the
+  directory's URL (the query is addressed to the listing; see "Query and
+  fragment" under `URI`).
 - `open("r")` streams `GET` with `Accept-Encoding: identity`; the mode is
   matched exactly, so `"r+"`, `"w+"` and `"a+"` raise `NotImplementedError`.
   `"w"`/`"x"` (an `HTTPWriteStream`)
@@ -919,10 +936,12 @@ Building and deriving a path:
   before reading `_source`, `_query` or the backend state of a path that may
   still be waiting (`_initiated` is False; `_raw_uris` holds its arguments).
 - `_make_child_relpath(name, stat_hint=None, **kwargs)` — the child called
-  exactly `name` (one segment, never re-parsed); `iterdir()`, `_scandir()` and
-  the `str` join build children with it, so a scheme that gives a name a
-  meaning (`gitlab:`'s `-`) overrides it. `stat_hint` is the listing's stat
-  for that child.
+  exactly `name` (one segment, never re-parsed), with the query and fragment
+  of this path; `iterdir()`, `_scandir()` and the `str` join build children
+  with it, so a scheme that gives a name a meaning (`gitlab:`'s `-`) overrides
+  it. `stat_hint` is the listing's stat for that child; `http:` and `dav:`
+  build a listed child without the query and fragment (see "Query and
+  fragment").
 - `_join_decoded(key)` — joins an already-decoded path string name by name
   through `_make_child_relpath()`, dot segments resolved as RFC 3986 5.2.4
   says; an absolute key restarts at the root of the same source.

@@ -471,8 +471,9 @@ class URIPath(URI, Path):
             else:
                 destination._derived_cell = self._family_for(destination.source)
             return destination
-        # `/` joins a decoded path on this endpoint and carries the backend.
-        return self.parent / target
+        # `/` joins a decoded path on this endpoint and carries the backend; the
+        # destination is another resource, so it takes no query or fragment.
+        return self._sibling_base() / target
 
     def with_backend(self, backend):
         """Return a new path instance sharing the same backend state."""

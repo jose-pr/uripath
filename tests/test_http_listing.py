@@ -610,3 +610,55 @@ def test_dav_verbs_fail_with_pathlib_errors_not_client_library_errors(site, act)
     with pytest.raises(OSError) as raised:
         act(_dav(site, "/d/f.txt"))
     assert not is_client_error(raised.value)
+
+
+# --- a name joined by hand keeps the directory's query; a listed entry has none ---
+
+
+def _index(*names):
+    rows = "".join(
+        f'<a href="{name}">{name}</a> 07-Oct-2026 10:00 12\n' for name in names
+    )
+    return ("<html><body><pre>" + rows + "</pre></body></html>").encode()
+
+
+def test_http_joined_child_keeps_the_directory_query_but_a_listed_one_has_none(site):
+    html = {"Content-Type": "text/html"}
+    site.on("GET", "/d/?sort=name", (200, html, _index("f.txt")))
+    site.on("GET", "/d/f.txt", (200, {}, b"listed"))
+    site.on("GET", "/d/f.txt?sort=name", (200, {}, b"joined"))
+    directory = _http(site, "/d/?sort=name#top")
+
+    (listed,) = directory.iterdir()
+    assert listed.as_uri() == site.base + "/d/f.txt"
+    assert listed.read_bytes() == b"listed"
+    (globbed,) = directory.glob("*")
+    assert globbed.as_uri() == site.base + "/d/f.txt"
+
+    joined = directory / "f.txt"
+    assert joined.as_uri() == site.base + "/d/f.txt?sort=name#top"
+    assert joined.read_bytes() == b"joined"
+    assert [r.path for r in site.sent("GET") if r.path.startswith("/d/f.txt")] == [
+        "/d/f.txt",
+        "/d/f.txt?sort=name",
+    ]
+
+
+def test_dav_joined_child_keeps_the_collection_query_but_a_listed_one_has_none(site):
+    _propfind(
+        site,
+        "/d/?sort=name",
+        _response("/d/", collection=True),
+        _response("/d/f.txt"),
+    )
+    site.on("GET", "/d/f.txt", (200, {}, b"listed"))
+    site.on("GET", "/d/f.txt?sort=name", (200, {}, b"joined"))
+    collection = _dav(site, "/d/?sort=name#top")
+
+    (listed,) = collection.iterdir()
+    assert listed.as_uri() == "dav" + site.base[len("http") :] + "/d/f.txt"
+    assert listed.read_bytes() == b"listed"
+
+    joined = collection / "f.txt"
+    assert joined.as_uri().endswith("/d/f.txt?sort=name#top")
+    assert joined.read_bytes() == b"joined"

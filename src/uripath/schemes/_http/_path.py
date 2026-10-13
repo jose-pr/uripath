@@ -54,6 +54,19 @@ class HTTPURIPath(URIPath):
     def _initbackend(self):
         return _DerivedHTTPBackend(timeout=_settings.DEFAULT_TIMEOUT)
 
+    def _make_child_relpath(self, name, stat_hint=None, **kwargs):
+        """The child `name`. A name given by the caller keeps the query and
+        fragment like every join. An entry of a listing (it comes with its
+        stat) is addressed by its href resolved against the directory
+        (RFC 3986 5.2), so the query that shapes the index (`?sort=name`) and
+        the fragment belong to the request for the listing, not to the entry."""
+        if stat_hint is None:
+            return super()._make_child_relpath(name, **kwargs)
+        directory = self.path if self.path.endswith("/") else self.path + "/"
+        child = self._from_parsed_parts(self.source, directory + name, "", "", **kwargs)
+        child._stat_hint = stat_hint
+        return child
+
     def _listdir(self) -> list[_FileEntry]:
         # The slash form first: a server redirects a directory's slash-less URL to it, at a
         # round trip per listing. One that answers 404 for it (a file, or a server that
