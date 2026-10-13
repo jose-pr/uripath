@@ -8,8 +8,8 @@ import warnings
 import pytest
 
 from http_fakes import FakeTransport, reply
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes._gitrepo import (
+from uripath import UriPath
+from uripath.schemes._gitrepo import (
     BaseRepoBackend,
     InsecureTransportWarning,
     RepoBackend,
@@ -202,10 +202,10 @@ def test_plain_http_without_a_credential_does_not_warn():
 def test_the_warning_is_a_userwarning_the_header_names():
     import pathlib
 
-    import pathlib_next
+    import uripath
 
     assert issubclass(InsecureTransportWarning, UserWarning)
-    header = (pathlib.Path(pathlib_next.__file__).parent / "AGENTS.md").read_text(
+    header = (pathlib.Path(uripath.__file__).parent / "AGENTS.md").read_text(
         encoding="utf-8"
     )
     assert "InsecureTransportWarning" in header

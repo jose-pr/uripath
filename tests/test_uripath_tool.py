@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from pathlib_next import LocalPath
-from pathlib_next.tools import uripath
+from uripath import _oldcli as uripath
 
 
 def test_help_lists_commands(capsys):
@@ -381,7 +381,7 @@ def test_keyboard_interrupt_exits_130_without_traceback(monkeypatch):
     assert stderr.getvalue() == ""
 
 
-_SRC = str(Path(__file__).resolve().parents[1] / "src")
+_SRC = str(Path(uripath.__file__).resolve().parent.parent)
 
 
 def _child_env():
@@ -397,7 +397,7 @@ def test_real_pipe_closed_by_reader_exits_quietly(tmp_path):
     source = tmp_path / "big.bin"
     source.write_bytes(b"y" * (8 * uripath._CHUNK_SIZE))
     proc = subprocess.Popen(
-        [sys.executable, "-m", "pathlib_next.tools.uripath", "read", str(source)],
+        [sys.executable, "-m", "uripath._oldcli", "read", str(source)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=_child_env(),
@@ -416,7 +416,7 @@ def test_real_pipe_closed_by_reader_exits_quietly(tmp_path):
 _GATED = (
     "import sys\n"
     "sys.stdin.buffer.read(1)\n"
-    "from pathlib_next.tools.uripath import main\n"
+    "from uripath._oldcli import main\n"
     "raise SystemExit(main(sys.argv[1:]))\n"
 )
 
@@ -553,43 +553,6 @@ def test_every_flag_and_positional_has_help_text():
                 assert action.help, f"{name}: {action.dest} has no help text"
 
 
-# --- without the `uri` extra, only shipped schemes are URIs ---------------
-
-
-@pytest.fixture
-def without_uri_extra(monkeypatch):
-    """The CLI as installed without the `uri` extra: no scheme class can be
-    imported, so `_looks_like_uri()` falls back to the distribution's own
-    entry points."""
-    monkeypatch.setattr(uripath, "UriPath", None)
-    monkeypatch.setattr(uripath, "_SHIPPED_SCHEMES", None)
-
-
-@pytest.mark.parametrize("value", ["12:30.txt", "notes:draft", "2024-01-01T10:00.log"])
-def test_colon_names_stay_local_without_the_uri_extra(value, without_uri_extra):
-    """Regression: the no-extras CI job reported `notes:draft` as a URI
-    needing an extra, because no scheme class could be loaded to say
-    otherwise. Entry points answer that without importing anything."""
-    assert not uripath._looks_like_uri(value)
-    assert isinstance(uripath._path(value), LocalPath)
-
-
-@pytest.mark.parametrize("value", ["s3:bucket/key", "data:,abc", "zip:x.zip!/a"])
-def test_shipped_schemes_are_uris_without_the_uri_extra(value, without_uri_extra):
-    assert uripath._looks_like_uri(value)
-    with pytest.raises(ImportError, match="uri"):
-        uripath._path(value)
-
-
-def test_shipped_schemes_reads_this_distribution(without_uri_extra):
-    schemes = uripath._shipped_schemes()
-    assert {"file", "data", "zip", "s3", "sftp"} <= schemes
-    assert "notes" not in schemes
-
-
-def test_unknown_scheme_with_an_authority_is_still_a_uri(without_uri_extra):
-    assert uripath._looks_like_uri("notascheme://host/x")
-
 
 # --- a dry run fails where the real run fails ---
 
@@ -629,29 +592,3 @@ def test_sync_dry_run_fails_for_a_link_the_target_cannot_hold_like_the_real_run(
     code, message = results["--dry-run"]
     assert code == 1
     assert "NotImplementedError" in message and "MemPath" in message
-
-
-@pytest.mark.parametrize(
-    ("value", "named"),
-    [
-        ("http://user:s3cr3t@127.0.0.1:9/x", "the 'http' scheme"),
-        ("ftp://user:s3cr3t@127.0.0.1:9/x", "the 'ftp' scheme"),
-        ("sftp://user:s3cr3t@127.0.0.1:9/x", "the 'sftp' scheme"),
-        ("dav://user:s3cr3t@127.0.0.1:9/x", "the 'dav' scheme"),
-        ("s3://user:s3cr3t@bucket/key", "the 's3' scheme"),
-        ("github://s3cr3t@host/owner/repo/file", "the 'github' scheme"),
-        ("unknown-scheme://user:s3cr3t@host/x", "the 'unknown-scheme' scheme"),
-    ],
-)
-def test_missing_extra_names_the_scheme_and_never_the_argument(
-    value, named, without_uri_extra, capsys
-):
-    for argv in (["read", value], ["cp", value, "out"], ["sync", value, "out"]):
-        stdout, stderr = io.BytesIO(), io.StringIO()
-        assert uripath.main(argv, stdout=stdout, stderr=stderr) == 1
-        assert stdout.getvalue() == b""
-        assert stderr.getvalue() == (
-            f"uripath: ImportError: {named} needs the 'uri' extra:"
-            " pip install 'pathlib-next[uri]'\n"
-        )
-    assert "s3cr3t" not in "".join(capsys.readouterr())

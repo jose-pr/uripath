@@ -9,8 +9,8 @@ import io
 import pytest
 
 from http_wire import Drop, Wire, response
-from pathlib_next.uri.schemes._http import _body
-from pathlib_next.uri.schemes.http import HTTPTransport
+from uripath.schemes._http import _body
+from uripath.schemes.http import HTTPTransport
 
 TIMEOUT = (5, 5)
 PAYLOAD = b"0123456789abcdef"

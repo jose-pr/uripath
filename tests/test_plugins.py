@@ -2,7 +2,7 @@ import unittest.mock as mock
 import pytest
 import importlib.metadata
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 def test_plugin_dynamic_loading():
@@ -22,9 +22,9 @@ def test_plugin_dynamic_loading():
     mock_ep.load.side_effect = mock_load
 
     def mock_entry_points(*args, **kwargs):
-        if kwargs.get("group") == "pathlib_next.schemes":
+        if kwargs.get("group") == "uripath.schemes":
             return [mock_ep]
-        return {"pathlib_next.schemes": [mock_ep]}
+        return {"uripath.schemes": [mock_ep]}
 
     with mock.patch("importlib.metadata.entry_points", side_effect=mock_entry_points):
         # Accessing dummy:// path should trigger loading of dummy plugin
@@ -42,9 +42,9 @@ def test_plugin_non_matching_scheme():
     mock_ep.name = "dummy2"
 
     def mock_entry_points(*args, **kwargs):
-        if kwargs.get("group") == "pathlib_next.schemes":
+        if kwargs.get("group") == "uripath.schemes":
             return [mock_ep]
-        return {"pathlib_next.schemes": [mock_ep]}
+        return {"uripath.schemes": [mock_ep]}
 
     with mock.patch("importlib.metadata.entry_points", side_effect=mock_entry_points):
         # Accessing otherdummy:// should not load mock_ep since names don't match
@@ -111,15 +111,15 @@ class TestLoadBuiltinScheme:
 
 class TestGetSchemeCls:
     def test_known_scheme_returns_subclass(self):
-        from pathlib_next.uri.schemes.file import FileUri
-        from pathlib_next.uri.source import Source
+        from uripath.schemes.file import FileUri
+        from uripath.source import Source
 
         source = Source("file", None, None, None)
         cls = source.get_scheme_cls()
         assert issubclass(cls, UriPath)
 
     def test_unknown_scheme_falls_back_to_uripath(self):
-        from pathlib_next.uri.source import Source
+        from uripath.source import Source
 
         source = Source("__totally_unknown__", None, None, None)
         with mock.patch.object(UriPath, "_load_entry_point", return_value=False):
@@ -135,9 +135,9 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
     returned a do-nothing `UriPath` in a fresh process. Only classes whose
     optional dependencies import here are checked."""
     try:
-        eps = importlib.metadata.entry_points(group="pathlib_next.schemes")
+        eps = importlib.metadata.entry_points(group="uripath.schemes")
     except TypeError:  # Python 3.9
-        eps = importlib.metadata.entry_points().get("pathlib_next.schemes", ())
+        eps = importlib.metadata.entry_points().get("uripath.schemes", ())
     # The schemes package loads backends lazily: import every builtin module
     # first so the scheme map reflects all classes whose dependencies import.
     for ep in eps:
@@ -147,7 +147,7 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
         scheme
         for scheme in UriPath.schemes()
         if UriPath.scheme_class(scheme).__module__.startswith(
-            "pathlib_next.uri.schemes"
+            "uripath.schemes"
         )
     }
     assert "ftps" in declared

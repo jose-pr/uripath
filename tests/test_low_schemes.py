@@ -11,8 +11,8 @@ import zipfile
 import pytest
 
 from http_fakes import spy_on_sends
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.archive import _split_archive_path
+from uripath import UriPath
+from uripath.schemes.archive import _split_archive_path
 
 # --- ftparchive-nested-archives ------------------------------------------------
 
@@ -213,7 +213,7 @@ def test_table_listing_skips_foreign_and_non_child_hrefs(serve_http):
 
 
 def test_parser_without_base_url_keeps_title_scoping():
-    from pathlib_next.uri.schemes.http import _DirectoryListingParser
+    from uripath.schemes.http import _DirectoryListingParser
 
     parser = _DirectoryListingParser()
     parser.feed(
@@ -264,7 +264,7 @@ def test_410_gone_is_file_not_found_and_errors_carry_errno(serve_http):
 
 
 def test_dav_statuses_carry_errno_and_filename(serve_http):
-    from pathlib_next.uri.schemes.dav import DavPath
+    from uripath.schemes.dav import DavPath
 
     with serve_http(_handler({}, MKCOL=_reply(409))) as base:
         p = DavPath(base.replace("http:", "dav:") + "/nodir/new")
@@ -326,7 +326,7 @@ def _propfind(self):
 
 
 def test_dav_reads_every_successful_propstat(serve_http):
-    from pathlib_next.uri.schemes.dav import DavPath
+    from uripath.schemes.dav import DavPath
 
     with serve_http(_handler({}, PROPFIND=_propfind)) as base:
         docs = DavPath(base.replace("http:", "dav:") + "/docs/")

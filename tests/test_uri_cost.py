@@ -10,8 +10,8 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next import uri as uri_module
-from pathlib_next.uri import Uri, UriPath
+import uripath as uri_module
+from uripath import Uri, UriPath
 
 # --- the entry points are read once -----------------------------------------------------
 

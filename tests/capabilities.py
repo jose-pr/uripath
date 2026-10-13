@@ -32,7 +32,7 @@ def can_make_junctions() -> bool:
 
 
 def has_uri_extra() -> bool:
-    """`uritools` and `netimps`, which `pathlib_next.uri` imports, are installed."""
+    """`uritools` and `netimps`, which `uripath` imports, are installed."""
     return all(
         importlib.util.find_spec(name) is not None for name in ("uritools", "netimps")
     )

@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from pathlib_next.uri import Uri, UriPath
+from uripath import Uri, UriPath
 
 WINDOWS = os.name == "nt"
 

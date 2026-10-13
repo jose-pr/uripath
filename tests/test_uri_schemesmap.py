@@ -11,9 +11,9 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes import DataUri, FileUri, FtpPath, ZipUri
-from pathlib_next.uri.source import Source
+from uripath import UriPath
+from uripath.schemes import DataUri, FileUri, FtpPath, ZipUri
+from uripath.source import Source
 
 ALLOW = {"data": DataUri, "zip": ZipUri}
 FTP_ONLY = {"ftp": FtpPath}

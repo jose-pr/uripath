@@ -22,7 +22,7 @@ import threading
 import tracemalloc
 from dataclasses import dataclass, field
 
-_LIBRARY = "pathlib_next"
+_LIBRARY = "uripath"
 
 
 @dataclass

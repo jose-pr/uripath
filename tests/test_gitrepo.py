@@ -16,12 +16,12 @@ import pytest
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
 from http_fakes import FakeTransport, reply
-from pathlib_next.uri.schemes._gitrepo import BaseRepoBackend
-from pathlib_next.uri.schemes.github import GitHubPath, RepoBackend
-from pathlib_next.uri.schemes.http import HTTPTransport
-from pathlib_next.uri.schemes.git import GitHubGitPath, GitLabGitPath, GitPath
-from pathlib_next.uri.schemes.gitlab import GitLabPath
-from pathlib_next.uri import UriPath
+from uripath.schemes._gitrepo import BaseRepoBackend
+from uripath.schemes.github import GitHubPath, RepoBackend
+from uripath.schemes.http import HTTPTransport
+from uripath.schemes.git import GitHubGitPath, GitLabGitPath, GitPath
+from uripath.schemes.gitlab import GitLabPath
+from uripath import UriPath
 
 
 def _github(server, path="", **kwargs):
@@ -593,7 +593,7 @@ def test_git_scheme_ip_literal_host_raises_value_error(uri):
 
 
 def test_git_scheme_with_source_keeps_provider_and_backend():
-    from pathlib_next.uri import Source
+    from uripath import Source
 
     backend = RepoBackend(token="t")
     p = UriPath("git://github.com/acme/widgets/a.txt", backend=backend)
@@ -615,7 +615,7 @@ def test_git_scheme_with_source_keeps_provider_and_backend():
 def test_gitlab_custom_backend_without_cache_reads(gitlab_api_server, fixture_tree):
     import urllib.parse
 
-    from pathlib_next.uri.schemes._gitrepo import BaseRepoBackend
+    from uripath.schemes._gitrepo import BaseRepoBackend
 
     base_url, owner, repo = gitlab_api_server
 
@@ -646,7 +646,7 @@ def test_gitlab_custom_backend_without_cache_reads(gitlab_api_server, fixture_tr
 
 
 def test_ref_with_escaped_ampersand_reaches_the_api_whole():
-    from pathlib_next.uri.schemes._gitrepo import BaseRepoBackend
+    from uripath.schemes._gitrepo import BaseRepoBackend
 
     class _Recording(BaseRepoBackend):
         def __init__(self):

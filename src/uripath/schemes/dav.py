@@ -6,9 +6,9 @@ import typing as _ty
 import urllib.parse as _urlparse
 import xml.etree.ElementTree as _ET
 
-from ... import providers as _providers
-from ...providers import check_follow
-from ... import FileStat
+from pathlib_next import FileStat
+from pathlib_next import providers as _providers
+from pathlib_next.providers import check_follow
 from .. import Uri
 from ..source import compose_uri
 from . import _httpdate

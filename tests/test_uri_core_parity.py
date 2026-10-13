@@ -20,9 +20,9 @@ import pytest
 
 import pathlib_next
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import Uri, UriPath
-from pathlib_next.uri.query import Query
-from pathlib_next.uri.schemes.file import FileUri
+from uripath import Uri, UriPath
+from uripath.query import Query
+from uripath.schemes.file import FileUri
 
 # --- query: kept encoded, sent unchanged, decoded once (Design Q1) ---------
 
@@ -106,11 +106,10 @@ def test_query_characters_illegal_on_the_wire_are_encoded():
     ids=["pathlib.Path", "LocalPath"],
 )
 def test_remote_join_with_relative_concrete_path_stays_remote(relative):
-    pytest.importorskip("paramiko")
-    joined = UriPath("sftp://root@host/srv/") / relative
-    assert type(joined).__name__ == "SftpPath"
-    assert joined.as_uri() == "sftp://root@host/srv/etc/x"
-    assert UriPath("sftp://root@host/srv/").joinpath(relative) == joined
+    joined = UriPath("ftp://root@host/srv/") / relative
+    assert type(joined).__name__ == "FtpPath"
+    assert joined.as_uri() == "ftp://root@host/srv/etc/x"
+    assert UriPath("ftp://root@host/srv/").joinpath(relative) == joined
 
 
 def test_remote_join_with_absolute_concrete_path_is_a_local_file():
@@ -211,140 +210,27 @@ def _symlink_or_skip(link, target, target_is_directory=False):
         pytest.skip(f"symlink unavailable: {error}")
 
 
-def test_copy_without_following_a_symlink_copies_the_link(tmp_path):
-    secret = tmp_path / "secret.txt"
-    secret.write_text("top secret")
-    _symlink_or_skip(tmp_path / "link", secret)
-    link = pathlib_next.LocalPath(tmp_path / "link")
-    out = pathlib_next.LocalPath(tmp_path / "out")
-
-    link.copy(out, follow_symlinks=False)
-
-    # pathlib 3.14: a symlink to the same target, not a regular file holding
-    # the target's content.
-    assert out.is_symlink()
-    assert os.readlink(out) == os.readlink(link)
 
 
-def test_copy_without_following_refuses_to_replace_without_overwrite(tmp_path):
-    (tmp_path / "t.txt").write_text("t")
-    _symlink_or_skip(tmp_path / "link", tmp_path / "t.txt")
-    (tmp_path / "out").write_text("keep")
-    link = pathlib_next.LocalPath(tmp_path / "link")
-    with pytest.raises(FileExistsError):
-        link.copy(pathlib_next.LocalPath(tmp_path / "out"), follow_symlinks=False)
-    assert (tmp_path / "out").read_text() == "keep"
 
 
-def test_recursive_copy_without_following_keeps_inner_links(tmp_path):
-    src = tmp_path / "src"
-    src.mkdir()
-    (src / "real.txt").write_text("r")
-    _symlink_or_skip(src / "alias.txt", "real.txt")
-    dst = pathlib_next.LocalPath(tmp_path / "dst")
-
-    pathlib_next.LocalPath(src).copy(dst, recursive=True, follow_symlinks=False)
-
-    assert (dst / "real.txt").read_text() == "r"
-    assert (dst / "alias.txt").is_symlink()
-    assert os.readlink(dst / "alias.txt") == "real.txt"
 
 
-def test_copy_preserve_metadata_passes_permission_bits_only():
-    calls = []
-
-    class Source(MemPath):
-        def stat(self, *, follow_symlinks=True):
-            st = super().stat(follow_symlinks=follow_symlinks)
-            st.setmode(0o640)
-            return st
-
-    class Target(MemPath):
-        def chmod(self, mode, *, follow_symlinks=True):
-            calls.append(mode)
-
-    src = Source("/a.txt")
-    src.write_text("x")
-    src.copy(Target("/b.txt"))
-    # Not 0o100640: the file-type bits are not a mode (FTP's SITE CHMOD sent
-    # them verbatim).
-    assert calls == [0o640]
 
 
-def test_copy_directory_into_its_own_subtree_raises_before_creating():
-    root = MemPath("/d")
-    root.mkdir()
-    (root / "a.txt").write_text("x")
-    with pytest.raises(OSError) as excinfo:
-        root.copy(root / "inner", recursive=True)
-    assert excinfo.value.errno == errno.EINVAL
-    assert [p.name for p in root.iterdir()] == ["a.txt"]
-    with pytest.raises(OSError):
-        root.copy(root, recursive=True, overwrite=True)
 
 
-def test_local_copy_directory_into_its_own_subtree_raises(tmp_path):
-    (tmp_path / "d").mkdir()
-    (tmp_path / "d" / "a.txt").write_text("x")
-    root = pathlib_next.LocalPath(tmp_path / "d")
-    with pytest.raises(OSError) as excinfo:
-        root.copy(root / "sub" / "inner", recursive=True)
-    assert excinfo.value.errno == errno.EINVAL
-    assert sorted(os.listdir(tmp_path / "d")) == ["a.txt"]
 
 
-def test_copy_into_a_sibling_with_a_shared_prefix_is_allowed():
-    root = MemPath("/d")
-    root.mkdir()
-    (root / "a.txt").write_text("x")
-    sibling = MemPath("/d2", backend=root.backend)
-    root.copy(sibling, recursive=True)
-    assert (sibling / "a.txt").read_text() == "x"
 
 
 # --- open(): mode validation like open() -------------------------------------
 
 
-@pytest.mark.parametrize(
-    "mode, kwargs",
-    [
-        ("zz", {}),
-        ("rw", {}),
-        ("rbt", {}),
-        ("rr", {}),
-        ("b", {}),
-        ("rb", {"encoding": "utf-8"}),
-        ("rb", {"errors": "strict"}),
-        ("rb", {"newline": ""}),
-    ],
-)
-def test_invalid_open_mode_raises_valueerror_like_pathlib(tmp_path, mode, kwargs):
-    real = tmp_path / "f.txt"
-    real.write_text("x")
-    with pytest.raises(ValueError):
-        real.open(mode, **kwargs)
-    mem = MemPath("/f.txt")
-    mem.write_text("x")
-    with pytest.raises(ValueError):
-        mem.open(mode, **kwargs)
 
 
-def test_text_mode_letter_is_accepted():
-    mem = MemPath("/f.txt")
-    with mem.open("wt", encoding="utf-8") as handle:
-        handle.write("hé")
-    with mem.open("rt", encoding="utf-8") as handle:
-        assert handle.read() == "hé"
-    with mem.open("at", encoding="utf-8") as handle:
-        handle.write("!")
-    assert mem.read_bytes() == "hé!".encode()
 
 
-def test_valid_but_unsupported_mode_stays_not_implemented():
-    mem = MemPath("/f.txt")
-    mem.write_text("x")
-    with pytest.raises(NotImplementedError):
-        mem.open("r+")
 
 
 def test_data_uri_payload_is_opaque_and_decoded_once():
@@ -356,17 +242,3 @@ def test_data_uri_payload_is_opaque_and_decoded_once():
     assert str(binary) == "data:application/octet-stream,%FF%FE"
 
 
-def test_stat_mode_constant_is_what_chmod_receives_for_local_copy(tmp_path):
-    src = pathlib_next.LocalPath(tmp_path / "s.txt")
-    src.write_text("x")
-    received = []
-
-    class Recording(pathlib_next.LocalPath):
-        __slots__ = ()
-
-        def chmod(self, mode, *, follow_symlinks=True):
-            received.append(mode)
-            return super().chmod(mode, follow_symlinks=follow_symlinks)
-
-    src.copy(Recording(tmp_path / "t.txt"))
-    assert received == [stat.S_IMODE(os.stat(src).st_mode)]

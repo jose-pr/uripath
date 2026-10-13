@@ -9,7 +9,7 @@ import traceback
 import pytest
 
 from http_wire import Proxy, Wire, make_authority, refusing_port, response
-from pathlib_next.uri.schemes.http import HTTPTransport
+from uripath.schemes.http import HTTPTransport
 
 TIMEOUT = (5, 5)
 
@@ -329,7 +329,7 @@ def test_proxy_credentials_are_in_no_error_of_an_unreachable_proxy(transport_for
 def test_proxy_credentials_are_in_no_repr(transport_for):
     transport = transport_for(Provider("http://carol:PROXYSECRET@127.0.0.1:1"))
     assert "PROXYSECRET" not in repr(transport) + str(transport)
-    from pathlib_next.uri.schemes._http._proxies import ProxyAddress, _address
+    from uripath.schemes._http._proxies import ProxyAddress, _address
 
     address = _address("http://carol:PROXYSECRET@proxy.example:3128")
     assert isinstance(address, ProxyAddress)
@@ -405,6 +405,6 @@ def test_a_cidr_block_names_no_host_that_is_not_an_ip_literal(
     ],
 )
 def test_which_hosts_a_no_proxy_cidr_block_holds(host, no_proxy, inside):
-    from pathlib_next.uri.schemes._http._proxies import _in_no_proxy_network
+    from uripath.schemes._http._proxies import _in_no_proxy_network
 
     assert _in_no_proxy_network(host, no_proxy) is inside

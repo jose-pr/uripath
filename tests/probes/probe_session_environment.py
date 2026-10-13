@@ -34,9 +34,3 @@ def test_the_developers_home_is_not_the_home_directory():
     assert list(pathlib.Path.home().iterdir()) == []
     for variable in ("AWS_CONFIG_FILE", "AWS_SHARED_CREDENTIALS_FILE"):
         assert not os.path.exists(os.environ[variable])
-
-
-def test_requests_and_botocore_find_neither_a_proxy_nor_a_profile():
-    requests = __import__("pytest").importorskip("requests")
-    assert requests.utils.get_environ_proxies("http://127.0.0.1:1/x") == {}
-    assert requests.utils.get_netrc_auth("http://h/") is None

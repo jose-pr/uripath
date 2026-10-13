@@ -14,7 +14,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next import FileStat
 from pathlib_next.sync import PathAndStat, PathSyncer
 from pathlib_next.sync._compare import _quick_check_in_sync
@@ -22,23 +22,8 @@ from pathlib_next.sync._compare import _quick_check_in_sync
 # --- FileStat ------------------------------------------------------------
 
 
-def test_a_stat_knows_its_size_unless_it_says_otherwise():
-    assert FileStat(st_size=3).size_known is True
-    assert FileStat(is_dir=False, size_known=False).size_known is False
-    assert FileStat(is_dir=False, size_known=False).is_file()
 
 
-def test_from_stat_keeps_the_flag_and_defaults_it_for_a_foreign_stat(tmp_path):
-    placeholder = FileStat(is_dir=False, size_known=False)
-    assert FileStat.from_stat(placeholder) is placeholder
-    (tmp_path / "f").write_text("abc")
-    assert FileStat.from_stat(os.stat(tmp_path / "f")).size_known is True
-
-    class Foreign:
-        st_mode = 0o100644
-        size_known = False
-
-    assert FileStat.from_stat(Foreign()).size_known is False
 
 
 # --- a path class whose listing knows the type only -----------------------------
@@ -227,20 +212,6 @@ class UnsizedMem(MemPath):
         return FileStat(is_dir=False, size_known=False)
 
 
-def test_copy_reports_an_unknown_total_for_a_stat_without_a_size():
-    source = UnsizedMem("/s")
-    source.mkdir()
-    (source / "f").write_bytes(b"abcdef")
-    target = MemPath("/t")
-    target.mkdir()
-    totals = []
-
-    (source / "f").copy(
-        target / "f", progress=lambda path, copied, total: totals.append(total)
-    )
-
-    assert (target / "f").read_bytes() == b"abcdef"
-    assert totals and set(totals) == {None}
 
 
 # --- a sync never takes a placeholder for a size ---------------------------------
@@ -257,14 +228,6 @@ def entry(stat):
     return PathAndStat.from_stat(MemPath("/x"), stat)
 
 
-def test_quick_check_never_matches_a_stat_whose_size_is_unknown():
-    unknown = FileStat(st_size=3, st_mtime=1000, is_dir=False, size_known=False)
-    known = FileStat(st_size=3, st_mtime=1000, is_dir=False)
-
-    assert not _quick_check_in_sync(entry(unknown), entry(known))
-    assert not _quick_check_in_sync(entry(known), entry(unknown))
-    assert not _quick_check_in_sync(entry(unknown), entry(unknown))
-    assert _quick_check_in_sync(entry(known), entry(known))
 
 
 def test_sync_asks_for_the_size_of_a_source_the_listing_gave_no_size(store):

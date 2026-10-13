@@ -16,7 +16,7 @@ pytest.importorskip("uritools")
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next.archive import _zipentries as zip_module
 from pathlib_next.archive._zip import _ZipBackend
 from pathlib_next.sync import PathSyncer
@@ -731,49 +731,12 @@ def _memory_source():
     return source
 
 
-def test_the_default_hook_does_nothing(tmp_path):
-    for path in (LocalPath(tmp_path), MemPath("/m")):
-        with path._write_batch() as entered:
-            assert entered is None
 
 
-def test_a_recursive_copy_writes_only_inside_the_hook_of_its_target():
-    _Recording.log = []
-    target = _Recording("/dst")
-    _memory_source().copy(target, recursive=True)
-    log = _Recording.log
-    assert log[0] == ("enter", "/dst")
-    assert log[-1] == ("exit", "/dst")
-    depth = 0
-    for event, _name in log:
-        if event == "enter":
-            depth += 1
-        elif event == "exit":
-            depth -= 1
-        else:
-            assert depth > 0, log
-    assert depth == 0
-    assert sum(1 for event, _ in log if event == "write") == 4
-    assert (target / "a" / "x.txt").read_bytes() == b"x"
 
 
-def test_a_single_file_copy_does_not_enter_the_hook():
-    _Recording.log = []
-    source = MemPath("/one")
-    source.write_bytes(b"1")
-    source.copy(_Recording("/two"))
-    assert [event for event, _ in _Recording.log if event != "write"] == []
 
 
-def test_a_sync_enters_the_hook_of_its_target_once_and_a_dry_run_never():
-    _Recording.log = []
-    PathSyncer().sync(_memory_source(), _Recording("/dst"))
-    log = _Recording.log
-    assert [e for e in log if e[0] != "write"] == [("enter", "/dst"), ("exit", "/dst")]
-    assert log[0][0] == "enter" and log[-1][0] == "exit"
-    _Recording.log = []
-    PathSyncer().sync(_memory_source(), _Recording("/dry"), dry_run=True)
-    assert _Recording.log == []
 
 
 # --- the member list of a batch ----------------------------------------------------
@@ -790,37 +753,6 @@ def _fields(snapshot):
     )
 
 
-def test_a_member_list_given_one_more_entry_equals_one_built_with_it():
-    from pathlib_next.archive._snapshot import _Snapshot
-    from pathlib_next.archive._zipentries import _new_info
-
-    names = [
-        "a/b/c.txt",
-        "a/d.txt",
-        "a/b/",
-        "x/",
-        "x/y/z/",
-        "x/y/z/w.txt",
-        "top.txt",
-        "./dot.txt",
-        "a/b/c.txt",
-        "p/q.txt",
-        "../escape.txt",
-        "a/b/c.txt/under-a-file",
-        "p/",
-        "y/y/y/y.txt",
-    ]
-    snapshot = _Snapshot(_ZipBackend, [])
-    entries = {}
-    for name in names:
-        info = _new_info(name, len(entries))
-        assert snapshot.add(name, info)
-        entries[name] = info
-        assert _fields(snapshot) == _fields(
-            _Snapshot(_ZipBackend, list(entries.items()))
-        )
-    assert snapshot.add("dot.txt", _new_info("dot.txt", 1)) is False
-    assert _fields(snapshot) == _fields(_Snapshot(_ZipBackend, list(entries.items())))
 
 
 def test_copying_a_tree_into_a_zip_derives_the_member_list_a_bounded_number_of_times(

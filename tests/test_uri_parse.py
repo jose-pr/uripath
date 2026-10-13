@@ -4,13 +4,13 @@ import pathlib
 import pytest
 
 import pathlib_next
-from pathlib_next.uri import Uri
+from uripath import Uri
 
 test_uris = ["http://user:pass@google.com:80"]
 
 
 def parse_uri(_uri: str):
-    uri = pathlib_next.Uri(_uri)
+    uri = Uri(_uri)
     assert uri.as_uri() == _uri
     return uri
 
@@ -65,7 +65,7 @@ def test_path():
 
 
 def test_encoded_path():
-    uri = pathlib_next.Uri(
+    uri = Uri(
         "http://goog%2Fe.com/root/subroot/%3Fquery/%23fragment/%2Fencoded%2Ffilename.ext"
     )
     assert uri.source.scheme == "http"
@@ -130,7 +130,7 @@ def test_source_str_and_repr_redact_password():
     # is what a traceback frame renders, so a Source anywhere on a failing
     # call stack leaked the credential, even though Uri.__str__() already
     # redacted. Both now redact the same way Uri.__str__() does.
-    from pathlib_next.uri.source import Source
+    from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
     assert "secret" not in str(source)
@@ -149,7 +149,7 @@ def test_source_str_no_longer_reconstructs_authenticated_uri():
     # parsed_userinfo() -- never whole-object str()). The real round trip,
     # for any caller that genuinely needs it, is as_str(sanitize=False)
     # (mirrors Uri.as_uri(sanitize=False)).
-    from pathlib_next.uri.source import Source
+    from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
     assert str(source) != "sftp://root:secret@nas:22"
@@ -157,7 +157,7 @@ def test_source_str_no_longer_reconstructs_authenticated_uri():
 
 
 def test_source_as_str_defaults_sanitized_matching_str():
-    from pathlib_next.uri.source import Source
+    from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
     assert source.as_str() == str(source) == "sftp://root@nas:22"
@@ -168,7 +168,7 @@ def test_source_userinfo_field_still_carries_password():
     # Redaction is display-only (__str__/__repr__) -- the actual data
     # access API (.userinfo, parsed_userinfo(), keys()/__getitem__) must
     # still return the real password; only rendering is sanitized.
-    from pathlib_next.uri.source import Source
+    from uripath.source import Source
 
     source = Source("sftp", "root:secret", "nas", 22)
     assert source.userinfo == "root:secret"

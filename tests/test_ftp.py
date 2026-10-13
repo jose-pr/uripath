@@ -7,8 +7,8 @@ import ftplib
 
 import pytest
 
-from pathlib_next.uri import Source, Uri
-from pathlib_next.uri.schemes.ftp import BaseFtpBackend, FtpBackend, FtpPath
+from uripath import Source, Uri
+from uripath.schemes.ftp import BaseFtpBackend, FtpBackend, FtpPath
 
 
 class _FakeFtpClient:

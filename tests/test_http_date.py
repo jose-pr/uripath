@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from pathlib_next.uri.schemes._httpdate import parsedate
+from uripath.schemes._httpdate import parsedate
 
 
 def test_parsedate_none_returns_epoch_zero():

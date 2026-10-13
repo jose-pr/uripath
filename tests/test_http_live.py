@@ -10,8 +10,8 @@ this was previously exercised by anything but the fallback branch.
 import pytest
 
 from http_fakes import on_current_transport
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.http import HttpPath
+from uripath import UriPath
+from uripath.schemes.http import HttpPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 

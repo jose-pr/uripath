@@ -20,7 +20,7 @@ from capabilities import requires_posix_modes
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next.archive._zipentries import _strip_zip64_extra
 from pathlib_next import _names as names_module
 from pathlib_next.archive import _pack as archive_module
@@ -226,10 +226,6 @@ def test_zip_overwrite_keeps_member_compression_and_mode(rich_zip):
     assert after["junk.txt"][1:3] == before["junk.txt"][1:3]
 
 
-def test_strip_zip64_extra_keeps_other_records():
-    zip64 = struct.pack("<HHQ", 0x0001, 8, 123)
-    assert _strip_zip64_extra(zip64 + _EXTRA + zip64) == _EXTRA
-    assert _strip_zip64_extra(b"") == b""
 
 
 @requires_posix_modes
@@ -609,40 +605,6 @@ _UNSAFE_UNPACK_NAMES = [
 ]
 
 
-@pytest.mark.parametrize("fmt", ["zip", "tar"])
-@pytest.mark.parametrize("name", _UNSAFE_UNPACK_NAMES)
-def test_unpack_archive_never_writes_outside_dest(tmp_path, monkeypatch, fmt, name):
-    members = [(name, b"payload"), ("ok.txt", b"ok")]
-    write = _write_zip if fmt == "zip" else _write_tar
-    archive = LocalPath(write(tmp_path / f"crafted.{fmt}", members))
-    top = tmp_path / "a"
-    dest = top / "b" / "dest"
-    dest.parent.mkdir(parents=True)
-
-    # Record every write target: a different-drive escape ('D:x') cannot be
-    # observed on disk when the machine has no such drive.
-    touched = []
-    real_open, real_mkdir = LocalPath.open, LocalPath.mkdir
-
-    def recording_open(self, mode="r", *args, **kwargs):
-        if any(flag in mode for flag in "wax+"):
-            touched.append(str(self))
-        return real_open(self, mode, *args, **kwargs)
-
-    def recording_mkdir(self, *args, **kwargs):
-        touched.append(str(self))
-        return real_mkdir(self, *args, **kwargs)
-
-    monkeypatch.setattr(LocalPath, "open", recording_open)
-    monkeypatch.setattr(LocalPath, "mkdir", recording_mkdir)
-    unpack_archive(archive, LocalPath(dest))
-    monkeypatch.undo()
-
-    assert (dest / "ok.txt").read_bytes() == b"ok"
-    inside = str(dest)
-    assert all(t == inside or t.startswith(inside + os.sep) for t in touched), touched
-    assert [p for p in top.rglob("*") if p.is_file() and dest not in p.parents] == []
-    assert [p for p in tmp_path.iterdir() if p.is_file()] == [archive]
 
 
 # --- ftparchive-zip-append-not-crash-safe ---
@@ -858,43 +820,8 @@ def test_member_index_cache_sees_a_write_through_another_path_object(tmp_path):
 # --- unpack_archive(): a backslash is a separator only for Windows --------
 
 
-def test_unpack_keeps_a_backslash_name_whole_on_a_posix_destination(
-    tmp_path, monkeypatch
-):
-    r"""`a\b` is ONE legal filename on POSIX. Splitting it unconditionally
-    restructured the extracted tree on every platform, and dropped
-    `..\esc` -- also one legal name -- without a word."""
-    monkeypatch.setattr(archive_module, "is_windows_flavoured", lambda p: False)
-    archive = _write_tar(
-        tmp_path / "bs.tar",
-        [(r"a\b", b"one"), (r"..\esc", b"two"), ("ok.txt", b"ok")],
-    )
-    dest = MemPath("/dest")
-    dest.mkdir(parents=True)
-    unpack_archive(LocalPath(archive), dest)
-    assert sorted(p.name for p in dest.iterdir()) == sorted(
-        [r"a\b", r"..\esc", "ok.txt"]
-    )
-    assert (dest / r"a\b").read_bytes() == b"one"
 
 
-def test_unpack_splits_a_backslash_name_for_a_windows_destination(
-    tmp_path, monkeypatch
-):
-    """On a Windows destination the same name IS a separator, and an
-    escaping one is refused rather than written."""
-    monkeypatch.setattr(archive_module, "is_windows_flavoured", lambda p: True)
-    archive = _write_tar(
-        tmp_path / "bs2.tar",
-        [(r"a\b", b"one"), (r"..\esc", b"two"), ("ok.txt", b"ok")],
-    )
-    dest = MemPath("/dest2")
-    dest.mkdir(parents=True)
-    unpack_archive(LocalPath(archive), dest)
-    assert sorted(p.name for p in dest.iterdir()) == ["a", "ok.txt"]
-    assert (dest / "a" / "b").read_bytes() == b"one"
-    # The escaping one would leave the destination: skipped, nothing written.
-    assert not [p for p in dest.iterdir() if p.name.startswith("..")]
 
 
 # --- unpack_archive(): names only Windows rewrites ------------------------
@@ -917,54 +844,10 @@ def _unpack_recording(archive, dest):
     return [str(w.message) for w in caught if issubclass(w.category, UserWarning)]
 
 
-@pytest.mark.parametrize("fmt", ["zip", "tar"])
-def test_unpack_skips_names_windows_rewrites_with_a_warning(tmp_path, monkeypatch, fmt):
-    monkeypatch.setattr(archive_module, "is_windows_flavoured", lambda p: True)
-    write = _write_zip if fmt == "zip" else _write_tar
-    archive = write(tmp_path / f"rewrite.{fmt}", _REWRITTEN_MEMBERS)
-    dest = MemPath(f"/rewrite-unpack-{fmt}")
-    dest.mkdir(parents=True)
-
-    messages = _unpack_recording(archive, dest)
-
-    assert sorted(p.name for p in dest.iterdir()) == ["ok.txt", "report.txt"]
-    assert (dest / "report.txt").read_bytes() == b"kept"
-    assert len(messages) == len(_REWRITTEN_SKIPPED)
-    for name in _REWRITTEN_SKIPPED:
-        assert any(name in message for message in messages), name
 
 
-def test_unpack_keeps_names_windows_rewrites_on_a_posix_destination(
-    tmp_path, monkeypatch
-):
-    monkeypatch.setattr(archive_module, "is_windows_flavoured", lambda p: False)
-    archive = _write_tar(tmp_path / "posix.tar", _REWRITTEN_MEMBERS)
-    dest = MemPath("/rewrite-unpack-posix")
-    dest.mkdir(parents=True)
-
-    messages = _unpack_recording(archive, dest)
-
-    assert messages == []
-    assert sorted(p.name for p in dest.iterdir()) == sorted(
-        ["ok.txt", "report.txt", "report.txt.", "nul", "dir", "trail. "]
-    )
 
 
-@pytest.mark.skipif(os.name != "nt", reason="needs a Windows file system")
-def test_unpack_onto_a_windows_disk_leaves_existing_files_alone(tmp_path):
-    dest = tmp_path / "dest"
-    dest.mkdir()
-    (dest / "report.txt").write_text("ORIGINAL")
-    archive = _write_zip(
-        tmp_path / "disk.zip",
-        [("report.txt.", b"dot"), ("NUL", b"nul"), ("ok.txt", b"ok")],
-    )
-
-    messages = _unpack_recording(archive, LocalPath(dest))
-
-    assert len(messages) == 2
-    assert sorted(os.listdir(dest)) == ["ok.txt", "report.txt"]
-    assert (dest / "report.txt").read_text() == "ORIGINAL"
 
 
 def test_a_member_name_with_a_nul_is_refused_and_the_archive_is_unchanged(tmp_path):

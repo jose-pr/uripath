@@ -17,10 +17,10 @@ import threading
 import pytest
 
 from pathlib_next.path._relation import _same_file
-from pathlib_next.uri import Uri, UriPath
+from uripath import Uri, UriPath
 
 from http_fakes import on_current_transport
-from pathlib_next.uri.schemes.http import HttpPath
+from uripath.schemes.http import HttpPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -328,35 +328,6 @@ _PURE_OPERATIONS = [
 ]
 
 
-def test_pure_operations_on_an_sftp_path_import_no_ssh_library():
-    """Run in a fresh interpreter: `sys.modules` there starts without them."""
-    code = "\n".join(
-        [
-            "import sys",
-            "from pathlib import PurePosixPath",
-            "from pathlib_next.uri import Uri, UriPath",
-            "p = UriPath('sftp://h/a/b')",
-            *(
-                f"r = {operation}\n"
-                f"derived = r if isinstance(r, list) else [r]\n"
-                f"assert all(x._backend is None for x in derived), {operation!r}"
-                for operation in _PURE_OPERATIONS
-            ),
-            "assert p._backend is None",
-            "loaded = {'paramiko', 'asyncssh'} & set(sys.modules)",
-            "assert not loaded, loaded",
-            "print('ok')",
-        ]
-    )
-    import pathlib_next
-
-    source = str(pathlib.Path(pathlib_next.__file__).resolve().parent.parent)
-    env = {**os.environ, "PYTHONPATH": source, "PYTHONDONTWRITEBYTECODE": "1"}
-    result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True, env=env
-    )
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "ok"
 
 
 # --- a derived backend is recorded on the path ------------------------------

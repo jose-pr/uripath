@@ -4,8 +4,8 @@ test_contract.py::TestDavContract).
 
 import pytest
 
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.dav import DavPath
+from uripath import UriPath
+from uripath.schemes.dav import DavPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -14,7 +14,7 @@ def test_dav_scheme_resolves_via_entry_point(dav_server):
     # Regression for a stale editable-install `entry_points.txt` (found
     # while verifying this fix): after the webdav.py -> dav.py rename
     # (6cd1ba8), `UriPath("dav://...")` raised ModuleNotFoundError for
-    # `pathlib_next.uri.schemes.webdav` because the installed package
+    # `uripath.schemes.webdav` because the installed package
     # metadata wasn't regenerated. TestDavContract's `root()` fixture
     # constructs `DavPath(...)` directly and so never exercised the
     # entry-point lookup path that real callers use.

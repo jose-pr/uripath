@@ -8,9 +8,9 @@ import threading
 
 import pytest
 
-import pathlib_next
+import uripath
 from http_fakes import on_current_transport
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -185,7 +185,7 @@ def test_headers_other_than_authorization_follow_a_redirect(recorder):
 
 
 def test_the_header_and_guide_say_which_headers_follow_a_redirect():
-    header = (pathlib.Path(pathlib_next.__file__).parent / "AGENTS.md").read_text(
+    header = (pathlib.Path(uripath.__file__).parent / "AGENTS.md").read_text(
         encoding="utf-8"
     )
     assert "other than `Authorization`" in header

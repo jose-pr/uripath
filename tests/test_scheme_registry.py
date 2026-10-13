@@ -20,13 +20,13 @@ import pytest
 pytest.importorskip("uritools")
 pytest.importorskip("netimps")
 
-import pathlib_next
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.data import DataUri
-from pathlib_next.uri.schemes.file import FileUri
+import uripath
+from uripath import UriPath
+from uripath.schemes.data import DataUri
+from uripath.schemes.file import FileUri
 
 # The tree this process imports, so a child tests the same code.
-_SRC = pathlib.Path(pathlib_next.__file__).resolve().parent.parent
+_SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 
 _PRELUDE = """
 import socket, sys
@@ -60,7 +60,7 @@ def _run(code: str, *extra_paths, blocked=()) -> subprocess.CompletedProcess:
 
 @pytest.fixture
 def plugins(tmp_path):
-    """A distribution on the path whose entry points name the built-in `sftp:`
+    """A distribution on the path whose entry points name the built-in `ftp:`
     and `file:` (module `regplug_shadow`) and a scheme of its own, `regextra:`
     (module `regplug_extra`)."""
     dist = tmp_path / "regplug-1.0.dist-info"
@@ -69,18 +69,18 @@ def plugins(tmp_path):
         b"Metadata-Version: 2.1\nName: regplug\nVersion: 1.0\n"
     )
     (dist / "entry_points.txt").write_bytes(
-        b"[pathlib_next.schemes]\n"
-        b"sftp = regplug_shadow:Shadow\n"
+        b"[uripath.schemes]\n"
+        b"ftp = regplug_shadow:Shadow\n"
         b"file = regplug_shadow:Shadow\n"
         b"regextra = regplug_extra:Extra\n"
     )
     (tmp_path / "regplug_shadow.py").write_bytes(
-        b"from pathlib_next.uri import UriPath\n"
+        b"from uripath import UriPath\n"
         b"class Shadow(UriPath):\n"
-        b"    __SCHEMES = ('sftp', 'file')\n"
+        b"    __SCHEMES = ('ftp', 'file')\n"
     )
     (tmp_path / "regplug_extra.py").write_bytes(
-        b"from pathlib_next.uri import UriPath\n"
+        b"from uripath import UriPath\n"
         b"class Extra(UriPath):\n"
         b"    __SCHEMES = ('regextra',)\n"
     )
@@ -165,7 +165,7 @@ def test_reloading_a_module_takes_its_scheme_over_with_the_new_class(
 ):
     source = tmp_path / "regreload_module.py"
     source.write_bytes(textwrap.dedent("""\
-            from pathlib_next.uri import UriPath
+            from uripath import UriPath
             class Reloaded(UriPath):
                 __SCHEMES = ('regreload1',)
                 __slots__ = ()
@@ -188,8 +188,8 @@ def test_reloading_a_module_takes_its_scheme_over_with_the_new_class(
 def test_reloading_a_built_in_scheme_module_keeps_the_scheme_dispatching():
     result = _run("""
         import importlib
-        from pathlib_next.uri import UriPath
-        import pathlib_next.uri.schemes.data as data
+        from uripath import UriPath
+        import uripath.schemes.data as data
 
         first = data.DataUri
         importlib.reload(data)
@@ -218,7 +218,7 @@ def test_a_class_statement_run_twice_registers_the_second_class():
 
 def test_a_class_of_the_same_qualified_name_in_another_module_is_still_refused():
     source = (
-        "from pathlib_next.uri import UriPath\n"
+        "from uripath import UriPath\n"
         "class Twin(UriPath):\n"
         "    __SCHEMES = ('regtwin1',)\n"
         "    __slots__ = ()\n"
@@ -255,34 +255,34 @@ def test_a_class_cannot_take_a_built_in_scheme_by_definition(scheme):
 
 def test_a_built_in_scheme_is_refused_before_its_module_is_imported():
     result = _run("""
-        from pathlib_next.uri import UriPath
+        from uripath import UriPath
         try:
             class Hijack(UriPath):
-                __SCHEMES = ("sftp",)
+                __SCHEMES = ("ftp",)
         except ValueError as error:
             print("refused:", error)
-        print("imported:", "pathlib_next.uri.schemes.sftp" in sys.modules)
-        print("class:", UriPath.scheme_class("sftp").__module__)
+        print("imported:", "uripath.schemes.ftp" in sys.modules)
+        print("class:", UriPath.scheme_class("ftp").__module__)
         """)
     refused, imported, cls = result.stdout.splitlines()
-    assert refused.startswith("refused: 'sftp' is a built-in URI scheme")
+    assert refused.startswith("refused: 'ftp' is a built-in URI scheme")
     assert "replace=True" in refused
     assert imported == "imported: False"
-    assert cls == "class: pathlib_next.uri.schemes.sftp"
+    assert cls == "class: uripath.schemes.ftp"
 
 
 def test_a_replaced_built_in_scheme_stays_replaced_when_its_module_is_imported():
     result = _run("""
-        from pathlib_next.uri import UriPath
+        from uripath import UriPath
 
         class Mine(UriPath, replace=True):
-            __SCHEMES = ("sftp",)
+            __SCHEMES = ("ftp",)
             __slots__ = ()
 
-        import pathlib_next.uri.schemes.sftp as builtin
-        print(UriPath.scheme_class("sftp") is Mine)
-        print(type(UriPath("sftp://h/x")) is Mine)
-        print(builtin.SftpPath is not Mine)
+        import uripath.schemes.ftp as builtin
+        print(UriPath.scheme_class("ftp") is Mine)
+        print(type(UriPath("ftp://h/x")) is Mine)
+        print(builtin.FtpPath is not Mine)
         """)
     assert result.stdout.split() == ["True", "True", "True"]
 
@@ -293,8 +293,8 @@ def test_a_replaced_built_in_scheme_stays_replaced_when_its_module_is_imported()
 def test_an_entry_point_named_like_a_built_in_scheme_does_not_displace_it(plugins):
     result = _run(
         """
-        from pathlib_next.uri import UriPath
-        print(type(UriPath("sftp://u@h/x")).__module__)
+        from uripath import UriPath
+        print(type(UriPath("ftp://u@h/x")).__module__)
         print(type(UriPath("file:///x")).__module__)
         print("regplug_shadow" in sys.modules)
         try:
@@ -304,20 +304,20 @@ def test_an_entry_point_named_like_a_built_in_scheme_does_not_displace_it(plugin
         """,
         plugins,
     )
-    sftp, file, imported, refused = result.stdout.splitlines()
-    assert sftp == "pathlib_next.uri.schemes.sftp"
-    assert file == "pathlib_next.uri.schemes.file"
+    ftp, file, imported, refused = result.stdout.splitlines()
+    assert ftp == "uripath.schemes.ftp"
+    assert file == "uripath.schemes.file"
     assert imported == "False"
     assert refused.startswith(
-        "refused: URI scheme 'sftp' is already registered by "
-        "pathlib_next.uri.schemes.sftp.SftpPath"
+        "refused: URI scheme 'ftp' is already registered by "
+        "uripath.schemes.ftp.FtpPath"
     )
 
 
 def test_an_entry_point_for_a_scheme_of_its_own_is_loaded_on_demand(plugins):
     result = _run(
         """
-        from pathlib_next.uri import UriPath
+        from uripath import UriPath
         print("regextra" in UriPath.schemes(), "regplug_extra" in sys.modules)
         print(type(UriPath("regextra://h/x")).__name__)
         print(UriPath.scheme_class("regextra").__module__)
@@ -332,22 +332,22 @@ def test_an_entry_point_for_a_scheme_of_its_own_is_loaded_on_demand(plugins):
 
 def test_schemes_lists_every_built_in_name_without_importing_its_module():
     result = _run("""
-        from pathlib_next.uri import UriPath
+        from uripath import UriPath
         names = UriPath.schemes()
         print(isinstance(names, tuple), list(names) == sorted(set(names)))
         print(" ".join(sorted(set(names) & {
             "file", "data", "zip", "tar", "archive", "archive+zip", "archive+tar",
-            "ftp", "ftps", "http", "https", "dav", "davs", "sftp", "s3", "gs",
-            "az", "github", "gitlab", "git", "git+github", "git+gitlab",
+            "ftp", "ftps", "http", "https", "dav", "davs",
+            "github", "gitlab", "git", "git+github", "git+gitlab",
         })))
-        print([m for m in sys.modules if m.startswith("pathlib_next.uri.schemes.")
-               and m.split(".")[3] in {"sftp", "s3", "gs", "az", "ftp", "http"}])
+        print([m for m in sys.modules if m.startswith("uripath.schemes.")
+               and m.split(".")[3] in {"ftp", "http"}])
         """)
     shape, names, imported = result.stdout.splitlines()
     assert shape == "True True"
     assert names.split() == sorted(
         "file data zip tar archive archive+zip archive+tar ftp ftps http https "
-        "dav davs sftp s3 gs az github gitlab git git+github git+gitlab".split()
+        "dav davs github gitlab git git+github git+gitlab".split()
     )
     assert imported == "[]"
 
@@ -355,7 +355,7 @@ def test_schemes_lists_every_built_in_name_without_importing_its_module():
 def test_schemes_lists_an_entry_point_whose_module_is_not_imported(plugins):
     result = _run(
         """
-        from pathlib_next.uri import UriPath
+        from uripath import UriPath
         print("regextra" in UriPath.schemes(), "regplug_extra" in sys.modules)
         """,
         plugins,
@@ -390,33 +390,13 @@ def test_scheme_class_of_an_unknown_name_names_what_is_registered():
     message = str(unknown.value)
     assert "'regnosuchscheme'" in message
     assert message.endswith(", ".join(UriPath.schemes()))
-    assert "sftp" in message and "file" in message
-
-
-def test_a_scheme_whose_client_library_is_missing_stays_listed_and_fails_on_use():
-    result = _run(
-        """
-        from pathlib_next.uri import UriPath
-        names = set(UriPath.schemes())
-        print(sorted(names & {"http", "https", "dav", "davs", "github", "gitlab"}))
-        print(UriPath.scheme_class("http").__name__)
-        try:
-            UriPath("http://h/x").with_session(None)
-        except ImportError as error:
-            print(error)
-        """,
-        blocked=("requests",),
-    )
-    names, cls, error = result.stdout.splitlines()
-    assert names == str(["dav", "davs", "github", "gitlab", "http", "https"])
-    assert cls == "HttpPath"
-    assert "pathlib-next[http]" in error
+    assert "ftp" in message and "file" in message
 
 
 def test_a_built_in_module_that_cannot_be_imported_stays_listed_and_raises_on_use():
     result = _run("""
         from unittest import mock
-        from pathlib_next.uri import UriPath
+        from uripath import UriPath
         with mock.patch("importlib.import_module", side_effect=ImportError("no dep")):
             try:
                 UriPath.scheme_class("ftp")

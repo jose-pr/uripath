@@ -2,12 +2,10 @@
 
 A scheme class registers itself with `UriPath` when its submodule is
 imported, and `UriPath` imports the submodule on demand the first time its
-scheme is used. The class re-exports below (`HttpPath`, `S3Path`, ...) are
+scheme is used. The class re-exports below (`HttpPath`, `FtpPath`, ...) are
 resolved lazily (PEP 562): importing this package, or one scheme submodule
 such as `.file`, imports no other backend, so a `file:` path never pays for
-`http.client` or `botocore`. A scheme class imports whether or not its client
-library is installed: a path of it joins and compares, and the first
-operation that needs the library raises an `ImportError` naming the extra.
+`http.client`.
 """
 
 from __future__ import annotations
@@ -18,7 +16,6 @@ import typing as _ty
 if _ty.TYPE_CHECKING:
     from .archive import TarUri as TarUri
     from .archive import ZipUri as ZipUri
-    from .az import AzPath as AzPath
     from .data import DataUri as DataUri
     from .dav import DavPath as DavPath
     from .file import FileUri as FileUri
@@ -26,10 +23,7 @@ if _ty.TYPE_CHECKING:
     from .git import GitPath as GitPath
     from .github import GitHubPath as GitHubPath
     from .gitlab import GitLabPath as GitLabPath
-    from .gs import GsPath as GsPath
     from .http import HttpPath as HttpPath
-    from .s3 import S3Path as S3Path
-    from .sftp import SftpPath as SftpPath
 
 #: Re-exported class name -> the submodule that defines it.
 _EXPORTS = {
@@ -40,10 +34,6 @@ _EXPORTS = {
     "FtpPath": "ftp",
     "HttpPath": "http",
     "DavPath": "dav",
-    "SftpPath": "sftp",
-    "S3Path": "s3",
-    "GsPath": "gs",
-    "AzPath": "az",
     "GitHubPath": "github",
     "GitLabPath": "gitlab",
     "GitPath": "git",

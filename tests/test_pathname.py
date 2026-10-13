@@ -12,7 +12,7 @@ import pytest
 
 from pathlib_next.fspath import PosixPathname
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import Uri
+from uripath import Uri
 
 IMPLS = [PosixPathname, Uri, MemPath]
 
@@ -249,88 +249,15 @@ def test_is_relative_to_negative_str_and_object_agree_with_stdlib(cls, path, oth
     assert cls(path).is_relative_to(other) is expected
 
 
-def test_mempath_is_relative_to_str_keeps_the_backend():
-    # with_segments(), not type(self)(other): the bare constructor hands
-    # MemPath a fresh empty backend, which is the kind of per-instance
-    # state a generic normalization must not drop.
-    from pathlib_next.mempath import MemPathBackend
-
-    backend = MemPathBackend()
-    p = MemPath("a/b", backend=backend)
-    assert p.is_relative_to("a") is True
-    assert p.with_segments("a").backend is backend
 
 
-def test_generic_pathname_subclass_gets_working_equality():
-    """A minimal Track A subclass -- the shape `docs/guides/extending.md`
-    documents -- must get equality (and therefore is_relative_to) without
-    hand-writing __eq__."""
-    from pathlib_next.path import Pathname
-
-    class Toy(Pathname):
-        __slots__ = ("_segments",)
-
-        def __init__(self, *segments):
-            parts = []
-            for segment in segments:
-                if isinstance(segment, Pathname):
-                    parts.extend(segment.segments)
-                else:
-                    parts.append(segment)
-            self._segments = "/".join(parts).split("/")
-
-        @property
-        def segments(self):
-            return self._segments
-
-        @property
-        def parts(self):
-            return tuple(self._segments)
-
-        @property
-        def parent(self):
-            return self.with_segments(*self._segments[:-1])
-
-        def with_segments(self, *segments):
-            return type(self)(*segments)
-
-        def relative_to(self, other):
-            raise NotImplementedError()
-
-        def as_uri(self):
-            return "toy:" + self.as_posix()
-
-    assert Toy("a", "b") == Toy("a/b")
-    assert Toy("a/b") != Toy("a/c")
-    assert len({Toy("a/b"), Toy("a/b")}) == 1
-    assert Toy("a/b").is_relative_to(Toy("a")) is True
-    assert Toy("a/b").is_relative_to("a") is True
-    assert Toy("a/b").is_relative_to("c") is False
 
 
-def test_localpath_keeps_stdlib_equality_semantics():
-    """`pathlib.PurePath` precedes `Pathname` in the fspath MRO, so the new
-    default must NOT displace stdlib's (case-folding, cross-subclass)
-    equality there."""
-    from pathlib_next.fspath import LocalPath, _BaseFSPathname
-    from pathlib_next.path import Pathname
-
-    for cls in (LocalPath, PosixPathname):
-        names = [k.__name__ for k in cls.__mro__]
-        assert names.index("PurePath") < names.index("Pathname")
-        assert cls.__eq__ is not Pathname.__eq__
-        assert cls.__eq__ is pathlib.PurePath.__eq__
-
-    assert issubclass(PosixPathname, _BaseFSPathname)
-    assert LocalPath("a/b") == pathlib.Path("a/b")
 
 
 # --- ordering --------------------------------------------------------------
 
 
-def test_generic_paths_sort_by_their_segments():
-    paths = [MemPath("/b"), MemPath("/a/x"), MemPath("/a"), MemPath("c"), MemPath("/")]
-    assert [p.as_posix() for p in sorted(paths)] == ["/", "/a", "/a/x", "/b", "c"]
 
 
 @pytest.mark.parametrize("cls", [MemPath, Uri])
@@ -357,13 +284,6 @@ def test_ordering_is_unavailable_between_unrelated_types():
     assert MemPath.__lt__(memory, PosixPathname("/a")) is NotImplemented
 
 
-def test_a_subclass_does_not_order_against_its_base():
-    class Sub(MemPath):
-        pass
-
-    with pytest.raises(TypeError):
-        Sub("/a") < MemPath("/b")
-    assert Sub("/a") < Sub("/b")
 
 
 def test_uris_sort_by_their_text_so_the_host_counts():
@@ -375,10 +295,3 @@ def test_uris_sort_by_their_text_so_the_host_counts():
     ]
 
 
-def test_localpath_keeps_stdlib_ordering():
-    from pathlib_next.fspath import LocalPath
-
-    for cls in (LocalPath, PosixPathname):
-        for name in ("__lt__", "__le__", "__gt__", "__ge__"):
-            assert getattr(cls, name) is getattr(pathlib.PurePath, name)
-    assert LocalPath("a") < LocalPath("b")

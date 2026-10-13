@@ -22,8 +22,8 @@ from test_archive_links import FORMATS, _archive, _root
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.archive._base import ArchiveUri
+from uripath import UriPath
+from uripath.schemes.archive._base import ArchiveUri
 from pathlib_next.sync import PathSyncer
 
 RUNAWAY = 100_000

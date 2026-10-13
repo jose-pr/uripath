@@ -8,25 +8,12 @@ import shutil
 import sys
 import typing as _ty
 
-from .. import LocalPath
-from ..sync import PathSyncer, SyncEvent
+from pathlib_next import LocalPath
+from pathlib_next.sync import PathSyncer, SyncEvent
 
-try:
-    from ..uri import Source, UriPath
-except ImportError as _error:
-    # The `uri` extra is optional: local paths and `-` still work without
-    # it, and a URI argument reports what to install (see `_path()`).
-    UriPath = None
-    _URI_IMPORT_ERROR = _error
-else:
-    _URI_IMPORT_ERROR = None
+from . import Source, UriPath
 
 _CHUNK_SIZE = 1024 * 1024
-
-#: Lazily read scheme names from this distribution's entry points; see
-#: `_shipped_schemes()`.
-_SHIPPED_SCHEMES = None
-
 
 # RFC 3986 scheme, then the colon.
 _SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
@@ -38,30 +25,6 @@ _WINDOWS = os.name == "nt"
 #: POSIX tool killed by SIGPIPE reports it; and after Ctrl-C (128 + SIGINT).
 _EXIT_BROKEN_PIPE = 141
 _EXIT_INTERRUPTED = 130
-
-
-def _shipped_schemes() -> "frozenset[str]":
-    """The scheme names this package registers, read from its entry points.
-
-    Available even without the `uri` extra (it is this distribution's own
-    metadata), so a colon name such as `notes:draft` stays a local path in
-    either install, instead of being reported as a URI needing an extra.
-    """
-    global _SHIPPED_SCHEMES
-    if _SHIPPED_SCHEMES is None:
-        import importlib.metadata as _md
-
-        try:
-            try:
-                eps = _md.entry_points(group="pathlib_next.schemes")
-            except TypeError:  # Python 3.9 has no group= keyword
-                eps = _md.entry_points().get("pathlib_next.schemes", ())
-            _SHIPPED_SCHEMES = frozenset(ep.name.lower() for ep in eps)
-        except Exception:
-            # No metadata (a zipapp, a vendored copy): treat any
-            # scheme-shaped argument as a URI.
-            _SHIPPED_SCHEMES = frozenset()
-    return _SHIPPED_SCHEMES
 
 
 def _looks_like_uri(value: str) -> bool:
@@ -78,11 +41,6 @@ def _looks_like_uri(value: str) -> bool:
     if "://" in value:
         return True
     scheme = value[: match.end() - 1].lower()
-    if UriPath is None:
-        # No scheme class can be loaded; the package's own entry points still
-        # say which schemes it ships, and `_path()` names the extra for them.
-        shipped = _shipped_schemes()
-        return not shipped or scheme in shipped
     try:
         return Source(scheme, None, None, None).get_scheme_cls() is not UriPath
     except Exception:
@@ -90,19 +48,8 @@ def _looks_like_uri(value: str) -> bool:
         return True
 
 
-def _extra_needed(value: str) -> ImportError:
-    """The error for a URI argument when the `uri` extra is missing. It names
-    the scheme and never the argument, which can carry a password."""
-    scheme = value[: _SCHEME_RE.match(value).end() - 1].lower()
-    return ImportError(
-        f"the {scheme!r} scheme needs the 'uri' extra: pip install 'pathlib-next[uri]'"
-    )
-
-
 def _path(value: str):
     if _looks_like_uri(value):
-        if UriPath is None:
-            raise _extra_needed(value) from _URI_IMPORT_ERROR
         return UriPath(value, findclass=True)
     return LocalPath(value)
 
@@ -290,7 +237,7 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="uripath",
-        description="Read, write, copy, remove, and sync pathlib_next paths.",
+        description="Read, write, copy, remove, and sync local paths and URIs.",
         epilog="A PATH is a local path or a URI; '-' is stdin or stdout where "
         "bytes are read or written.",
     )

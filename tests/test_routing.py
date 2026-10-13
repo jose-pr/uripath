@@ -19,7 +19,7 @@ from pathlib_next.mempath import MemPath
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import Source, UriPath  # noqa: E402
+from uripath import Source, UriPath  # noqa: E402
 
 LocalPath = pathlib_next.LocalPath
 
@@ -66,7 +66,7 @@ def test_with_source_keeps_backend_only_for_the_same_authority():
 
 
 def test_github_token_backend_does_not_follow_join_to_another_host():
-    from pathlib_next.uri.schemes.github import GitHubPath
+    from uripath.schemes.github import GitHubPath
 
     root = GitHubPath("github://ghp_SECRET@github.com/acme/widgets")
 
@@ -96,144 +96,6 @@ def test_ftp_rename_to_another_server_raises_not_implemented():
     src = UriPath("ftp://a.invalid/report.csv")
     with pytest.raises(NotImplementedError):
         src.rename(UriPath("ftp://b.invalid/sub/report.csv"))
-
-
-def test_sftp_rename_and_hardlink_to_another_host_raise_not_implemented():
-    pytest.importorskip("paramiko")
-    src = UriPath("sftp://a.invalid/data/report.csv")
-    with pytest.raises(NotImplementedError):
-        src.rename(UriPath("sftp://b.invalid/incoming/report.csv"))
-    with pytest.raises(NotImplementedError):
-        src.rename(LocalPath("report.csv").absolute())
-
-
-def test_sftp_concurrent_copy_is_not_used_for_a_foreign_target(monkeypatch):
-    pytest.importorskip("asyncssh")
-    from pathlib_next.path import Path
-    from pathlib_next.uri.schemes.sftp import SftpPath
-    from pathlib_next.uri.schemes.sftp._asyncssh import AsyncsshSftpBackend
-
-    calls = []
-    monkeypatch.setattr(Path, "copy", lambda self, target, **kw: calls.append(target))
-    # A directory source: the fan-out condition must fail on the target alone.
-    monkeypatch.setattr(SftpPath, "is_dir", lambda self, **kw: True)
-    src = SftpPath("sftp://a.invalid/data", backend=AsyncsshSftpBackend())
-    local = LocalPath("dl").absolute()
-    SftpPath.copy(src, local, recursive=True)
-    other_host = SftpPath("sftp://b.invalid/backup", backend=AsyncsshSftpBackend())
-    SftpPath.copy(src, other_host, recursive=True)
-    assert calls == [local, other_host]
-
-
-def test_s3_move_to_another_bucket_lands_in_that_bucket(aws_test_credentials):
-    boto3 = pytest.importorskip("boto3")
-    pytest.importorskip("moto")
-    from moto import mock_aws
-
-    with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket="bkt")
-        client.create_bucket(Bucket="other")
-        client.put_object(Bucket="bkt", Key="in/report.csv", Body=b"NEW")
-        client.put_object(Bucket="bkt", Key="archive/report.csv", Body=b"PRECIOUS")
-
-        src = UriPath("s3://bkt/in/report.csv")
-        with pytest.raises(NotImplementedError):
-            src.rename(UriPath("s3://other/archive/report.csv"))
-        src.move(UriPath("s3://other/archive/report.csv"))
-
-        def keys(bucket):
-            return {
-                o["Key"]: client.get_object(Bucket=bucket, Key=o["Key"])["Body"].read()
-                for o in client.list_objects_v2(Bucket=bucket).get("Contents", [])
-            }
-
-        assert keys("other") == {"archive/report.csv": b"NEW"}
-        assert keys("bkt") == {"archive/report.csv": b"PRECIOUS"}
-
-
-def test_s3_rename_onto_itself_keeps_the_object(aws_test_credentials):
-    boto3 = pytest.importorskip("boto3")
-    pytest.importorskip("moto")
-    from moto import mock_aws
-
-    with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket="bkt")
-        client.put_object(Bucket="bkt", Key="self.txt", Body=b"KEEP")
-        UriPath("s3://bkt/self.txt").rename("self.txt")
-        assert client.get_object(Bucket="bkt", Key="self.txt")["Body"].read() == b"KEEP"
-
-
-class _AzBlob:
-    def __init__(self, container, name):
-        self._container = container
-        self.name = name
-        self.url = f"https://acct.invalid/cont/{name}"
-
-    def start_copy_from_url(self, url):
-        source = url.rsplit("/cont/", 1)[1]
-        self._container.objects[self.name] = self._container.objects[source]
-        return {"copy_status": "pending"}
-
-    def get_blob_properties(self):
-        class _Copy:
-            status = "success"
-
-        class _Props:
-            copy = _Copy()
-
-            def __getitem__(self, key):
-                raise KeyError(key)
-
-        return _Props()
-
-    def delete_blob(self):
-        del self._container.objects[self.name]
-
-
-class _AzContainer:
-    def __init__(self):
-        self.objects = {}
-
-    def get_blob_client(self, name):
-        return _AzBlob(self, name)
-
-    def list_blobs(self, name_starts_with="", **_kwargs):
-        return iter(
-            [name for name in sorted(self.objects) if name.startswith(name_starts_with)]
-        )
-
-
-def _az_path(uri, container):
-    from pathlib_next.uri.schemes.az import AzPath, BaseAzBackend
-
-    class _Client:
-        def get_container_client(self, _name):
-            return container
-
-    class _Backend(BaseAzBackend):
-        def client(self):
-            return _Client()
-
-    return AzPath(uri, backend=_Backend())
-
-
-def test_az_rename_with_str_target_and_pending_copy_poll():
-    container = _AzContainer()
-    container.objects["a.txt"] = b"A"
-    _az_path("az://acct/cont/a.txt", container).rename("b.txt")
-    assert container.objects == {"b.txt": b"A"}
-
-
-def test_az_rename_onto_itself_or_other_container():
-    container = _AzContainer()
-    container.objects["self.txt"] = b"KEEP"
-    path = _az_path("az://acct/cont/self.txt", container)
-    path.rename("self.txt")
-    assert container.objects == {"self.txt": b"KEEP"}
-    with pytest.raises(NotImplementedError):
-        path.rename(UriPath("az://acct/othercont/self.txt"))
 
 
 # --- archives -------------------------------------------------------------
@@ -285,61 +147,11 @@ def test_file_uri_rename_relative_str_is_a_sibling_rename(tmp_path, monkeypatch)
 
 
 def test_file_uri_rename_to_remote_target_raises(tmp_path):
-    pytest.importorskip("paramiko")
     (tmp_path / "a.txt").write_text("A")
     src = UriPath(LocalPath(tmp_path / "a.txt"))
     with pytest.raises(NotImplementedError):
-        src.rename(UriPath("sftp://host.invalid/srv/a.txt"))
+        src.rename(UriPath("ftp://host.invalid/srv/a.txt"))
     assert (tmp_path / "a.txt").read_text() == "A"
 
 
 # --- Path.move() ----------------------------------------------------------
-
-
-def test_local_move_onto_mempath_copies_instead_of_renaming(tmp_path):
-    src = LocalPath(tmp_path / "upload.csv")
-    src.write_text("DATA")
-    target = MemPath("/") / "upload.csv"
-    src.move(target)
-    assert target.read_text() == "DATA"
-    assert not src.exists()
-
-
-def test_mempath_move_with_str_destination_stays_in_the_same_backend():
-    root = MemPath("/")
-    src = root / "src.txt"
-    src.write_text("DATA")
-    src.move("/c.txt")
-    assert (root / "c.txt").read_text() == "DATA"
-    assert not src.exists()
-
-
-def test_mempath_copy_with_str_destination_stays_in_the_same_backend():
-    root = MemPath("/")
-    src = root / "src.txt"
-    src.write_text("DATA")
-    src.copy("/b.txt")
-    assert (root / "b.txt").read_text() == "DATA"
-
-
-def test_move_falls_back_to_copy_on_cross_device_rename(tmp_path, monkeypatch):
-    def exdev(self, target):
-        raise OSError(errno.EXDEV, "Invalid cross-device link")
-
-    monkeypatch.setattr(LocalPath, "rename", exdev)
-    monkeypatch.setattr(LocalPath, "replace", exdev)
-    src = LocalPath(tmp_path / "a.txt")
-    src.write_text("A")
-    target = LocalPath(tmp_path / "b.txt")
-    target.write_text("OLD")
-    src.move(target, overwrite=True)
-    assert target.read_text() == "A"
-    assert not src.exists()
-
-    tree = LocalPath(tmp_path / "tree")
-    (tree / "sub").mkdir(parents=True)
-    (tree / "sub" / "f.txt").write_text("F")
-    dest = LocalPath(tmp_path / "moved")
-    tree.move(dest)
-    assert (dest / "sub" / "f.txt").read_text() == "F"
-    assert not tree.exists()

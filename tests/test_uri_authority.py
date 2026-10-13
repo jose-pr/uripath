@@ -8,8 +8,8 @@ import ipaddress
 
 import pytest
 
-from pathlib_next.uri import Uri, UriPath, _same_authority
-from pathlib_next.uri.source import Source
+from uripath import Uri, UriPath, _same_authority
+from uripath.source import Source
 
 # --- a host of digits ------------------------------------------------------
 

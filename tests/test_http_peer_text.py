@@ -8,9 +8,9 @@ import xml.sax.saxutils
 import pytest
 
 from http_wire import Reply, Wire, response
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.http import HttpBackend
-from pathlib_next.uri.schemes._http._headers import peer_text
+from uripath import UriPath
+from uripath.schemes.http import HttpBackend
+from uripath.schemes._http._headers import peer_text
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -67,7 +67,7 @@ def test_a_long_reason_phrase_is_cut():
 
 
 def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
-    from pathlib_next.uri.schemes.github import GitHubPath, RepoBackend
+    from uripath.schemes.github import GitHubPath, RepoBackend
 
     with Wire(reply_with_reason(f"Oops {ESC}", 500)) as wire:
         path = GitHubPath(
@@ -80,7 +80,7 @@ def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
 
 
 def test_a_rate_limit_header_is_shown_escaped_and_cut():
-    from pathlib_next.uri.schemes.github import GitHubPath, RepoBackend
+    from uripath.schemes.github import GitHubPath, RepoBackend
 
     def script(request):
         return response(

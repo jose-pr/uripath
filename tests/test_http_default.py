@@ -1,5 +1,5 @@
 """Which transport a backend sends with when it is not given one: the built-in
-one, `requests` only when asked, and nothing imported that is not needed."""
+one, and nothing imported that is not needed."""
 
 import os
 import pathlib
@@ -9,17 +9,13 @@ import textwrap
 
 import pytest
 
-import pathlib_next
+import uripath
 from http_fakes import FakeTransport, reply
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes._http import _select
-from pathlib_next.uri.schemes.http import (
-    HttpBackend,
-    HTTPTransport,
-    RequestsTransport,
-)
+from uripath import UriPath
+from uripath.schemes._http import _select
+from uripath.schemes.http import HttpBackend, HTTPTransport
 
-_SRC = pathlib.Path(__file__).resolve().parent.parent / "src"
+_SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 VARIABLE = "PATHLIB_NEXT_HTTP_TRANSPORT"
 
 
@@ -39,16 +35,12 @@ def test_a_backend_builds_its_transport_on_first_use_and_keeps_it(monkeypatch):
 
 
 def test_the_variable_chooses_the_transport(monkeypatch):
-    pytest.importorskip("requests")
-    monkeypatch.setenv(VARIABLE, "requests")
-    with HttpBackend() as backend:
-        assert type(backend.transport) is RequestsTransport
     monkeypatch.setenv(VARIABLE, "builtin")
     with HttpBackend() as backend:
         assert type(backend.transport) is HTTPTransport
 
 
-@pytest.mark.parametrize("value", ["", "Requests", "BUILTIN", "urllib3", " builtin"])
+@pytest.mark.parametrize("value", ["", "BUILTIN", "urllib3", " builtin"])
 def test_a_value_that_is_not_a_choice_is_a_value_error_naming_the_choices(
     monkeypatch, value
 ):
@@ -57,7 +49,7 @@ def test_a_value_that_is_not_a_choice_is_a_value_error_naming_the_choices(
     with pytest.raises(ValueError) as excinfo:
         backend.transport
     message = str(excinfo.value)
-    assert VARIABLE in message and "'builtin'" in message and "'requests'" in message
+    assert VARIABLE in message and "'builtin'" in message
 
 
 def test_a_path_reports_a_bad_setting_when_it_sends_not_when_it_is_built(monkeypatch):
@@ -69,7 +61,7 @@ def test_a_path_reports_a_bad_setting_when_it_sends_not_when_it_is_built(monkeyp
 
 
 def test_the_variable_in_the_header_is_the_one_the_code_reads():
-    header = (pathlib.Path(pathlib_next.__file__).parent / "AGENTS.md").read_text(
+    header = (pathlib.Path(uripath.__file__).parent / "AGENTS.md").read_text(
         encoding="utf-8"
     )
     section = header.split("\n## Environment variables\n")[1]
@@ -146,7 +138,7 @@ server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 host = "127.0.0.1:%d" % server.server_port
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 page = UriPath("http://" + host + "/f.txt")
 print(page.exists(), page.read_bytes(), page.stat().st_size)
@@ -155,10 +147,6 @@ github = UriPath("github://github.com/o/r/f.txt")
 github.backend.api_base = "http://" + host
 print(github.read_bytes())
 print(sorted(m for m in ("requests", "urllib3") if sys.modules.get(m) is not None))
-try:
-    page.with_session(None)
-except ImportError as error:
-    print(error)
 server.shutdown()
 server.server_close()
 """
@@ -179,5 +167,4 @@ def test_http_dav_and_git_work_with_requests_and_urllib3_hidden():
     )
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines[:4] == ["True b'hello' 5", "5", "b'from github'", "[]"]
-    assert "pathlib-next[http]" in lines[4]
+    assert lines == ["True b'hello' 5", "5", "b'from github'", "[]"]

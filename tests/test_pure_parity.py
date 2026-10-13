@@ -17,7 +17,7 @@ import pytest
 
 from pathlib_next.fspath import LocalPath, PosixPathname, WindowsPathname
 from pathlib_next.mempath import MemPath, MemPathBackend
-from pathlib_next.uri import Uri
+from uripath import Uri
 
 GENERIC = [MemPath, Uri]
 
@@ -171,40 +171,10 @@ MATCH_CASE_TABLE = [
 ]
 
 
-@pytest.mark.parametrize(
-    "flavour,path,pattern,case_sensitive,expected", MATCH_CASE_TABLE
-)
-def test_fs_match_case_sensitive_keyword_on_every_version(
-    flavour, path, pattern, case_sensitive, expected
-):
-    classes = [WindowsPathname] if flavour == "W" else [PosixPathname]
-    if (flavour == "W") == (sys.platform == "win32"):
-        classes.append(LocalPath)
-    for cls in classes:
-        assert cls(path).match(pattern, case_sensitive=case_sensitive) is expected
 
 
-@pytest.mark.parametrize("cls", [PosixPathname, WindowsPathname, LocalPath])
-@pytest.mark.parametrize(
-    "path,pattern", [("a/B.py", "*.py"), ("/a", "*/a"), ("C:/a/b", "/a/b")]
-)
-def test_fs_match_without_keyword_is_stdlib(cls, path, pattern):
-    flavour = (
-        pathlib.PureWindowsPath
-        if cls is WindowsPathname or (cls is LocalPath and sys.platform == "win32")
-        else pathlib.PurePosixPath
-    )
-    assert cls(path).match(pattern) == flavour(path).match(pattern)
 
 
-def test_fs_match_default_still_resolves_to_stdlib():
-    # The shim only exists where stdlib lacks case_sensitive=; elsewhere the
-    # stdlib method itself must resolve (MRO guard).
-    for cls in (PosixPathname, WindowsPathname, LocalPath):
-        if sys.version_info >= (3, 12):
-            assert cls.match is pathlib.PurePath.match
-        if sys.version_info >= (3, 13):
-            assert cls.full_match is pathlib.PurePath.full_match
 
 
 # Recorded from CPython 3.14's PurePath.full_match; asserted on every version
@@ -255,17 +225,8 @@ FULL_MATCH_TABLE = [
 ]
 
 
-@pytest.mark.parametrize("flavour,path,pattern,expected", FULL_MATCH_TABLE)
-def test_fs_full_match_matches_cpython_314(flavour, path, pattern, expected):
-    cls = WindowsPathname if flavour == "W" else PosixPathname
-    assert cls(path).full_match(pattern) is expected
 
 
-def test_localpath_full_match_rooted_and_case_keyword():
-    anchor = "C:/" if sys.platform == "win32" else "/"
-    assert LocalPath(anchor + "a/b").full_match(anchor + "a/*")
-    assert LocalPath(anchor + "a/b").full_match(anchor + "**")
-    assert LocalPath("a/B.py").match("*.py", case_sensitive=False)
 
 
 # --- parents / parent keep the root ----------------------------------------
@@ -286,12 +247,6 @@ def test_generic_parents_match_pure_posix_path(cls, path):
     assert spell(ours.parent) == spell(theirs.parent)
 
 
-def test_mempath_root_parents_and_is_relative_to():
-    assert [str(p) for p in MemPath("/a/b").parents] == ["/a", "/"]
-    assert MemPath("/a/b").is_relative_to("/")
-    assert MemPath("/a/b").is_relative_to(MemPath("/"))
-    assert MemPath("/").parent == MemPath("/")
-    assert not MemPath("/a").is_relative_to("")
 
 
 # --- MemPath.relative_to ----------------------------------------------------
@@ -324,94 +279,20 @@ def _answer(call):
         return ValueError
 
 
-@pytest.mark.parametrize("path,other", RELATIVE_PAIRS)
-def test_mempath_relative_to_answers_as_purepath_does(path, other):
-    ours = _answer(lambda: MemPath(path).relative_to(other))
-    theirs = _answer(lambda: pathlib.PurePosixPath(path).relative_to(other))
-    assert ours == theirs
-    backend = MemPathBackend()
-    as_object = _answer(
-        lambda: MemPath(path, backend=backend).relative_to(
-            MemPath(other, backend=backend)
-        )
-    )
-    assert as_object == ours
 
 
-@pytest.mark.skipif(sys.version_info < (3, 12), reason="walk_up arrived in 3.12")
-def test_mempath_relative_to_walk_up_answers_as_purepath_does():
-    differing = []
-    for path, other in RELATIVE_PAIRS:
-        ours = _answer(lambda: MemPath(path).relative_to(other, walk_up=True))
-        theirs = _answer(
-            lambda: pathlib.PurePosixPath(path).relative_to(other, walk_up=True)
-        )
-        if ours != theirs:
-            differing.append((path, other, ours, theirs))
-    assert differing == []
 
 
-@pytest.mark.parametrize(
-    "path,other,expected",
-    [
-        ("b", "a", "../b"),
-        ("a/b", "b", "../a/b"),
-        ("/a/b", "/a/c/d", "../../b"),
-        ("a", "a/b/c", "../.."),
-        ("a/b", "a/b", "."),
-        ("..", "../a", ".."),
-        ("a", "..", ValueError),
-        ("/a", "b", ValueError),
-        ("b", "/a", ValueError),
-        ("a", "a/..", ValueError),
-    ],
-)
-def test_mempath_relative_to_walk_up_pinned_on_every_interpreter(path, other, expected):
-    assert _answer(lambda: MemPath(path).relative_to(other, walk_up=True)) == expected
 
 
-def test_mempath_relative_to_keeps_the_backend_and_is_relative():
-    backend = MemPathBackend()
-    path = MemPath("/a/b/c", backend=backend)
-    for other in (MemPath("/a", backend=backend), "/a"):
-        result = path.relative_to(other)
-        assert type(result) is MemPath
-        assert result.backend is backend
-        assert result.segments == ("b", "c")
-        assert not result.is_absolute()
-    assert path.relative_to(path).segments == ()
-    assert MemPath("/a", backend=backend) / result == MemPath("/a/b/c", backend=backend)
 
 
-def test_mempath_relative_to_refuses_another_backend():
-    here = MemPath("/a/b")
-    elsewhere = MemPath("/a", backend=MemPathBackend())
-    with pytest.raises(ValueError, match="different backends"):
-        here.relative_to(elsewhere)
-    with pytest.raises(ValueError, match="different backends"):
-        here.relative_to(elsewhere, walk_up=True)
 
 
-def test_mempath_relative_to_names_the_failing_case():
-    with pytest.raises(ValueError, match="not in the subpath"):
-        MemPath("/a").relative_to("/b")
-    with pytest.raises(ValueError, match="different anchors"):
-        MemPath("/a").relative_to("b", walk_up=True)
-    with pytest.raises(ValueError, match="cannot be walked"):
-        MemPath("a").relative_to("..", walk_up=True)
 
 
-def test_mempath_relative_to_walk_up_is_keyword_only():
-    with pytest.raises(TypeError):
-        MemPath("a").relative_to("b", True)
 
 
-def test_mempath_is_relative_to_does_not_depend_on_relative_to():
-    # `is_relative_to()` decides by equality and `parents`; it never reads
-    # `relative_to()`, so a class that overrides one need not override both.
-    for path, other in RELATIVE_PAIRS:
-        expected = pathlib.PurePosixPath(path).is_relative_to(other)
-        assert MemPath(path).is_relative_to(other) is expected
 
 
 def test_uri_parents_reach_the_authority_root_once():
@@ -432,7 +313,7 @@ def test_parents_negative_index_and_slice_keep_the_root():
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX file: root")
 def test_fileuri_top_level_parent_is_root_not_cwd():
-    from pathlib_next.uri import UriPath
+    from uripath import UriPath
 
     parent = UriPath("file:///Users").parent
     assert parent.path == "/"
@@ -453,10 +334,6 @@ def test_uri_with_name_rejects_traversal_and_separators(path, name):
         Uri(path).with_name(name)
 
 
-@pytest.mark.parametrize("name", BAD_NAMES)
-def test_mempath_with_name_rejects_traversal_and_separators(name):
-    with pytest.raises(ValueError):
-        MemPath("/srv/up.txt").with_name(name)
 
 
 @pytest.mark.parametrize("cls", GENERIC)
@@ -494,9 +371,6 @@ def test_with_name_accepts_dotdot_like_pathlib(path):
     assert MemPath("/srv/up.txt").with_name("..").as_posix() == "/srv/.."
 
 
-def test_fs_with_name_keeps_stdlib_semantics():
-    # PosixPathname/LocalPath resolve stdlib's with_name, which accepts "..".
-    assert PosixPathname("d/f").with_name("..").as_posix() == "d/.."
 
 
 # --- MemPath normalization -----------------------------------------------
@@ -517,77 +391,16 @@ MEM_PATHS = [
 ]
 
 
-@pytest.mark.parametrize("path", MEM_PATHS)
-def test_mempath_str_matches_pure_posix_path(path):
-    theirs = str(pathlib.PurePosixPath(path))
-    assert str(MemPath(path)) == ("" if theirs == "." else theirs)
-    p = MemPath(path)
-    assert p.name == pathlib.PurePosixPath(path).name
-    assert p.root == pathlib.PurePosixPath(path).root
 
 
-@pytest.mark.parametrize(
-    "args",
-    [
-        ("/", "a"),
-        ("/root", "/etc"),
-        ("a", "/b"),
-        ("a", "", "b"),
-        ("a/", "b/"),
-        ("", "a"),
-        ("/a", ".", "b"),
-    ],
-)
-def test_mempath_join_matches_pure_posix_path(args):
-    theirs = str(pathlib.PurePosixPath(*args))
-    assert str(MemPath(*args)) == ("" if theirs == "." else theirs)
 
 
-def test_mempath_equality_and_hash_follow_normalization():
-    backend = MemPathBackend()
-    root = MemPath("/", backend=backend)
-    child = root / "a.txt"
-    assert str(child) == "/a.txt"
-    assert child == MemPath("/a.txt", backend=backend)
-    assert hash(child) == hash(MemPath("/a.txt"))
-    assert MemPath("a/") == MemPath("a")
-    assert MemPath("a//b") == MemPath("a/./b") == MemPath("a/b")
-    assert (root / "/etc") == MemPath("/etc")
-    assert MemPath("d/").name == "d"
-    assert MemPath("d/").with_suffix(".x") == MemPath("d.x")
-    assert child.as_uri() == "mempath:/a.txt"
 
 
-def test_mempath_iterdir_children_equal_constructed_paths():
-    backend = MemPathBackend()
-    root = MemPath("/", backend=backend)
-    (root / "sub").mkdir()
-    (root / "f.txt").write_text("x")
-    children = set(root.iterdir())
-    assert children == {MemPath("/sub"), MemPath("/f.txt")}
-    assert all(c.backend is backend for c in children)
-    assert list((root / "sub").iterdir()) == []
-    # Relative roots list relative children.
-    rel = MemPath("", backend=backend)
-    assert {str(c) for c in rel.iterdir()} == {"sub", "f.txt"}
 
 
-def test_mempath_io_still_addresses_the_same_entries():
-    backend = MemPathBackend()
-    MemPath("/d/", backend=backend).mkdir()
-    MemPath("d//f.txt", backend=backend).write_text("hi")
-    assert MemPath("/d/./f.txt", backend=backend).read_text() == "hi"
-    assert MemPath("/", backend=backend).is_dir()
-    assert MemPath("", backend=backend).is_dir()
 
 
-def test_mempath_with_segments_keeps_backend_and_root():
-    backend = MemPathBackend()
-    p = MemPath("/a/b", backend=backend)
-    assert p.with_segments("", "x") == MemPath("/x")
-    assert p.with_segments("", "") == MemPath("/")
-    assert p.with_segments("x").backend is backend
-    assert p.with_segments() == MemPath("")
 
 
 # --- relative_to / is_relative_to with authority roots ----------------------
@@ -643,7 +456,7 @@ def test_uri_absolute_is_not_relative_to_the_empty_path():
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows drive roots")
 def test_file_uri_parent_of_top_level_windows_folder_is_the_drive_root():
-    from pathlib_next.uri import UriPath
+    from uripath import UriPath
 
     parent = UriPath("file:///C:/Windows").parent
     assert parent.path == "C:/"
@@ -806,17 +619,6 @@ def test_double_slash_root_is_not_modelled_by_the_generic_classes():
     assert Uri("//a/b").source.host == "a"
 
 
-@pytest.mark.skipif(os.name != "nt", reason="UNC paths are a Windows flavour")
-def test_double_slash_is_a_unc_drive_on_the_windows_flavour():
-    """The local classes inherit pathlib's parsing, so they agree exactly:
-    `//server/share/x` is a UNC drive, not a special root."""
-    from pathlib_next.fspath import WindowsPathname
-
-    for cls in (WindowsPathname, LocalPath):
-        assert str(cls("//server/share/x")) == str(
-            pathlib.PureWindowsPath("//server/share/x")
-        )
-        assert cls("//server/share/x").match("//server/share/*") is True
 
 
 # --- has_glob_pattern(): the anchor is not a pattern ----------------------
@@ -827,19 +629,6 @@ _EXTENDED = r"\\?\C:\data\conf"
 _EXTENDED_UNC = r"\\?\UNC\server\share\x"
 
 
-@pytest.mark.skipif(os.name != "nt", reason="extended-length paths are Windows")
-@pytest.mark.parametrize(
-    "path,expected",
-    [
-        (_EXTENDED, False),
-        (_EXTENDED_UNC, False),
-        (r"C:\data\conf", False),
-        (r"C:\data\*.json", True),
-        (r"C:\data\a?.json", True),
-    ],
-)
-def test_has_glob_pattern_ignores_the_anchor(path, expected):
-    assert LocalPath(path).has_glob_pattern() is expected
 
 
 @pytest.mark.parametrize(

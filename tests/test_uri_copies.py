@@ -15,8 +15,8 @@ import pytest
 pytest.importorskip("uritools")
 
 from http_fakes import FakeTransport
-from pathlib_next.uri import Uri, UriPath
-from pathlib_next.uri.source import Source
+from uripath import Uri, UriPath
+from uripath.source import Source
 
 SECRET = b"S3CR3T-dummy"
 
@@ -132,7 +132,7 @@ def test_a_derived_backend_is_not_pickled_and_is_built_again():
 
 
 def test_a_pickle_keeps_the_allow_list_of_schemes():
-    from pathlib_next.uri.schemes import DataUri
+    from uripath.schemes import DataUri
 
     path = UriPath("data:,abc", schemesmap={"data": DataUri})
     again = _roundtrip(path)
@@ -162,63 +162,6 @@ def test_an_http_path_pickles_without_its_session_headers():
     data = pickle.dumps(path)
     assert SECRET not in data
     assert _roundtrip(path) == UriPath("http://h/x")
-
-
-def test_an_sftp_path_pickles_without_the_connect_options():
-    pytest.importorskip("paramiko")
-    from pathlib_next.uri.schemes.sftp import SftpBackend
-
-    backend = SftpBackend(connect_opts={"password": "S3CR3T-dummy"})
-    path = UriPath("sftp://u@h/x", backend=backend)
-    data = pickle.dumps(path)
-    assert SECRET not in data
-    assert _roundtrip(path) == UriPath("sftp://u@h/x")
-
-
-def test_an_sftp_path_keeps_its_ssh_config_through_a_pickle_and_a_copy():
-    from pathlib_next.uri.schemes.sftp import SftpPath
-    from pathlib_next.uri.schemes.sftp._sshconfig import _DEFAULT_SSH_CONFIG
-
-    custom = SftpPath("sftp://h/x", ssh_config=None)
-    default = SftpPath("sftp://h/x")
-    assert default._ssh_config is _DEFAULT_SSH_CONFIG
-    for convert in (_roundtrip, copy.copy, copy.deepcopy):
-        assert convert(custom)._ssh_config is None
-        assert convert(default)._ssh_config is _DEFAULT_SSH_CONFIG
-    assert _roundtrip(SftpPath("sftp://h/x", ssh_config=["a", "b"]))._ssh_config == [
-        "a",
-        "b",
-    ]
-
-
-def test_an_s3_path_pickles_without_client_kwargs_or_its_live_client(monkeypatch):
-    pytest.importorskip("boto3")
-    pytest.importorskip("moto")
-    from moto import mock_aws
-
-    from pathlib_next.uri.schemes.s3 import S3Backend
-
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
-    with mock_aws():
-        backend = S3Backend(
-            region_name="us-east-1",
-            aws_access_key_id="AKIADUMMY",
-            aws_secret_access_key="S3CR3T-dummy",
-        )
-        backend.client().create_bucket(Bucket="bkt")
-        path = UriPath("s3://bkt/key", backend=backend)
-        path.write_bytes(b"data")
-        assert path.exists()
-        assert backend._client is not None  # a live client exists now
-        data = pickle.dumps(path)
-        assert SECRET not in data
-        again = pickle.loads(data)
-        assert again == path
-        assert again._supplied_backend() is None
-        assert path.read_bytes() == b"data"
 
 
 def test_a_zip_path_pickles_before_and_after_it_was_used(tmp_path):

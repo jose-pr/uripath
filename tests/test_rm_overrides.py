@@ -1,11 +1,10 @@
 """Every scheme that overrides `rm()` keeps the signature of `Path.rm()`.
 
-The overrides take their own route for a recursive removal (one DAV DELETE, a
-batched object delete, a concurrent SFTP walk). `follow_symlinks=` and
-`follow_binds=` are keywords of `Path.rm()`, so each override accepts them,
-checks them before anything is sent, and forwards them wherever the generic
-removal runs. Nothing here needs a cloud SDK: the signatures and the
-argument checks are read without a call to a service.
+The override takes its own route for a recursive removal (one DAV DELETE).
+`follow_symlinks=` and `follow_binds=` are keywords of `Path.rm()`, so the
+override accepts them, checks them before anything is sent, and forwards them
+wherever the generic removal runs. The signatures and the argument checks are
+read without a call to a server.
 """
 
 from __future__ import annotations
@@ -15,18 +14,11 @@ import inspect
 import pytest
 
 pytest.importorskip("uritools")
-pytest.importorskip("botocore")
 
 from pathlib_next import Path
-from pathlib_next.uri.schemes import az, dav, gs, s3, sftp
+from uripath.schemes import dav
 
-CASES = [
-    (dav.DavPath, "dav://host/dir"),
-    (sftp.SftpPath, "sftp://host/dir"),
-    (s3.S3Path, "s3://bucket/dir"),
-    (gs.GsPath, "gs://bucket/dir"),
-    (az.AzPath, "az://account/container/dir"),
-]
+CASES = [(dav.DavPath, "dav://host/dir")]
 IDS = [cls.__name__ for cls, _ in CASES]
 
 
@@ -62,29 +54,3 @@ def test_rm_checks_the_policies_before_anything_is_sent(cls, url, recursive, key
     `ValueError`."""
     with pytest.raises(ValueError, match="True, False, None or a callable"):
         cls(url).rm(recursive=recursive, ignore_error=True, **{keyword: "always"})
-
-
-@pytest.fixture
-def moto_s3(aws_test_credentials):
-    boto3 = pytest.importorskip("boto3")
-    pytest.importorskip("moto")
-
-    from moto import mock_aws
-
-    with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket="bkt")
-        yield client
-
-
-def test_rm_recursive_on_a_store_ignores_the_policies_it_has_no_links_for(moto_s3):
-    """The same objects go with and without the keywords."""
-    for key in ("tree/a.txt", "tree/sub/b.txt", "keep.txt"):
-        moto_s3.put_object(Bucket="bkt", Key=key, Body=b"x")
-
-    s3.S3Path("s3://bkt/tree").rm(
-        recursive=True, follow_symlinks=True, follow_binds=lambda entry: None
-    )
-
-    listing = moto_s3.list_objects_v2(Bucket="bkt").get("Contents", [])
-    assert [obj["Key"] for obj in listing] == ["keep.txt"]

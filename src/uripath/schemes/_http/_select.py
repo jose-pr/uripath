@@ -7,15 +7,14 @@ import threading as _threading
 import typing as _ty
 
 from ._builtin import HTTPTransport
-from ._requests import RequestsTransport
 
 TRANSPORT_ENV = "PATHLIB_NEXT_HTTP_TRANSPORT"
-"""Names the transport a backend builds for itself: `builtin` or `requests`.
-Read when that transport is first needed; unset means `DEFAULT_TRANSPORT`."""
+"""Names the transport a backend builds for itself: `builtin`. Read when that
+transport is first needed; unset means `DEFAULT_TRANSPORT`."""
 
 DEFAULT_TRANSPORT = "builtin"
 
-CHOICES = ("builtin", "requests")
+CHOICES = ("builtin",)
 
 
 def default_transport():
@@ -25,8 +24,6 @@ def default_transport():
     kind = DEFAULT_TRANSPORT if value is None else value
     if kind == "builtin":
         return HTTPTransport()
-    if kind == "requests":
-        return RequestsTransport()
     raise ValueError(
         f"{TRANSPORT_ENV}={kind!r} is not an HTTP transport "
         f"(expected one of {', '.join(map(repr, CHOICES))})"

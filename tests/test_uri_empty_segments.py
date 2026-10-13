@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import Uri, UriPath
+from uripath import Uri, UriPath
 
 BASES = [
     "http://h/d",
@@ -50,15 +50,6 @@ def test_the_empty_segment_is_part_of_the_name_and_the_parent():
     assert joined.name == "y"
     assert joined.parent.as_uri() == "http://h/d/x/"
     assert joined.parent.parent.as_uri() == "http://h/d/x"
-
-
-def test_a_key_with_an_empty_segment_is_a_different_object_key():
-    plain = UriPath("s3://bucket/d") / "y.txt"
-    doubled = UriPath("s3://bucket/d") / "/y.txt"
-    nested = UriPath("s3://bucket") / "d//y.txt"
-    assert nested != plain and nested != doubled
-    assert nested.key == "d//y.txt"
-    assert plain.key == "d/y.txt"
 
 
 def test_an_absolute_key_restarts_and_keeps_its_empty_segments():

@@ -13,9 +13,9 @@ import typing
 import pytest
 
 from http_fakes import on_current_transport
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.dav import DavPath, _DavWriteStream
-from pathlib_next.uri.schemes.http import HttpAppendStream, HttpPath, HttpWriteStream
+from uripath import UriPath
+from uripath.schemes.dav import DavPath, _DavWriteStream
+from uripath.schemes.http import HttpAppendStream, HttpPath, HttpWriteStream
 
 # (connect, read) seconds: a reply is waited for generously, except when a
 # test makes the server stall, which needs a read timeout short enough to hit.
@@ -526,20 +526,6 @@ def test_allow_redirects_in_the_call_does_not_follow_a_write(wire, scheme):
             "PUT", f"{wire.base}/r302/f.bin", data=b"NEW", allow_redirects=True
         )
     assert [r.method for r in wire.log] == ["PUT", "PUT"]
-    assert wire.files == {"/store/f.bin": b"ORIGINAL"}
-
-
-@pytest.mark.parametrize("scheme", _SCHEMES)
-def test_allow_redirects_in_the_session_arguments_does_not_follow_a_write(wire, scheme):
-    requests = pytest.importorskip("requests")
-    wire.files["/store/f.bin"] = b"ORIGINAL"
-    url = f"{scheme}{wire.base[len('http'):]}/r302/f.bin"
-    path = UriPath(url).with_session(
-        requests.Session(), timeout=TIMEOUT, allow_redirects=True
-    )
-    with pytest.raises(OSError):
-        path.write_bytes(b"NEW")
-    assert [r.method for r in wire.log] == ["PUT"]
     assert wire.files == {"/store/f.bin": b"ORIGINAL"}
 
 

@@ -15,7 +15,7 @@ import pytest
 
 from http_wire import Drop, Hang, Reply, Wire, refusing_port, response
 from waits import wait_until
-from pathlib_next.uri.schemes.http import HTTPResponse, HTTPTransport
+from uripath.schemes.http import HTTPResponse, HTTPTransport
 
 TIMEOUT = (5, 5)
 
@@ -517,7 +517,7 @@ def test_a_single_number_is_both_halves_of_the_timeout(http_transport):
 def test_the_connect_half_bounds_the_connection_and_the_read_half_the_waits(
     monkeypatch,
 ):
-    from pathlib_next.uri.schemes._http import _builtin
+    from uripath.schemes._http import _builtin
 
     seen = {}
 

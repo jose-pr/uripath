@@ -19,7 +19,7 @@ import pytest
 
 from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next.archive import make_archive, unpack_archive
 
 
@@ -369,46 +369,11 @@ def test_make_archive_from_any_path_directory(tmp_path, fmt, kind):
     assert _tree(dest) == _EXPECTED_TREE
 
 
-@pytest.mark.parametrize("fmt", ["zip", "tar"])
-def test_make_archive_failure_leaves_existing_target_untouched(
-    tmp_path, monkeypatch, fmt
-):
-    target = tmp_path / f"out.{fmt}"
-    target.write_bytes(b"precious")
-    with pytest.raises(FileNotFoundError):
-        make_archive(MemPath("/does-not-exist"), fmt, LocalPath(target))
-    assert target.read_bytes() == b"precious"
-
-    src = _mem_tree()
-    original_open = MemPath._open
-
-    def failing_open(self, mode="r", buffering=-1):
-        if self.name == "readme.txt" and "r" in mode:
-            raise PermissionError("unreadable")
-        return original_open(self, mode, buffering)
-
-    monkeypatch.setattr(MemPath, "_open", failing_open)
-    with pytest.raises(PermissionError):
-        make_archive(src, fmt, LocalPath(target))
-    assert target.read_bytes() == b"precious"
 
 
 # --- memutils-archive-zip64 ---
 
 
-def test_make_archive_zip_member_past_the_zip64_limit(tmp_path, monkeypatch):
-    # Stands in for a >2 GiB member: zipfile compares against ZIP64_LIMIT
-    # at write time, so a small limit exercises the same branch.
-    payload = os.urandom(20000)
-    (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "big.bin").write_bytes(payload)
-    target = tmp_path / "big.zip"
-    monkeypatch.setattr(zipfile, "ZIP64_LIMIT", 4096)
-    make_archive(LocalPath(tmp_path / "src"), "zip", LocalPath(target))
-    monkeypatch.undo()
-    with zipfile.ZipFile(target) as zf:
-        assert zf.read("big.bin") == payload
-        assert zf.testzip() is None
 
 
 # --- memutils-archive-zip-nonseekable ---
@@ -437,47 +402,10 @@ class _NonSeekableArchive:
         return io.BufferedReader(_Raw())
 
 
-@pytest.mark.parametrize("fmt", ["zip", "tar"])
-def test_unpack_archive_from_a_non_seekable_stream(
-    tmp_path, zip_archive, tar_archive, fmt
-):
-    source = zip_archive if fmt == "zip" else tar_archive
-    archive = _NonSeekableArchive(source.name, source.read_bytes())
-    assert not archive.open().seekable()
-    dest = tmp_path / "out"
-    unpack_archive(archive, LocalPath(dest))
-    assert _tree(dest) == _EXPECTED_TREE
 
 
 # --- memutils-archive-tar-links-dropped ---
 
 
-def test_unpack_archive_extracts_tar_links_and_reports_the_rest(tmp_path):
-    path = tmp_path / "links.tar"
-    with tarfile.open(path, "w") as tf:
-        orig = tarfile.TarInfo("orig.txt")
-        orig.size = 5
-        tf.addfile(orig, io.BytesIO(b"hello"))
-        for name, kind, target in [
-            ("hard.txt", tarfile.LNKTYPE, "orig.txt"),
-            ("sub/sym.txt", tarfile.SYMTYPE, "../orig.txt"),
-            ("escape.txt", tarfile.SYMTYPE, "../../outside.txt"),
-        ]:
-            link = tarfile.TarInfo(name)
-            link.type = kind
-            link.linkname = target
-            tf.addfile(link)
-    dest = MemPath("/dest")
-    with pytest.warns(UserWarning, match="escape.txt"):
-        unpack_archive(LocalPath(path), dest)
-    assert (dest / "orig.txt").read_bytes() == b"hello"
-    assert (dest / "hard.txt").read_bytes() == b"hello"
-    assert (dest / "sub" / "sym.txt").read_bytes() == b"hello"
-    assert not (dest / "escape.txt").exists()
 
 
-def test_unpack_archive_without_links_emits_no_warning(tmp_path, tar_archive):
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        unpack_archive(LocalPath(tar_archive), LocalPath(tmp_path / "out"))
-    assert _tree(tmp_path / "out") == _EXPECTED_TREE

@@ -18,7 +18,7 @@ pytest.importorskip("uritools")
 from test_archive_batch import _fields, _members, _write_zip
 
 from pathlib_next import LocalPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next.archive import _snapshot as _base
 from pathlib_next.archive._zip import _ZipBackend
 from pathlib_next.archive._zipentries import _NO_LINK
@@ -344,56 +344,8 @@ def test_a_run_of_mixed_changes_in_a_batch_is_the_run_one_at_a_time(
 # --- the member list itself --------------------------------------------------------------------
 
 
-def test_a_member_list_that_loses_one_entry_equals_one_built_without_it():
-    from pathlib_next.archive._zipentries import _new_info
-
-    names = [
-        "a/b/c.txt",
-        "a/b/d.txt",
-        "a/e.txt",
-        "a/b/",
-        "x/",
-        "x/y/z/",
-        "x/y/z/w.txt",
-        "top.txt",
-        "p/q/r/s.txt",
-        "p/t.txt",
-        "m/n/",
-        "m/n/o/",
-    ]
-    entries = {name: _new_info(name, i) for i, name in enumerate(names)}
-    snapshot = _base._Snapshot(_ZipBackend, list(entries.items()))
-    order = [
-        "a/b/c.txt",
-        "x/y/z/w.txt",
-        "x/y/z/",
-        "p/q/r/s.txt",
-        "a/b/d.txt",
-        "a/b/",
-        "m/n/o/",
-        "top.txt",
-        "x/",
-        "a/e.txt",
-        "m/n/",
-        "p/t.txt",
-    ]
-    for name in order:
-        assert snapshot.drop(name)
-        del entries[name]
-        rebuilt = _base._Snapshot(_ZipBackend, list(entries.items()))
-        assert _comparable(snapshot) == _comparable(rebuilt), name
-    assert snapshot.children == {"": {}} and not snapshot.implicit
 
 
-def test_a_member_list_cannot_drop_a_name_it_holds_under_two_spellings():
-    from pathlib_next.archive._zipentries import _new_info
-
-    entries = {"x": _new_info("x", 1), "./x": _new_info("./x", 2)}
-    snapshot = _base._Snapshot(_ZipBackend, list(entries.items()))
-    before = _comparable(snapshot)
-    assert snapshot.drop("./x") is False
-    assert snapshot.drop("x") is False
-    assert _comparable(snapshot) == before
 
 
 # --- what the rules of the last commit still say inside a batch ----------------------------------

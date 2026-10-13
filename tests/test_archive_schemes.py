@@ -12,9 +12,9 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes import archive
-from pathlib_next.uri.schemes.archive import (
+from uripath import UriPath
+from uripath.schemes import archive
+from uripath.schemes.archive import (
     ArchiveTarUri,
     ArchiveUri,
     ArchiveZipUri,
@@ -36,8 +36,8 @@ def test_the_documented_class_names_are_still_importable():
     assert archive.ArchiveTarUri is TarUri
     assert ArchiveZipUri is ZipUri and ArchiveTarUri is TarUri
     for entry_point in (
-        "pathlib_next.uri.schemes.archive:ArchiveZipUri",
-        "pathlib_next.uri.schemes.archive:ArchiveTarUri",
+        "uripath.schemes.archive:ArchiveZipUri",
+        "uripath.schemes.archive:ArchiveTarUri",
     ):
         module, _, name = entry_point.partition(":")
         assert getattr(importlib.import_module(module), name) in (ZipUri, TarUri)

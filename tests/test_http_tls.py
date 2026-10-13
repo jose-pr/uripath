@@ -9,7 +9,7 @@ import traceback
 import pytest
 
 from http_wire import Wire, make_authority, response
-from pathlib_next.uri.schemes.http import HTTPTransport
+from uripath.schemes.http import HTTPTransport
 
 TIMEOUT = (5, 5)
 

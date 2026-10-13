@@ -1,9 +1,11 @@
-"""The seam between the core and the URI schemes.
+"""The seam between `pathlib_next` and the URI schemes.
 
 Every underscore name that a scheme module (or the command line) imports from
 the core or reads as an attribute of one of its objects is documented in the
-two implementer sections of the shipped header, and each helper that was made
-public is the same object as the underscore name it replaced.
+implementer sections of the two shipped headers (`pathlib_next`'s for a class
+built on `Path`, this package's for a scheme), each helper that was made public
+is the same object as the underscore name it replaced, and every name this
+package takes from `pathlib_next` is public except the ones listed here.
 """
 
 from __future__ import annotations
@@ -16,44 +18,49 @@ import re
 import pytest
 
 import pathlib_next
+import uripath
 
-PACKAGE = pathlib.Path(pathlib_next.__file__).resolve().parent
+CORE = pathlib.Path(pathlib_next.__file__).resolve().parent
+PACKAGE = pathlib.Path(uripath.__file__).resolve().parent
+HEADERS = {
+    "For path implementers": CORE / "AGENTS.md",
+    "For scheme implementers": PACKAGE / "AGENTS.md",
+}
 HEADER = PACKAGE / "AGENTS.md"
-IMPLEMENTER_HEADINGS = ("For path implementers", "For scheme implementers")
 
 # Names a scheme module reads that are its own: an attribute of one of its
 # helper classes, or of a stdlib named tuple. Each is a name the scan finds
 # in a core module too; a pair that no longer matches anything fails.
 NOT_THE_CORES = {
-    ("uri/schemes/_objstore.py", "_dirty"): "a write stream's own flag",
-    ("uri/schemes/s3.py", "_path"): "the path a stream or a client call is for",
-    ("uri/schemes/_objstore.py", "_path"): "the path a stream is for",
-    ("uri/schemes/dav.py", "_path"): "the path a stream is for",
-    ("uri/schemes/http.py", "_path"): "the path a stream is for",
-    ("uri/schemes/dav.py", "_replace"): "a stdlib named tuple's method",
-    ("uri/schemes/_gitrepo.py", "_replace"): "a `Source` named tuple's method",
+    ("schemes/dav.py", "_path"): "the path a stream is for",
+    ("schemes/http.py", "_path"): "the path a stream is for",
+    ("schemes/dav.py", "_replace"): "a stdlib named tuple's method",
+    ("schemes/_gitrepo.py", "_replace"): "a `Source` named tuple's method",
+}
+
+# (module, file that imports it, private name): what this package takes from a
+# private place in `pathlib_next`. Nothing else may be private.
+PRIVATE_FROM_PATHLIB_NEXT = {
+    ("pathlib_next.path._pure", "__init__.py", "_name_stem"),
+    ("pathlib_next.path._pure", "__init__.py", "_name_suffix"),
 }
 
 # (module, public name): documented helpers a provider calls, defined in a
 # private module and listed in the public module's `__all__`.
 PROVIDER_HELPERS = [
-    ("pathlib_next.archive", "detect_format"),
-    ("pathlib_next.providers", "CommitOnClose"),
     ("pathlib_next.providers", "check_follow"),
-    ("pathlib_next.providers", "contains"),
-    ("pathlib_next.providers", "copy_error_predicate"),
 ]
 
 # (module, public name, the underscore name it replaced)
 PUBLIC_HELPERS = [
-    ("pathlib_next.uri", "same_authority", "_same_authority"),
-    ("pathlib_next.uri", "DerivedBackend", "_DerivedBackend"),
-    ("pathlib_next.uri.source", "compose_uri", "_compose_uri"),
-    ("pathlib_next.uri.source", "compose_host", "_compose_host"),
-    ("pathlib_next.uri.source", "percent_encode", "_encode"),
-    ("pathlib_next.uri.source", "is_drive", "_is_drive"),
-    ("pathlib_next.uri.source", "SAFE_PATH", "_SAFE_PATH"),
-    ("pathlib_next.uri.source", "ERRORS", "_ERRORS"),
+    ("uripath", "same_authority", "_same_authority"),
+    ("uripath", "DerivedBackend", "_DerivedBackend"),
+    ("uripath.source", "compose_uri", "_compose_uri"),
+    ("uripath.source", "compose_host", "_compose_host"),
+    ("uripath.source", "percent_encode", "_encode"),
+    ("uripath.source", "is_drive", "_is_drive"),
+    ("uripath.source", "SAFE_PATH", "_SAFE_PATH"),
+    ("uripath.source", "ERRORS", "_ERRORS"),
 ]
 
 
@@ -66,26 +73,31 @@ def _files(directory: pathlib.Path):
 
 
 def core_sources() -> dict[str, str]:
-    """Every module that is not a scheme, a provider package (`ftp`, `archive`),
-    the command line or the test helpers."""
+    """Every module of the core that is not a provider package (`ftp`,
+    `archive`), plus the URI core of this package (`uripath`, `source`,
+    `query`), whose underscore names the schemes read as well."""
     skipped = (
-        PACKAGE / "uri" / "schemes",
-        PACKAGE / "tools",
-        PACKAGE / "ftp",
-        PACKAGE / "archive",
+        CORE / "uri",
+        CORE / "tools",
+        CORE / "ftp",
+        CORE / "archive",
     )
-    return {
-        p.relative_to(PACKAGE).as_posix(): p.read_text(encoding="utf-8")
-        for p in _files(PACKAGE)
+    found = {
+        "pathlib_next/" + p.relative_to(CORE).as_posix(): p.read_text(encoding="utf-8")
+        for p in _files(CORE)
         if not any(s in p.parents for s in skipped) and p.name != "testing.py"
     }
+    for name in ("__init__.py", "source.py", "query.py"):
+        found["uripath/" + name] = (PACKAGE / name).read_text(encoding="utf-8")
+    return found
 
 
 def scheme_sources() -> dict[str, str]:
+    """The schemes and the command line, by path relative to the package."""
     return {
         p.relative_to(PACKAGE).as_posix(): p.read_text(encoding="utf-8")
-        for directory in (PACKAGE / "uri" / "schemes", PACKAGE / "tools")
-        for p in _files(directory)
+        for p in _files(PACKAGE)
+        if p.parent != PACKAGE or p.name == "_oldcli.py"
     }
 
 
@@ -121,11 +133,15 @@ def core_names(sources: dict[str, str]) -> set[str]:
 
 
 def _imported_module(relpath: str, node: ast.ImportFrom) -> str:
-    """The dotted module a `from ... import` of the file at `relpath` names."""
-    package = ["pathlib_next", *relpath.split("/")[:-1]]
+    """The dotted module a `from ... import` of the file at `relpath` (below
+    the package) names."""
+    package = ["uripath", *relpath.split("/")[:-1]]
     if node.level:
         package = package[: len(package) - (node.level - 1)]
-    return ".".join([*package, *(node.module.split(".") if node.module else [])])
+        return ".".join(
+            [*package, *(node.module.split(".") if node.module else [])]
+        )
+    return node.module or ""
 
 
 def seam_names(core: set[str], sources: dict[str, str]) -> dict[str, set[str]]:
@@ -136,7 +152,7 @@ def seam_names(core: set[str], sources: dict[str, str]) -> dict[str, set[str]]:
         for node in ast.walk(ast.parse(text)):
             if isinstance(node, ast.ImportFrom):
                 module = _imported_module(relpath, node)
-                if module.startswith("pathlib_next.uri.schemes"):
+                if module.startswith("uripath.schemes"):
                     continue
                 for alias in node.names:
                     if alias.name in core:
@@ -146,19 +162,19 @@ def seam_names(core: set[str], sources: dict[str, str]) -> dict[str, set[str]]:
     return used
 
 
-def documented_names(text: str) -> set[str]:
-    """The names the python blocks of the two implementer sections declare."""
+def documented_names() -> set[str]:
+    """The names the python blocks of the implementer sections declare."""
     found: set[str] = set()
-    for title in IMPLEMENTER_HEADINGS:
+    for title, header in HEADERS.items():
         section, inside, fenced = [], False, False
-        for line in text.splitlines():
+        for line in header.read_text(encoding="utf-8").splitlines():
             if line.startswith("```"):
                 fenced = not fenced
             elif not fenced and re.match(r"#{1,3} ", line):
                 inside = line.startswith(f"### {title}")
             if inside:
                 section.append(line)
-        assert section, f"the header has no '{title}' section"
+        assert section, f"{header.name} has no '{title}' section"
         for block in re.findall(
             r"```python\n(.*?)```", "\n".join(section), flags=re.DOTALL
         ):
@@ -187,17 +203,17 @@ def test_the_scan_finds_the_names_the_schemes_use(core):
         "_rename_target",
         "_pop_stat_hint",
         "_backend_for",
-        "_supplied_backend",
         "_scandir",
     } <= set(used)
 
 
-def test_every_core_name_a_scheme_uses_is_documented_in_the_header(core):
+def test_every_core_name_a_scheme_uses_is_documented_in_the_headers(core):
     used = seam_names(core, scheme_sources())
+    documented = documented_names()
     undocumented = {
         name: sorted(modules)
         for name, modules in used.items()
-        if name not in documented_names(HEADER.read_text(encoding="utf-8"))
+        if name not in documented
         and not all((module, name) in NOT_THE_CORES for module in modules)
     }
     assert undocumented == {}
@@ -211,15 +227,15 @@ def test_the_scheme_owned_names_are_all_still_read_by_their_module(core):
 
 def test_a_scheme_that_takes_an_undocumented_core_name_is_reported(core):
     sources = scheme_sources()
-    sources["uri/schemes/new.py"] = (
-        "from ...path import _relation\n"
+    sources["schemes/new.py"] = (
+        "from pathlib_next.path import _relation\n"
         "\n"
         "class New:\n"
         "    def go(self):\n"
         "        return self._family()\n"
     )
     used = seam_names(core, sources)
-    documented = documented_names(HEADER.read_text(encoding="utf-8"))
+    documented = documented_names()
     assert {"_relation", "_family"} <= set(used)
     assert {"_relation", "_family"}.isdisjoint(documented)
 
@@ -230,7 +246,7 @@ def test_no_scheme_imports_an_underscore_name_from_the_core(core):
         for node in ast.walk(ast.parse(text)):
             if isinstance(node, ast.ImportFrom):
                 module = _imported_module(relpath, node)
-                if module.startswith("pathlib_next.uri.schemes"):
+                if module.startswith("uripath.schemes"):
                     continue
                 imported += [
                     (relpath, alias.name) for alias in node.names if alias.name in core
@@ -238,12 +254,59 @@ def test_no_scheme_imports_an_underscore_name_from_the_core(core):
     assert imported == []
 
 
+def _taken_from_pathlib_next():
+    """`(module, file, name)` for every name the package imports from
+    `pathlib_next`, and for every attribute it reads of a module imported
+    from there (`_providers.stub`)."""
+    taken = set()
+    for p in _files(PACKAGE):
+        relpath = p.relative_to(PACKAGE).as_posix()
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        aliases = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and not node.level:
+                module = node.module or ""
+                if module != "pathlib_next" and not module.startswith("pathlib_next."):
+                    continue
+                for alias in node.names:
+                    taken.add((module, p.name, alias.name))
+                    if module == "pathlib_next" and alias.name[:1].islower():
+                        aliases[alias.asname or alias.name] = (
+                            f"pathlib_next.{alias.name}"
+                        )
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id in aliases
+            ):
+                taken.add((aliases[node.value.id], p.name, node.attr))
+    return taken
+
+
+def test_every_name_taken_from_pathlib_next_is_public_but_the_listed_ones():
+    private = set()
+    for module, filename, name in _taken_from_pathlib_next():
+        private_module = any(part.startswith("_") for part in module.split("."))
+        if private_module or is_private(name):
+            private.add((module, filename, name))
+            continue
+        try:
+            importlib.import_module(f"{module}.{name}")
+        except ImportError:
+            pass
+        else:
+            continue  # a public submodule (`pathlib_next.providers`)
+        exported = getattr(importlib.import_module(module), "__all__", None)
+        if exported is not None:
+            assert name in exported, (module, filename, name)
+    assert private == PRIVATE_FROM_PATHLIB_NEXT
+
+
 @pytest.mark.parametrize(("module", "public", "private"), PUBLIC_HELPERS)
 def test_a_public_helper_is_the_object_its_underscore_name_stays_as(
     module, public, private
 ):
-    if module.startswith("pathlib_next.uri"):
-        pytest.importorskip("uritools")
     imported = importlib.import_module(module)
     assert getattr(imported, public) is getattr(imported, private)
     if hasattr(imported, "__all__"):
@@ -253,7 +316,7 @@ def test_a_public_helper_is_the_object_its_underscore_name_stays_as(
 
 @pytest.mark.parametrize(("module", "public", "private"), PUBLIC_HELPERS)
 def test_a_public_helper_is_documented_in_the_header(module, public, private):
-    assert public in documented_names(HEADER.read_text(encoding="utf-8"))
+    assert public in documented_names()
 
 
 @pytest.mark.parametrize(("module", "public"), PROVIDER_HELPERS)
@@ -261,4 +324,4 @@ def test_a_provider_helper_is_exported_and_documented(module, public):
     imported = importlib.import_module(module)
     assert public in imported.__all__
     assert callable(getattr(imported, public))
-    assert public in documented_names(HEADER.read_text(encoding="utf-8"))
+    assert public in documented_names()

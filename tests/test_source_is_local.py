@@ -9,8 +9,8 @@ import pytest
 pytest.importorskip("uritools")
 netimps = pytest.importorskip("netimps")
 
-from pathlib_next.uri import source as source_module
-from pathlib_next.uri.source import Source
+from uripath import source as source_module
+from uripath.source import Source
 
 
 class _Clock:

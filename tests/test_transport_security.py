@@ -31,17 +31,18 @@ import traceback
 import pytest
 
 from http_fakes import FakeTransport, reply
-from pathlib_next.uri import Source, UriPath
-from pathlib_next.uri.schemes import _gitrepo
-from pathlib_next.uri.schemes import http as http_scheme
-from pathlib_next.uri.schemes.dav import DavPath
+import uripath
+from uripath import Source, UriPath
+from uripath.schemes import _gitrepo
+from uripath.schemes import http as http_scheme
+from uripath.schemes.dav import DavPath
 from pathlib_next.ftp import FTPBackend
-from pathlib_next.uri.schemes.ftp import FtpBackend, FtpPath
-from pathlib_next.uri.schemes.github import GitHubPath
-from pathlib_next.uri.schemes.gitlab import GitLabPath
-from pathlib_next.uri.schemes.http import HttpBackend, HttpPath
+from uripath.schemes.ftp import FtpBackend, FtpPath
+from uripath.schemes.github import GitHubPath
+from uripath.schemes.gitlab import GitLabPath
+from uripath.schemes.http import HttpBackend, HttpPath
 
-SRC = str(pathlib.Path(__file__).resolve().parents[1] / "src")
+SRC = str(pathlib.Path(uripath.__file__).resolve().parent.parent)
 
 
 def _formatted(error: BaseException) -> str:
@@ -183,18 +184,6 @@ def test_http_explicit_authorization_wins_over_userinfo():
     ]
 
 
-def test_http_explicit_session_auth_wins_over_userinfo(recording_http_server):
-    requests = pytest.importorskip("requests")
-    host, seen = recording_http_server
-    p = HttpPath(f"http://alice:s3cr3t@{host}/ok").with_session(
-        requests.Session(), auth=("bob", "b")
-    )
-    p.read_bytes()
-    assert (
-        seen[-1][2]["Authorization"] == "Basic " + base64.b64encode(b"bob:b").decode()
-    )
-
-
 def test_http_redirect_response_urls_carry_no_credentials(
     recording_http_server, http_transport
 ):
@@ -263,44 +252,6 @@ def test_http_transport_error_text_never_reaches_the_raised_error(make, exc):
     transport = _FakeTransport()
     transport.fail = make(f"ProxyError({quoted})")
     p = HttpPath("http://alice:s3cr3t@h/x", backend=HttpBackend(transport))
-    with pytest.raises(exc) as excinfo:
-        p.read_bytes()
-    text = _formatted(excinfo.value)
-    assert "pr0xyS3cret" not in text
-    assert "s3cr3t" not in text
-    assert excinfo.value.__cause__ is None
-    assert excinfo.value.__suppress_context__
-
-
-@pytest.mark.parametrize(
-    "make, exc",
-    [
-        ("ConnectionError", ConnectionError),
-        ("ProxyError", ConnectionError),
-        ("ConnectTimeout", TimeoutError),
-        ("ReadTimeout", TimeoutError),
-        ("TooManyRedirects", OSError),
-    ],
-)
-def test_requests_transport_error_text_never_reaches_the_raised_error(make, exc):
-    # `requests` exceptions can quote a proxy URL with credentials; the
-    # transport raises builtin exceptions that carry none of it.
-    requests = pytest.importorskip("requests")
-    from pathlib_next.uri.schemes.http import RequestsTransport
-
-    quoted = "http://proxyuser:pr0xyS3cret@proxy.example:3128"
-
-    class _Raising:
-        auth = None
-        headers = {}
-
-        def request(self, method, url, **kwargs):
-            raise getattr(requests.exceptions, make)(f"ProxyError({quoted})")
-
-    p = HttpPath(
-        "http://alice:s3cr3t@h/x",
-        backend=HttpBackend(RequestsTransport(_Raising())),
-    )
     with pytest.raises(exc) as excinfo:
         p.read_bytes()
     text = _formatted(excinfo.value)
@@ -683,10 +634,6 @@ def test_ftps_custom_ssl_context_verifies_against_its_ca(ftps_server):
     assert server.data_session_reused == [True]
 
 
-def test_ftps_default_context_verifies():
-    context = FTPBackend("host", tls=True)._tls_context()
-    assert context.verify_mode == ssl.CERT_REQUIRED
-    assert context.check_hostname is True
 
 
 def test_ftps_data_connection_reuses_tls_session(ftps_server):
@@ -712,7 +659,7 @@ def test_ftps_dispatches_in_fresh_process(disable):
     code = "\n".join(
         [
             "from unittest import mock",
-            "from pathlib_next.uri import UriPath",
+            "from uripath import UriPath",
             f"name = {disable!r}",
             "ctx = mock.patch.object(UriPath, name, return_value=False) if name "
             "else mock.MagicMock()",
@@ -731,4 +678,4 @@ def test_ftps_dispatches_in_fresh_process(disable):
         timeout=120,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "pathlib_next.uri.schemes.ftp.FtpPath"
+    assert result.stdout.strip() == "uripath.schemes.ftp.FtpPath"

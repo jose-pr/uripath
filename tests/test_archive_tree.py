@@ -10,7 +10,7 @@ import zipfile
 
 import pytest
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next.archive._zip import _ZipBackend
 
 

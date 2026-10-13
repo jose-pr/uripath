@@ -10,7 +10,7 @@ import typing
 import pytest
 
 from http_fakes import FakeTransport, reply
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -277,7 +277,7 @@ def test_http_write_stream_marks_closed_on_upload_failure():
     # A failed close() must not leave the stream open -- otherwise a
     # later close() (context-manager __exit__, or GC via
     # IOBase.__del__) silently retries the PUT.
-    from pathlib_next.uri.schemes.http import HttpWriteStream
+    from uripath.schemes.http import HttpWriteStream
 
     transport = FakeTransport(default=reply(500))
     p = UriPath("http://example.com/f.txt").with_transport(transport)
@@ -486,7 +486,7 @@ def test_http_append_patch_mode_rejection():
 
 def test_http_append_write_stream_marks_closed_on_failure():
     """Append stream must mark itself closed even on failed close()."""
-    from pathlib_next.uri.schemes.http import HttpAppendStream
+    from uripath.schemes.http import HttpAppendStream
 
     # The GET for the initial content in rewrite mode finds no file; the PUT
     # that closes the stream fails.
@@ -508,7 +508,7 @@ def test_http_append_write_stream_marks_closed_on_failure():
 
 def test_http_append_default_is_rewrite():
     """Default append_mode should be 'rewrite'."""
-    from pathlib_next.uri.schemes.http import HttpBackend
+    from uripath.schemes.http import HttpBackend
 
     assert HttpBackend(FakeTransport()).append_mode == "rewrite"
 
@@ -540,7 +540,7 @@ def test_approximate_listing_size_is_not_a_stat_hint(site):
 
 
 def test_listing_parser_marks_human_readable_sizes_approximate():
-    from pathlib_next.uri.schemes.http import _DirectoryListingParser
+    from uripath.schemes.http import _DirectoryListingParser
 
     parser = _DirectoryListingParser()
     parser.feed(

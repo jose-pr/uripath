@@ -10,8 +10,8 @@ import typing
 import pytest
 
 from http_fakes import is_client_error, on_current_transport, spy_on_sends
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes import http as http_module
+from uripath import UriPath
+from uripath.schemes import http as http_module
 
 TIMEOUT = (5, 30)
 STALL_TIMEOUT = (5, 0.3)

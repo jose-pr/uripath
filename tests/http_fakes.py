@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 import typing
 
-from pathlib_next.uri.schemes.http import HTTPResponse
+from uripath.schemes.http import HTTPResponse
 
 _REASONS = {
     200: "OK",
@@ -41,26 +41,25 @@ def is_client_error(error):
 
 
 def make_transport(kind, **arguments):
-    """A real transport: `"builtin"` or `"requests"`."""
-    from pathlib_next.uri.schemes.http import HTTPTransport, RequestsTransport
+    """A real transport: `"builtin"`."""
+    from uripath.schemes.http import HTTPTransport
 
-    return (HTTPTransport if kind == "builtin" else RequestsTransport)(**arguments)
+    assert kind == "builtin", kind
+    return HTTPTransport(**arguments)
 
 
 def spy_on_sends(monkeypatch, project=lambda method, url, **kwargs: (method, url)):
     """A list that gains `project(method, url, **keywords)` for every request
-    either real transport sends, whichever the default transport is; the
-    requests still go to the server."""
-    from pathlib_next.uri.schemes.http import HTTPTransport, RequestsTransport
+    the real transport sends; the requests still go to the server."""
+    from uripath.schemes.http import HTTPTransport
 
     log = []
-    for cls in (HTTPTransport, RequestsTransport):
 
-        def spy(self, method, url, *args, _original=cls.send, **kwargs):
-            log.append(project(method, url, **kwargs))
-            return _original(self, method, url, *args, **kwargs)
+    def spy(self, method, url, *args, _original=HTTPTransport.send, **kwargs):
+        log.append(project(method, url, **kwargs))
+        return _original(self, method, url, *args, **kwargs)
 
-        monkeypatch.setattr(cls, "send", spy)
+    monkeypatch.setattr(HTTPTransport, "send", spy)
     return log
 
 

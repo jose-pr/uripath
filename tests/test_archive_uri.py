@@ -14,8 +14,8 @@ import pytest
 from capabilities import requires_posix_modes
 
 from pathlib_next import LocalPath
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.archive import (
+from uripath import UriPath
+from uripath.schemes.archive import (
     ArchiveUri,
     TarUri,
     ZipUri,

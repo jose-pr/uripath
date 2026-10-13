@@ -5,12 +5,11 @@ import sys as _sys
 import types as _types
 import typing as _ty
 
-from .... import archive as _archive
-from ....archive import MAX_LINKS as MAX_LINKS
-from ....archive import ArchivePath
-from ....archive import LinkTarget as LinkTarget
-from ....providers import check_follow
-from ....providers import as_error_handler
+from pathlib_next import archive as _archive
+from pathlib_next.archive import MAX_LINKS as MAX_LINKS
+from pathlib_next.archive import ArchivePath
+from pathlib_next.archive import LinkTarget as LinkTarget
+from pathlib_next.providers import as_error_handler, check_follow
 from ... import Uri, UriPath
 from ...source import SAFE_PATH, Source, percent_encode
 from .._delegate import DelegatingPath

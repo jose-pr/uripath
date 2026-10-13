@@ -6,10 +6,10 @@ import weakref as _weakref
 
 import netimps as _netimps
 
-from ...ftp import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
-from ...ftp import IDLE_PROBE_SECONDS as IDLE_PROBE_SECONDS
-from ...ftp import BaseFTPBackend, FTPBackend, FTPPath
-from ...providers import notimplemented as _notimplemented
+from pathlib_next.ftp import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
+from pathlib_next.ftp import IDLE_PROBE_SECONDS as IDLE_PROBE_SECONDS
+from pathlib_next.ftp import BaseFTPBackend, FTPBackend, FTPPath
+from pathlib_next.providers import notimplemented as _notimplemented
 from .. import Source, Uri
 from ._delegate import DelegatingPath
 

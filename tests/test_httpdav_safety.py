@@ -15,9 +15,9 @@ import pytest
 
 from http_fakes import on_current_transport
 from pathlib_next import LocalPath
-from pathlib_next.uri.schemes.dav import DavPath
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.http import HttpPath
+from uripath.schemes.dav import DavPath
+from uripath import UriPath
+from uripath.schemes.http import HttpPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
@@ -400,26 +400,6 @@ def test_http_last_modified_is_utc(wire_server):
 
 
 # --- httpdav-requests-args-collide-with-internal-kwargs ---
-
-
-def test_with_session_args_do_not_collide(wire_server, dav_server):
-    requests = pytest.importorskip("requests")
-    host, _store, seen = wire_server
-    p = HttpPath(f"http://{host}/redirect.txt").with_session(
-        requests.Session(),
-        allow_redirects=True,
-        stream=False,
-        headers={"X-Token": "t"},
-    )
-    assert p.stat().is_file()
-    assert p.read_bytes() == _PLAIN_BODY
-    assert seen and all(headers.get("X-Token") == "t" for _m, _p, headers in seen)
-
-    d = DavPath(f"{dav_server}/sub").with_session(
-        requests.Session(), headers={"X-Token": "t"}
-    )
-    assert d.is_dir()
-    assert sorted(c.name for c in d.iterdir()) == ["c.py", "nested"]
 
 
 # --- httpdav-dav-write-stream-retries-put-on-gc ---

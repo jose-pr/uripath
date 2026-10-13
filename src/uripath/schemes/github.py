@@ -3,8 +3,8 @@ from __future__ import annotations
 import base64 as _base64
 import errno as _errno
 
-from ... import providers as _providers
-from ... import FileStat
+from pathlib_next import FileStat
+from pathlib_next import providers as _providers
 from ._gitrepo import (  # noqa: F401  (re-exported)
     InsecureTransportWarning,
     RepoBackend,

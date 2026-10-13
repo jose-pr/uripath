@@ -8,8 +8,8 @@ import pytest
 
 from http_fakes import FakeTransport, reply
 from http_wire import Reply, Wire, response
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.http import HttpBackend
+from uripath import UriPath
+from uripath.schemes.http import HttpBackend
 
 AUTH = {"Authorization": "Bearer TOKEN-1"}
 

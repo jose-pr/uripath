@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ....archive import TarPath
+from pathlib_next.archive import TarPath
 from ._base import ArchiveUri
 
 

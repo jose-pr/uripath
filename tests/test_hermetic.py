@@ -283,7 +283,7 @@ def test_a_proxy_in_the_developers_shell_is_not_used_for_a_loopback_server(
 def test_a_proxy_in_the_developers_shell_is_not_used_by_the_built_in_transport(
     http_server, monkeypatch
 ):
-    from pathlib_next.uri import UriPath
+    from uripath import UriPath
 
     assert UriPath(f"{http_server}/a.txt").read_text() == "a"
 
@@ -335,9 +335,7 @@ def test_a_session_started_from_a_shell_with_proxies_and_aws_settings_is_isolate
 ):
     result = _probe("probe_session_environment.py", tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
-    # The third probe needs `requests`, which a bare install does not have.
-    expected = "3 passed" if importlib.util.find_spec("requests") else "2 passed"
-    assert expected in result.stdout, result.stdout
+    assert "2 passed" in result.stdout, result.stdout
 
 
 def test_a_test_that_leaves_the_environment_changed_fails_at_teardown(tmp_path):
@@ -346,11 +344,3 @@ def test_a_test_that_leaves_the_environment_changed_fails_at_teardown(tmp_path):
     assert "2 passed, 1 error" in result.stdout, result.stdout
     assert "left the process environment changed" in result.stdout
     assert "PATHLIB_NEXT_LEAKED: None -> 'yes'" in result.stdout
-
-
-def test_the_header_names_the_modules_left_out_without_the_uri_extra(monkeypatch):
-    monkeypatch.setattr(conftest, "collect_ignore", ["test_a.py", "test_b.py"])
-    header = conftest.pytest_report_header(None)
-    assert "2 test modules are not collected: test_a, test_b" in header
-    monkeypatch.setattr(conftest, "collect_ignore", [])
-    assert conftest.pytest_report_header(None) is None

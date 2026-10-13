@@ -10,8 +10,8 @@ import os
 import pytest
 
 from pathlib_next import LocalPath
-from pathlib_next.uri import Uri, UriPath
-from pathlib_next.uri.schemes.file import FileUri
+from uripath import Uri, UriPath
+from uripath.schemes.file import FileUri
 
 WINDOWS = os.name == "nt"
 BACKSLASH = chr(92)

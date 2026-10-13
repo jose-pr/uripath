@@ -1,8 +1,8 @@
 import pytest
 
 from http_fakes import FakeTransport
-from pathlib_next.uri import Source, Uri, UriPath
-from pathlib_next.uri.schemes.file import FileUri
+from uripath import Source, Uri, UriPath
+from uripath.schemes.file import FileUri
 from pathlib_next import FileStat
 
 
@@ -310,7 +310,7 @@ def test_join_uses_the_same_child_builder_as_a_listing():
     gives a name special meaning sees it. `gitlab:` reserves "-": built by
     hand the child used to address the repository root instead of the
     directory the listing yields."""
-    gitlab = pytest.importorskip("pathlib_next.uri.schemes.gitlab")
+    gitlab = pytest.importorskip("uripath.schemes.gitlab")
     repo = gitlab.GitLabPath("gitlab://gitlab.com/owner/repo")
     assert (repo / "-").path == repo._make_child_relpath("-").path
 
@@ -335,7 +335,7 @@ def test_join_reads_bytes_as_a_decoded_path_too():
     ],
 )
 def test_a_str_destination_is_only_a_uri_for_a_registered_scheme(value, is_uri):
-    from pathlib_next.uri import _looks_like_uri
+    from uripath import _looks_like_uri
 
     assert _looks_like_uri(value) is is_uri
 

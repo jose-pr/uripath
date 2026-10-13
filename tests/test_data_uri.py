@@ -2,8 +2,8 @@
 
 import pytest
 
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.data import DataUri
+from uripath import UriPath
+from uripath.schemes.data import DataUri
 
 
 def test_scheme_dispatch():

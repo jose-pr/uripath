@@ -16,7 +16,7 @@ from capabilities import requires_junctions
 
 import pathlib_next
 from pathlib_next.mempath import MemPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next import glob as _glob
 
 _FILES = (
@@ -217,43 +217,12 @@ def test_glob_does_not_recurse_into_directory_symlinks(
 # --- pattern validation ------------------------------------------------------
 
 
-def test_empty_pattern_raises_value_error(impl):
-    with pytest.raises(ValueError):
-        impl.glob("")
-    with pytest.raises(ValueError):
-        impl.glob(".")
 
 
-def test_absolute_pattern_raises_like_pathlib(impl):
-    for call in (lambda: impl.glob("/x/*"), lambda: impl.rglob("/x")):
-        with pytest.raises(NotImplementedError):
-            call()
-        with pytest.raises(ValueError):
-            call()
 
 
-def test_localpath_anchored_patterns_raise(tree):
-    root = pathlib_next.LocalPath(tree)
-    outside = tree.parent / "outside"
-    outside.mkdir()
-    (outside / "secret.txt").write_text("s")
-    patterns = [outside.as_posix() + "/*"]
-    if os.name == "nt":
-        patterns += ["C:x", "C:/x/*", "\\x\\*"]
-    for pattern in patterns:
-        with pytest.raises(NotImplementedError):
-            list(pathlib.Path(tree).glob(pattern))
-        with pytest.raises(NotImplementedError):
-            root.glob(pattern)
-        with pytest.raises(NotImplementedError):
-            root.rglob(pattern)
 
 
-@pytest.mark.skipif(os.name != "nt", reason="drive syntax is Windows-only")
-def test_localpath_drive_inside_pattern_stays_under_self(tree):
-    root = pathlib_next.LocalPath(tree)
-    assert list(root.glob("sub/C:/Windows/*")) == []
-    assert list(root.glob("sub\\*.py")) == [root / "sub" / "c.py"]
 
 
 def test_recurse_symlinks_adds_nothing_where_the_tree_has_no_links(impl):
@@ -272,12 +241,6 @@ def test_uripath_question_mark_is_a_wildcard(tree):
     assert {p.name for p in base.glob("*/n?sted/*.py")} == {"d.py"}
 
 
-def test_module_glob_excludes_hidden_by_default(tree):
-    pattern = pathlib_next.LocalPath(tree) / "**" / "*.py"
-    names = {p.name for p in _glob.glob(pattern, recursive=True)}
-    assert names == {"b.py", "c.py", "d.py", "g.py"}
-    hidden = {p.name for p in _glob.glob(pattern, recursive=True, include_hidden=True)}
-    assert hidden == names | {"e.py"}
 
 
 # --- full_match ----------------------------------------------------------------
@@ -302,20 +265,8 @@ _FULL_MATCH_CASES = [
 ]
 
 
-@pytest.mark.parametrize("path,pattern,expected", _FULL_MATCH_CASES)
-def test_full_match_semantics(path, pattern, expected):
-    assert _glob.full_match(path.split("/"), pattern, True) is expected
-    if sys.version_info >= (3, 13):
-        assert pathlib.PurePosixPath(path).full_match(pattern) is expected
 
 
-def test_full_match_repeated_doublestar_is_not_exponential():
-    segments = ["x"] * 24
-    pattern = "/".join(["**", "x"] * 8) + "/nomatch"
-    start = time.monotonic()
-    assert not _glob.full_match(segments, pattern, True)
-    assert _glob.full_match(segments, "/".join(["**", "x"] * 8), True)
-    assert time.monotonic() - start < 10
 
 
 # --- glob(None): expand the pattern this path carries ---------------------
@@ -333,73 +284,21 @@ def test_glob_none_expands_the_pattern_the_path_carries(tree, cls):
     assert got
 
 
-def test_glob_none_recursive_and_rglob_none(tree):
-    root = pathlib_next.LocalPath(tree)
-    carrier = root / "**" / "*.py"
-    expected = sorted(p.name for p in root.rglob("*.py"))
-    assert sorted(p.name for p in carrier.glob(None, recursive=True)) == expected
-    assert sorted(p.name for p in carrier.rglob(None)) == expected
 
 
-def test_glob_empty_string_still_raises(tree):
-    """The parity fix stands: only `None` opts into the carried-pattern
-    form, so `glob("")` keeps raising exactly what pathlib raises."""
-    root = pathlib_next.LocalPath(tree)
-    with pytest.raises(ValueError):
-        list(root.glob(""))
-    with pytest.raises(ValueError):
-        list(pathlib.Path(tree).glob(""))
 
 
 # --- native=: follow the interpreter, or one rule everywhere --------------
 
 
-def test_native_true_matches_the_running_interpreter_for_a_trailing_slash(tree):
-    """Before 3.11 pathlib ignores a trailing separator; from 3.11 it selects
-    directories only. The default follows whichever is running."""
-    root = pathlib_next.LocalPath(tree)
-    ours = {p.name for p in root.glob("*/")}
-    stdlib = {p.name for p in pathlib.Path(tree).glob("*/")}
-    assert ours == stdlib
 
 
-def test_native_false_selects_directories_on_every_version(tree):
-    root = pathlib_next.LocalPath(tree)
-    got = {p.name for p in root.glob("*/", native=False)}
-    assert got == {p.name for p in root.iterdir() if p.is_dir()}
 
 
-def test_native_true_follows_the_interpreter_for_a_partial_doublestar(tree):
-    """ "a**" is a plain wildcard from 3.13 and a ValueError before it."""
-    root = pathlib_next.LocalPath(tree)
-    if sys.version_info >= (3, 13):
-        assert {p.name for p in root.glob("**.py")} == {
-            p.name for p in pathlib.Path(tree).glob("**.py")
-        }
-    else:
-        with pytest.raises(ValueError, match="entire path component"):
-            list(root.glob("**.py"))
-        with pytest.raises(ValueError, match="entire path component"):
-            list(pathlib.Path(tree).glob("**.py"))
 
 
-def test_native_false_treats_a_partial_doublestar_as_a_wildcard(tree):
-    root = pathlib_next.LocalPath(tree)
-    assert {p.name for p in root.glob("**.py", native=False)} == {
-        p.name for p in root.glob("*.py", native=False)
-    }
 
 
-@pytest.mark.parametrize("native", [True, False])
-def test_native_is_accepted_by_every_generic_backend(tree, native):
-    """The knob is on `Path`, so every backend takes it -- a MemPath has no
-    "running interpreter" of its own, and must still answer."""
-    mem = MemPath("/m")
-    mem.mkdir(parents=True)
-    (mem / "x.py").write_text("x")
-    (mem / "d").mkdir()
-    assert {p.name for p in mem.glob("*.py", native=native)} == {"x.py"}
-    assert {p.name for p in mem.glob("*", native=native)} == {"x.py", "d"}
 
 
 # --- on_error: an unreadable directory can be seen ------------------------
@@ -424,74 +323,19 @@ def unreadable_tree(tmp_path, monkeypatch):
     return tmp_path
 
 
-def test_a_failed_listing_is_silent_without_the_hook(unreadable_tree):
-    """pathlib's behaviour, and the default: the layer simply vanishes."""
-    root = pathlib_next.LocalPath(unreadable_tree)
-    assert sorted(p.name for p in root.glob("**/*.json")) == ["a.json"]
 
 
-def test_on_error_reports_the_failed_listing_and_keeps_going(unreadable_tree):
-    root = pathlib_next.LocalPath(unreadable_tree)
-    seen = []
-    found = sorted(p.name for p in root.glob("**/*.json", on_error=seen.append))
-    assert found == ["a.json"]
-    assert seen and all(isinstance(e, PermissionError) for e in seen)
-    # One argument is enough to say where, as with `walk()`/`os.walk`.
-    assert all(pathlib.Path(e.filename).name == "locked" for e in seen)
 
 
-def test_on_error_may_raise_to_make_it_fatal(unreadable_tree):
-    """The point of the hook: a caller who wants the error back gets it."""
-    root = pathlib_next.LocalPath(unreadable_tree)
-
-    def reraise(error):
-        raise error
-
-    with pytest.raises(PermissionError):
-        list(root.glob("**/*.json", on_error=reraise))
-    with pytest.raises(PermissionError):
-        list(root.rglob("*.json", on_error=reraise))
 
 
 # --- bound_loops: a directory is walked once per "**" ---------------------
 
 
-@requires_junctions
-def test_bound_loops_bounds_a_windows_junction_loop(tmp_path):
-    """A junction reports `is_symlink() == False`, so `recurse_symlinks`
-    cannot see it and `**` walks the loop until the recursion limit --
-    pathlib does the same. Identity bounds it."""
-    import _winapi
-
-    (tmp_path / "b").mkdir()
-    (tmp_path / "b" / "x.json").write_text("{}")
-    _winapi.CreateJunction(str(tmp_path / "b"), str(tmp_path / "b" / "self"))
-    base = pathlib_next.LocalPath(tmp_path)
-
-    # Unbounded, the one file is reached again through every extra "self"
-    # (pathlib does the same, and on 3.9 it eventually raises WinError 1921
-    # on the over-long path -- which is why stdlib is not the oracle here).
-    assert len(list(base.glob("b/**/*.json"))) > 1
-    assert len(list(base.glob("b/**/*.json", bound_loops=True))) == 1
-    assert len(list((base / "b").rglob("*.json", bound_loops=True))) == 1
 
 
-def test_bound_loops_keeps_a_plain_tree_intact(tree):
-    """Bounding must not drop ordinary directories: every match the default
-    finds is still found."""
-    root = pathlib_next.LocalPath(tree)
-    plain = sorted(str(p) for p in root.glob("**/*.py"))
-    assert sorted(str(p) for p in root.glob("**/*.py", bound_loops=True)) == plain
 
 
-def test_bound_loops_is_accepted_where_stats_have_no_identity():
-    """A backend whose stat carries no (st_dev, st_ino) cannot be bounded;
-    it must still answer rather than raise."""
-    mem = MemPath("/m")
-    mem.mkdir(parents=True)
-    (mem / "s").mkdir()
-    (mem / "s" / "x.py").write_text("x")
-    assert [str(p) for p in mem.glob("**/*.py", bound_loops=True)] == ["/m/s/x.py"]
 
 
 def _junction(link, target):
@@ -505,49 +349,5 @@ def _junction(link, target):
     )
 
 
-@requires_junctions
-def test_bound_loops_keeps_a_directory_shared_under_two_names(tmp_path):
-    """A loop is a directory reachable BELOW ITSELF -- not one reachable
-    twice. Two sibling junctions onto one shared directory (a common config
-    layer linked in as `site-a` and `site-b`) is a deliberate layout that
-    terminates on its own, and both names must expand. Keying the bound on
-    everything seen dropped the second one silently."""
-    conf = tmp_path / "conf"
-    conf.mkdir()
-    (conf / "own.yaml").write_text("own")
-    shared = tmp_path / "shared"
-    shared.mkdir()
-    (shared / "common.yaml").write_text("common")
-    _junction(conf / "site-a", shared)
-    _junction(conf / "site-b", shared)
-
-    base = pathlib_next.LocalPath(tmp_path)
-    expected = sorted(
-        str(q.relative_to(tmp_path)).replace("\\", "/")
-        for q in base.glob("conf/**/*.yaml")
-    )
-    bounded = sorted(
-        str(q.relative_to(tmp_path)).replace("\\", "/")
-        for q in base.glob("conf/**/*.yaml", bound_loops=True)
-    )
-    assert "conf/site-b/common.yaml" in expected  # the default finds both
-    assert bounded == expected  # and so does the bounded walk
 
 
-@requires_junctions
-def test_bound_loops_still_bounds_a_loop_back_to_an_ancestor(tmp_path):
-    """The case the flag exists for: unbounded, the two real files are
-    matched 128 times (and a deeper walk fails outright on the path
-    length)."""
-    conf = tmp_path / "conf"
-    (conf / "deep").mkdir(parents=True)
-    (conf / "10-base.yaml").write_text("a")
-    (conf / "deep" / "20-extra.yaml").write_text("b")
-    _junction(conf / "deep" / "loop", conf)
-
-    base = pathlib_next.LocalPath(tmp_path)
-    assert len(list(base.glob("conf/**/*.yaml"))) > 2
-    assert sorted(q.name for q in base.glob("conf/**/*.yaml", bound_loops=True)) == [
-        "10-base.yaml",
-        "20-extra.yaml",
-    ]

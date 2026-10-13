@@ -1,6 +1,6 @@
 import pytest
 
-from pathlib_next.uri.source import Source
+from uripath.source import Source
 
 
 def test_bool_false_when_all_empty():

@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 @pytest.fixture

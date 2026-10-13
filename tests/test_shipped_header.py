@@ -1,4 +1,4 @@
-"""The shipped API header (`pathlib_next/AGENTS.md`) against the installed code.
+"""The shipped API header (`uripath/AGENTS.md`) against the installed code.
 
 Every fenced Python block of the header is a stub: `class`/`def` lines whose
 parameter lists, `class` bases, and constant values are compared with the real
@@ -18,10 +18,10 @@ import sys
 
 import pytest
 
-import pathlib_next
+import uripath
 
-HEADER = pathlib.Path(pathlib_next.__file__).resolve().parent / "AGENTS.md"
-MODULE = re.compile(r"`(pathlib_next[\w.]*)`")
+HEADER = pathlib.Path(uripath.__file__).resolve().parent / "AGENTS.md"
+MODULE = re.compile(r"`(uripath[\w.]*)`")
 KINDS = {
     "POSITIONAL_ONLY": inspect.Parameter.POSITIONAL_ONLY,
     "POSITIONAL_OR_KEYWORD": inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -274,14 +274,13 @@ def test_the_stubs_of_each_block_match_the_code(modules, source):
     assert problems == []
 
 
-def test_the_header_has_blocks_for_both_layers():
+def test_the_header_has_blocks_for_the_package():
     found = blocks(HEADER.read_text(encoding="utf-8"))
-    assert len(found) > 40
+    assert len(found) > 15
     assert {m for _t, mods, _l, _s in found for m in mods} >= {
-        "pathlib_next.path",
-        "pathlib_next.sync",
-        "pathlib_next.uri",
-        "pathlib_next.uri.schemes.sftp",
+        "uripath",
+        "uripath.source",
+        "uripath.schemes.http",
     }
 
 
@@ -292,25 +291,29 @@ def test_the_header_has_blocks_for_both_layers():
     ("old", "new", "report"),
     [
         (
-            "follow_binds=False,",
-            "follow_binds=True,",
-            "follow_binds=True in the header",
-        ),
-        ("def rmdir(self): ...", "def rmdir(self, parents=False): ...", "rmdir"),
-        (
-            "def move(self, target, *, overwrite=False)",
-            "def move(self, target, overwrite=False)",
-            "move",
+            "def as_uri(self, sanitize=False)",
+            "def as_uri(self, sanitize=True)",
+            "sanitize=True in the header",
         ),
         (
-            "class Path(Pathname, Chmod, Stat, BinaryOpen):",
-            "class Path(Pathname, Elsewhere):",
+            "def with_fragment(self, fragment): ...",
+            "def with_fragment(self, fragment, extra=None): ...",
+            "with_fragment",
+        ),
+        (
+            "def relative_to(self, other, *, walk_up=False): ...",
+            "def relative_to(self, other, walk_up=False): ...",
+            "relative_to",
+        ),
+        (
+            "class UriPath(Uri, Path):",
+            "class UriPath(Uri, Elsewhere):",
             "Elsewhere is not a base",
         ),
         (
-            "def move_into(self, target_dir",
-            "def move_here(self, target_dir",
-            "move_here: no such method",
+            "def with_stem(self, stem) -> Self: ...",
+            "def with_stemm(self, stem) -> Self: ...",
+            "with_stemm: no such method",
         ),
     ],
 )
@@ -338,89 +341,29 @@ def test_the_header_closes_with_the_four_standard_sections():
         "Environment variables",
         "Gotchas",
     ]
-    for section in ("Exceptions", "Gotchas"):
-        body = text.split(f"\n## {section}\n", 1)[1].split("\n## ", 1)[0]
-        assert re.search(r"(?m)^### Core\b", body)
-        assert re.search(r"(?m)^### URI layer\b", body)
 
 
 def test_the_header_opens_as_the_standard_says():
     text = HEADER.read_text(encoding="utf-8")
-    assert text.startswith("# `pathlib_next` — public API header\n")
+    assert text.startswith("# `uripath` — public API header\n")
     opening = text.split("\n\n")[1]
     assert "ships inside the package" in opening and "self-contained" in opening
-    assert "<https://github.com/jose-pr/pathlib-next>" in opening
-    assert "`pathlib_next.__version__`" in text.split("\n## ", 1)[0]
+    assert "<https://github.com/jose-pr/uripath>" in opening
 
 
 def test_the_header_links_only_to_absolute_urls():
     text = HEADER.read_text(encoding="utf-8")
     assert re.findall(r"\]\((?!https?://)[^)]*\)", text) == []
-    for private in ("CHANGELOG.md", "docs/", "src/pathlib_next"):
+    for private in ("CHANGELOG.md", "docs/", "src/uripath"):
         assert private not in text
 
 
-def test_each_layer_is_one_contiguous_run_of_sections():
-    text = HEADER.read_text(encoding="utf-8")
-    titles = _headings(text, 2)
-    uri = [
-        i for i, t in enumerate(titles) if t.startswith(("URIs", "Built-in schemes"))
+def test_the_sections_come_in_the_order_a_user_meets_them():
+    titles = _headings(HEADER.read_text(encoding="utf-8"), 2)
+    assert titles[0].startswith("URIs") and titles[1].startswith("Built-in schemes")
+    assert titles[2:] == [
+        "Exceptions",
+        "Command line",
+        "Environment variables",
+        "Gotchas",
     ]
-    assert uri == list(range(uri[0], uri[0] + len(uri)))
-    core = titles[: uri[0]]
-    assert core[0].startswith("Package root") and core[-1].startswith("Testing helpers")
-
-
-# --- the environment variable the header documents ---
-
-
-@pytest.fixture
-def sftp(monkeypatch):
-    module = pytest.importorskip("pathlib_next.uri.schemes.sftp")
-    monkeypatch.setattr(module, "_resolved_backend_cls", None)
-    return module
-
-
-def test_the_variable_in_the_header_is_the_one_the_code_reads(sftp):
-    section = HEADER.read_text(encoding="utf-8").split("\n## Environment variables\n")[
-        1
-    ]
-    assert sftp._ENV_VAR == "PATHLIB_NEXT_SFTP_BACKEND"
-    assert f"### `{sftp._ENV_VAR}`" in section
-
-
-@pytest.mark.parametrize("value", ["", "Paramiko", "ASYNCSSH", "other"])
-def test_an_empty_or_unrecognised_or_differently_cased_value_is_an_error(
-    sftp, monkeypatch, value
-):
-    monkeypatch.setenv(sftp._ENV_VAR, value)
-    with pytest.raises(ValueError, match="PATHLIB_NEXT_SFTP_BACKEND"):
-        sftp._resolve_default_backend_cls()
-    assert sftp._resolved_backend_cls is None
-
-
-def test_an_unset_variable_is_auto(sftp, monkeypatch):
-    monkeypatch.delenv(sftp._ENV_VAR, raising=False)
-    try:
-        chosen = sftp._resolve_default_backend_cls()
-    except ImportError:
-        pytest.skip("neither SSH library is installed")
-    monkeypatch.setattr(sftp, "_resolved_backend_cls", None)
-    monkeypatch.setenv(sftp._ENV_VAR, "auto")
-    assert sftp._resolve_default_backend_cls() is chosen
-
-
-def test_the_resolved_backend_is_kept_for_the_life_of_the_process(sftp, monkeypatch):
-    kept = type("Kept", (), {})
-    monkeypatch.setattr(sftp, "_resolved_backend_cls", kept)
-    monkeypatch.setenv(sftp._ENV_VAR, "other")
-    assert sftp._resolve_default_backend_cls() is kept
-
-
-def test_a_named_library_that_is_not_installed_is_an_import_error(sftp, monkeypatch):
-    monkeypatch.setattr(sftp, "_BACKEND_REGISTRY", {})
-    monkeypatch.setattr(sftp, "_paramiko_probed", False)
-    monkeypatch.setitem(sys.modules, sftp.__name__ + "._paramiko", None)
-    monkeypatch.setenv(sftp._ENV_VAR, "paramiko")
-    with pytest.raises(ImportError, match="sftp"):
-        sftp._resolve_default_backend_cls()

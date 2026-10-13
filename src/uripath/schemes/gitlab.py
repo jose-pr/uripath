@@ -4,8 +4,8 @@ import errno as _errno
 import itertools as _itertools
 import urllib.parse as _urlparse
 
-from ... import providers as _providers
-from ... import FileStat
+from pathlib_next import FileStat
+from pathlib_next import providers as _providers
 from .http import _server_size
 from ._gitrepo import (  # noqa: F401  (re-exported)
     InsecureTransportWarning,

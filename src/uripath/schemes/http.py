@@ -10,14 +10,13 @@ import time as _time
 import typing as _ty
 import urllib.parse as _urlparse
 
-from ... import providers as _providers
-from ... import FileStat
+from pathlib_next import FileStat
+from pathlib_next import providers as _providers
 from .. import DerivedBackend, UriPath
 from . import _httpdate
 from ._http import (
     HTTPResponse,
     HTTPTransport,
-    RequestsTransport,
     TransportOwner,
 )
 from ._http import _follow
@@ -40,7 +39,7 @@ from ._http._headers import peer_text
 DEFAULT_TIMEOUT = (10, 60)
 """`(connect, read)` timeout, in seconds, `HttpBackend` sends with every
 request unless the caller supplies `timeout` (`HttpBackend(timeout=...)`,
-`with_transport(timeout=...)`, `with_session(..., timeout=...)`, or per
+`with_transport(timeout=...)`, or per
 request); `timeout=None` there waits without a limit."""
 
 MAX_LISTING_BYTES = 8 * 1024 * 1024
@@ -739,8 +738,7 @@ class HttpBackend(TransportOwner):
 
     `transport` is any object with a `send()` method as
     `HTTPTransport.send()`; without one the backend builds the built-in
-    `HTTPTransport` on first use (`PATHLIB_NEXT_HTTP_TRANSPORT=requests`
-    builds `RequestsTransport` instead) and closes it with `close()` or at the
+    `HTTPTransport` on first use and closes it with `close()` or at the
     end of a `with` block. A transport it was given stays the caller's.
     `headers` are sent with every request, request-specific headers merged
     over them by name; every request gets `timeout=DEFAULT_TIMEOUT`
@@ -1174,24 +1172,3 @@ class HttpPath(UriPath):
             append_mode=append_mode,
         )
         return type(self)(self, backend=backend)
-
-    def with_session(
-        self,
-        session,
-        write_method: str = "PUT",
-        append_mode: str = "rewrite",
-        **requests_args,
-    ):
-        """This path with a backend that sends through a `requests.Session`
-        (a `RequestsTransport`). `headers` and `timeout` in `requests_args`
-        are the backend's; the others (`auth`, `verify`, `proxies`, `cert`, ...) go
-        to every `session.request()`. Needs the `http` extra."""
-        headers = requests_args.pop("headers", None)
-        timeout = requests_args.pop("timeout", DEFAULT_TIMEOUT)
-        return self.with_transport(
-            RequestsTransport(session, **requests_args),
-            headers=headers,
-            timeout=timeout,
-            write_method=write_method,
-            append_mode=append_mode,
-        )

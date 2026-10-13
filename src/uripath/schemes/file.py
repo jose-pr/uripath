@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os as _os
 
-from ...fspath import LocalPath as _Local
-from ...path import FsPathLike
+from pathlib_next import FsPathLike
+from pathlib_next import LocalPath as _Local
 from .. import Source
 from ..source import is_drive
 from ._delegate import DelegatingPath

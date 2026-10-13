@@ -11,8 +11,8 @@ import pytest
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")
 
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes._gitrepo import RepoBackend
+from uripath import UriPath
+from uripath.schemes._gitrepo import RepoBackend
 
 FILE = b"x" * 70_000
 API = {"X-GitHub-Media-Type": "github.v3; param=raw; format=json"}

@@ -11,7 +11,7 @@ import time
 
 import pytest
 
-from pathlib_next.uri.schemes.http import _DirectoryListingParser, _human2bytes
+from uripath.schemes.http import _DirectoryListingParser, _human2bytes
 
 
 def parse(html):

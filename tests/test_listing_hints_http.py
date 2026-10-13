@@ -9,9 +9,9 @@ import json
 import pytest
 
 from http_fakes import spy_on_sends
-from pathlib_next.uri import UriPath
-from pathlib_next.uri.schemes.github import RepoBackend
-from pathlib_next.uri.schemes.gitlab import GitLabPath
+from uripath import UriPath
+from uripath.schemes.github import RepoBackend
+from uripath.schemes.gitlab import GitLabPath
 
 
 @pytest.fixture

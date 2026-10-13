@@ -14,8 +14,8 @@ import uritools
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from pathlib_next.uri import Uri
-from pathlib_next.uri.source import (
+from uripath import Uri
+from uripath.source import (
     Source,
     _compose_uri,
     _decode_host,
@@ -248,30 +248,6 @@ def test_generic_parents_and_parent_match_pure_posix_path(rooted, segs):
 _mem_piece = st.sampled_from(["", ".", "a", "b", "cd"])
 
 
-@given(
-    args=st.lists(
-        st.tuples(st.booleans(), st.lists(_mem_piece, max_size=4)),
-        min_size=1,
-        max_size=3,
-    )
-)
-@settings(max_examples=300)
-def test_mempath_normalizes_like_pure_posix_path(args):
-    from pathlib_next.mempath import MemPath
-
-    # POSIX keeps exactly two leading slashes as a distinct root; MemPath has
-    # one root, so such arguments are not generated.
-    strs = [("/" if rooted else "") + "/".join(pieces) for rooted, pieces in args]
-    strs = [s for s in strs if not (s.startswith("//") and not s.startswith("///"))]
-    if not strs:
-        return
-    pp = pathlib.PurePosixPath(*strs)
-    ours = MemPath(*strs)
-    assert str(ours) == ("" if str(pp) == "." else str(pp))
-    assert ours == MemPath(str(pp)) or str(pp) == "."
-    assert hash(ours) == hash(MemPath(ours.as_posix()))
-    assert ours.name == pp.name
-    assert ours.root == pp.root
 
 
 # --- uritools oracle: one-pass parse/compose fast paths ---
@@ -629,48 +605,10 @@ def test_a_joined_child_survives_its_own_uri_text(name):
     assert Uri(str(child)) == child
 
 
-@given(name=_name)
-@settings(max_examples=300)
-def test_a_mempath_child_keeps_the_name_it_was_given(name):
-    from pathlib_next.mempath import MemPath
-
-    assert (MemPath("/d") / name).name == name
 
 
-@given(
-    name=st.one_of(
-        _any_name,
-        st.text(alphabet="ab.: /~$%CONnul1*?<>|'" + BACKSLASH, min_size=1, max_size=8),
-    )
-)
-@settings(max_examples=300)
-def test_a_name_called_safe_is_one_component_on_both_path_flavours(name):
-    from pathlib_next.providers import is_safe_child_name
-
-    if is_safe_child_name(name):
-        joined = pathlib.PurePosixPath("/d") / name
-        assert joined.parent == pathlib.PurePosixPath("/d")
-        assert joined.name == name
-    if is_safe_child_name(name, windows=True):
-        joined = pathlib.PureWindowsPath("C:/d") / name
-        assert joined.parent == pathlib.PureWindowsPath("C:/d"), (name, joined)
-        assert joined.drive == "C:"
 
 
-@given(name=st.text(alphabet="ab./: " + BACKSLASH + chr(0), max_size=14))
-@settings(max_examples=300)
-def test_an_archive_member_name_normalizes_once_and_stays_inside(name):
-    from pathlib_next.archive._names import _normalize_member_name
-
-    normal = _normalize_member_name(name)
-    if normal is None:
-        return
-    parts = normal.rstrip("/").split("/")
-    assert not normal.startswith("/")
-    assert ".." not in parts
-    assert "" not in parts or normal == ""
-    assert chr(0) not in normal
-    assert _normalize_member_name(normal) == normal
 
 
 _pairs = st.lists(
@@ -685,7 +623,7 @@ _pairs = st.lists(
 @given(pairs=_pairs)
 @settings(max_examples=300)
 def test_query_pairs_survive_a_uri_round_trip(pairs):
-    from pathlib_next.uri import Query
+    from uripath import Query
 
     assert Query(pairs).decode() == [(k, v) for k, v in pairs]
     if pairs:

@@ -588,14 +588,8 @@ def _host_is_local(host: "str | _IPAddress") -> bool:
 
 def _resolve_is_local(host: "str | _IPAddress") -> bool:
     # Imported here, not at module top: only this needs netimps, and every
-    # `import pathlib_next` would otherwise pay for its import.
-    try:
-        import netimps as _netimps
-    except ImportError as error:
-        raise ImportError(
-            'netimps is not installed: pip install "pathlib-next[uri]"',
-            name="netimps",
-        ) from error
+    # `import uripath` would otherwise pay for its import.
+    import netimps as _netimps
 
     if not isinstance(host, str):
         return _netimps.is_local_address(host)

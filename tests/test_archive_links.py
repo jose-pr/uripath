@@ -20,7 +20,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from pathlib_next import LocalPath
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 from pathlib_next.archive import MAX_LINKS
 from pathlib_next.sync import PathSyncer
 

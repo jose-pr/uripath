@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ....archive import ZipPath
+from pathlib_next.archive import ZipPath
 from ._base import ArchiveUri
 
 

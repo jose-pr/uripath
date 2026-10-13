@@ -12,9 +12,9 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import Uri, UriPath
-from pathlib_next.uri.query import Query
-from pathlib_next.uri.source import Source
+from uripath import Uri, UriPath
+from uripath.query import Query
+from uripath.source import Source
 
 # --- query and fragment are always a Query and a str -------------------------------
 

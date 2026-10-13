@@ -14,7 +14,7 @@ import pytest
 
 pytest.importorskip("uritools")
 
-from pathlib_next.uri import UriPath
+from uripath import UriPath
 
 
 def _zip_bytes(members):

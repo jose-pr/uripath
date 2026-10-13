@@ -9,23 +9,16 @@ import threading as _threading
 import typing as _ty
 import weakref as _weakref
 
-try:
-    import uritools
-except ImportError as _error:
-    raise ModuleNotFoundError(
-        'pathlib_next.uri needs the "uri" extra: pip install "pathlib-next[uri]"',
-        name="uritools",
-    ) from _error
+import uritools
 
 if _ty.TYPE_CHECKING:
     from typing import Self, TypeAlias
 else:
     TypeAlias = _ty.Any
 
-from .. import providers as _providers
-from ..path import Path, Pathname
-from ..path._pure import _name_stem, _name_suffix
-from .. import FileStat
+from pathlib_next import FileStat, Path, Pathname
+from pathlib_next import providers as _providers
+from pathlib_next.path._pure import _name_stem, _name_suffix
 from .query import Query
 from .source import (
     _ERRORS,
@@ -155,7 +148,7 @@ class _RelativeLocalPath(str):
 _FILE_SOURCE = Source("file", None, "", None)
 
 #: `(entry_points function, {scheme: entry point})` for the
-#: `pathlib_next.schemes` group, read once per lookup function; a scheme no
+#: `uripath.schemes` group, read once per lookup function; a scheme no
 #: plugin declares is a dictionary miss and adds nothing to it.
 _ENTRY_POINTS: "tuple[object, dict[str, object]] | None" = None
 
@@ -166,28 +159,24 @@ _ENTRY_POINTS_LOADED: "set[str]" = set()
 #: Built-in scheme -> the module that defines its class. A name listed here is
 #: resolved from this table before any entry point is consulted.
 _BUILTIN_SCHEMES = {
-    "file": "pathlib_next.uri.schemes.file",
-    "data": "pathlib_next.uri.schemes.data",
-    "zip": "pathlib_next.uri.schemes.archive",
-    "tar": "pathlib_next.uri.schemes.archive",
-    "archive": "pathlib_next.uri.schemes.archive",
-    "archive+zip": "pathlib_next.uri.schemes.archive",
-    "archive+tar": "pathlib_next.uri.schemes.archive",
-    "ftp": "pathlib_next.uri.schemes.ftp",
-    "ftps": "pathlib_next.uri.schemes.ftp",
-    "http": "pathlib_next.uri.schemes.http",
-    "https": "pathlib_next.uri.schemes.http",
-    "dav": "pathlib_next.uri.schemes.dav",
-    "davs": "pathlib_next.uri.schemes.dav",
-    "sftp": "pathlib_next.uri.schemes.sftp",
-    "s3": "pathlib_next.uri.schemes.s3",
-    "gs": "pathlib_next.uri.schemes.gs",
-    "az": "pathlib_next.uri.schemes.az",
-    "github": "pathlib_next.uri.schemes.github",
-    "gitlab": "pathlib_next.uri.schemes.gitlab",
-    "git": "pathlib_next.uri.schemes.git",
-    "git+github": "pathlib_next.uri.schemes.git",
-    "git+gitlab": "pathlib_next.uri.schemes.git",
+    "file": "uripath.schemes.file",
+    "data": "uripath.schemes.data",
+    "zip": "uripath.schemes.archive",
+    "tar": "uripath.schemes.archive",
+    "archive": "uripath.schemes.archive",
+    "archive+zip": "uripath.schemes.archive",
+    "archive+tar": "uripath.schemes.archive",
+    "ftp": "uripath.schemes.ftp",
+    "ftps": "uripath.schemes.ftp",
+    "http": "uripath.schemes.http",
+    "https": "uripath.schemes.http",
+    "dav": "uripath.schemes.dav",
+    "davs": "uripath.schemes.dav",
+    "github": "uripath.schemes.github",
+    "gitlab": "uripath.schemes.gitlab",
+    "git": "uripath.schemes.git",
+    "git+github": "uripath.schemes.git",
+    "git+gitlab": "uripath.schemes.git",
 }
 
 #: Scheme -> the class that registered it, filled when the class is defined.
@@ -247,7 +236,7 @@ def _forget_entry_points() -> None:
 
 
 def _declared_entry_points() -> "dict[str, object]":
-    """The `pathlib_next.schemes` entry points by scheme name, the first
+    """The `uripath.schemes` entry points by scheme name, the first
     declaration of a name winning. Scanning every distribution cost 13-29 ms
     per construction with an unregistered scheme (`C:/x` on Windows
     included), so the group is read once per lookup function and dropped when
@@ -258,10 +247,10 @@ def _declared_entry_points() -> "dict[str, object]":
     cached = _ENTRY_POINTS
     if cached is None or cached[0] is not _metadata.entry_points:
         try:
-            eps = _metadata.entry_points(group="pathlib_next.schemes")
+            eps = _metadata.entry_points(group="uripath.schemes")
         except TypeError:
             # Python 3.9 fallback
-            eps = _metadata.entry_points().get("pathlib_next.schemes", ())
+            eps = _metadata.entry_points().get("uripath.schemes", ())
         declared: "dict[str, object]" = {}
         for ep in eps:
             declared.setdefault(ep.name, ep)
@@ -1156,7 +1145,7 @@ def _looks_like_uri(value: str, schemesmap=None) -> bool:
     one a class registers, so an ordinary relative name whose first segment
     happens to carry a colon (`notes:draft`, `Fedora-42:latest.tar`) stays a
     path. A one-letter scheme is a Windows drive (`C:/Temp`). Same rule
-    `pathlib_next.tools.uripath` applies to command-line arguments.
+    the `uripath` command applies to its arguments.
     `schemesmap` is the allow-list the scheme is looked up in, if any.
     """
     match = _URI_SCHEME_RE.match(value)
@@ -1214,7 +1203,7 @@ class UriPath(Uri, Path):
     def schemes(cls) -> "tuple[str, ...]":
         """The registered scheme names, sorted: those of every class defined
         so far, every built-in scheme and every entry point of the
-        `pathlib_next.schemes` group, whether or not its module is imported
+        `uripath.schemes` group, whether or not its module is imported
         yet. A scheme whose client library is not installed is listed too."""
         with _CLAIMS_LOCK:
             claimed = list(_CLAIMS)
@@ -1262,7 +1251,7 @@ class UriPath(Uri, Path):
     def _load_entry_point(cls, scheme: str) -> bool:
         """Attempt to load a scheme class from package entry points.
 
-        Looks for entry points in the 'pathlib_next.schemes' group where
+        Looks for entry points in the 'uripath.schemes' group where
         the name matches the requested scheme.
         """
         ep = _declared_entry_points().get(scheme)
