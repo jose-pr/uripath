@@ -19,7 +19,8 @@ pip install uripath
 ```
 
 It requires `pathlib-next`, `netimps` and `uritools`, which pip installs with
-it; there are no extras. The schemes of this package run on the standard
+it; its one extra, `cli`, adds the `uripath` command
+(`pip install "uripath[cli]"`). The schemes of this package run on the standard
 library, including HTTP. `sftp:`, `s3:`, `gs:` and `az:` are provided by other
 distributions:
 

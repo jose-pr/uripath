@@ -839,3 +839,106 @@ mutant(
     "tests/test_uri_constructor_options.py::test_an_unknown_keyword_argument_is_a_type_error_naming_it",
     "a misspelt backend= is ignored and the path uses the default backend and ambient credentials",
 )
+
+# --- the command line: nothing is deleted or replaced unless it is asked for --------
+
+_CLI = "tests/test_cli.py"
+_TOOLS = "tests/test_cli_surface.py"
+
+mutant(
+    "cli-rm-removes-a-tree-without-recursive",
+    "cli/rm.py",
+    "            recursive=self.recursive,\n",
+    "            recursive=True,\n",
+    (
+        f"{_CLI}::test_rm_removes_a_file_and_refuses_a_directory_with_content",
+        f"{_TOOLS}::test_a_tool_call_removes_a_tree_only_when_it_says_recursive",
+    ),
+    "uripath rm deletes a directory with everything in it when --recursive was not given",
+)
+mutant(
+    "cli-rm-succeeds-on-a-missing-path",
+    "cli/rm.py",
+    "            missing_ok=self.missing_ok,\n",
+    "            missing_ok=True,\n",
+    f"{_CLI}::test_rm_of_a_missing_path_fails_unless_told_to_accept_it",
+    "uripath rm reports success for a path that was never there when --missing-ok was not given",
+)
+mutant(
+    "cli-sync-removes-what-the-source-lacks",
+    "cli/sync.py",
+    "            remove_missing=self.remove_missing,\n",
+    "            remove_missing=True,\n",
+    (
+        f"{_CLI}::test_sync_keeps_what_the_source_lacks_unless_told_to_remove_it",
+        f"{_TOOLS}::test_a_tool_call_deletes_from_the_target_only_when_it_says_remove_missing",
+    ),
+    "uripath sync deletes entries of the target that the source lacks when --remove-missing was not given",
+)
+mutant(
+    "cli-sync-dry-run-changes-the-target",
+    "cli/sync.py",
+    "        ).sync(as_path(self.source), as_path(self.target), dry_run=self.dry_run)\n",
+    "        ).sync(as_path(self.source), as_path(self.target), dry_run=False)\n",
+    f"{_CLI}::test_sync_dry_run_prints_planned_changes_and_changes_nothing",
+    "uripath sync --dry-run makes the changes it only meant to print",
+)
+mutant(
+    "cli-sync-goes-into-a-mount-point-it-was-told-not-to",
+    "cli/sync.py",
+    "            follow_mounts=self.follow_mounts,\n",
+    "            follow_mounts=True,\n",
+    f"{_CLI}::test_sync_no_follow_mounts_fails_on_a_mount_point_and_leaves_it",
+    "uripath sync --no-follow-mounts writes into a mount point inside the target",
+)
+mutant(
+    "cli-cp-replaces-an-existing-target-by-default",
+    "cli/cp.py",
+    "            overwrite=self.overwrite,\n            follow_symlinks",
+    "            overwrite=True,\n            follow_symlinks",
+    f"{_CLI}::test_cp_refuses_an_existing_target_without_overwrite",
+    "uripath cp replaces an existing target when --overwrite was not given",
+)
+mutant(
+    "cli-cp-stream-replaces-an-existing-target-by-default",
+    "cli/cp.py",
+    "                exclusive=not self.overwrite,\n",
+    "                exclusive=False,\n",
+    f"{_CLI}::test_cp_stdin_refuses_an_existing_target_without_overwrite",
+    "uripath cp - TARGET truncates an existing TARGET when --overwrite was not given",
+)
+mutant(
+    "cli-cp-recursive-with-a-stream",
+    "cli/cp.py",
+    "        if streamed and self.recursive:\n",
+    "        if False:\n",
+    f"{_CLI}::test_cp_recursive_with_dash_is_a_wrong_invocation",
+    "uripath cp -r with - is accepted and copies a stream as if it were a tree",
+)
+mutant(
+    "cli-tool-reads-the-standard-input-of-the-server",
+    "cli/_common.py",
+    '    if running_mode() == "mcp":\n',
+    "    if False:\n",
+    f"{_TOOLS}::test_a_tool_cannot_read_the_standard_input_the_server_listens_on",
+    "a command served as a tool reads the requests of the protocol as if they were its input",
+)
+mutant(
+    "copy-stream-exclusive-create-replaces-the-target",
+    "_transfer.py",
+    '    with _path_of(target).open("xb" if exclusive else "wb") as writer:\n',
+    '    with _path_of(target).open("wb") as writer:\n',
+    (
+        "tests/test_copy_stream.py::test_exclusive_refuses_an_existing_target_and_keeps_it",
+        f"{_CLI}::test_cp_stdin_refuses_an_existing_target_without_overwrite",
+    ),
+    "copy_stream(exclusive=True) truncates an existing target path",
+)
+mutant(
+    "copy-stream-reports-a-broken-connection-of-a-target-path-as-output-closed",
+    "_transfer.py",
+    '"wb") as writer:\n        _shutil.copyfileobj(reader, writer, chunk_size)\n',
+    '"wb") as writer:\n        _shutil.copyfileobj(reader, _PipeWriter(writer), chunk_size)\n',
+    "tests/test_copy_stream.py::test_a_broken_pipe_of_a_target_path_is_not_output_closed",
+    "a connection that breaks while a path is written is taken for the reader of the output going away",
+)

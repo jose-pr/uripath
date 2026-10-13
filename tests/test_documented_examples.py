@@ -114,46 +114,93 @@ def test_a_marker_needs_a_reason_and_sits_directly_above_its_fence():
     assert blocks[0][1] == "x = 1\n"
 
 
-# --- the commands of the README run as written ---
+# --- the command lines of the README and the CLI guide run as written ---
 
 
-def _command_line_blocks():
-    text = (REPO / "README.md").read_text(encoding="utf-8")
-    section = text.split("\n## Command line\n", 1)[1].split("\n## ", 1)[0]
-    return python_blocks(section, "bash")
+def _command_line_blocks(document):
+    text = (REPO / document).read_text(encoding="utf-8")
+    if document == "README.md":
+        text = text.split("\n## Command line\n", 1)[1].split("\n## ", 1)[0]
+    return python_blocks(text, "bash")
+
+
+def _command_line_cases():
+    for document in ("README.md", "docs/guides/cli.md"):
+        for line, source, reason in _command_line_blocks(document):
+            marks = [pytest.mark.skip(reason=reason)] if reason else []
+            yield pytest.param(document, source, marks=marks, id=f"{document}:{line}")
 
 
 def test_the_command_line_section_has_commands_to_run_and_marks_the_rest():
-    blocks = _command_line_blocks()
+    blocks = _command_line_blocks("README.md")
     assert [reason is None for _line, _source, reason in blocks] == [True, False]
 
 
-@pytest.mark.parametrize(
-    "source", [source for _l, source, reason in _command_line_blocks() if not reason]
-)
-def test_the_command_line_examples_run(source, tmp_path):
-    """Each line is `mkdir NAME` or a `uripath` command, run in an empty
-    directory with the interpreter that runs the tests."""
+def test_the_cli_guide_marks_only_what_cannot_run_here():
+    reasons = [reason for _l, _s, reason in _command_line_blocks("docs/guides/cli.md")]
+    assert reasons == ["installs the package", None, "needs an FTP host", None]
+
+
+def _words_and_redirects(line):
+    """The words of a command line, and the files named by `<` and `>`."""
+    lexer = shlex.shlex(line, posix=True, punctuation_chars="<>")
+    lexer.whitespace_split = True
+    words, stdin, stdout = [], None, None
+    tokens = iter(lexer)
+    for token in tokens:
+        if token == "<":
+            stdin = next(tokens)
+        elif token == ">":
+            stdout = next(tokens)
+        else:
+            words.append(token)
+    return words, stdin, stdout
+
+
+@pytest.mark.parametrize("document, source", list(_command_line_cases()))
+def test_the_command_line_examples_run(document, source, tmp_path):
+    """Each line is `mkdir NAME` or a `uripath` command (with `<` and `>`
+    naming files), run in an empty directory with the interpreter that runs
+    the tests."""
+    pytest.importorskip("duho")
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, [str(REPO / "src"), env.get("PYTHONPATH")])
     )
     for line in source.splitlines():
-        words = shlex.split(line)
+        words, stdin, stdout = _words_and_redirects(line)
         if not words or words[0].startswith("#"):
             continue
         if words[0] == "mkdir":
             (tmp_path / words[1]).mkdir()
             continue
         assert words[0] == "uripath", line
-        result = subprocess.run(
-            [sys.executable, "-W", "error", "-m", "uripath._oldcli"] + words[1:],
-            cwd=tmp_path,
-            env=env,
-            capture_output=True,
-            timeout=120,
-        )
+        stdin_file = open(tmp_path / stdin, "rb") if stdin else None
+        stdout_file = open(tmp_path / stdout, "wb") if stdout else subprocess.PIPE
+        try:
+            result = subprocess.run(
+                [sys.executable, "-W", "error", "-m", "uripath"] + words[1:],
+                cwd=tmp_path,
+                env=env,
+                stdin=stdin_file,
+                stdout=stdout_file,
+                stderr=subprocess.PIPE,
+                timeout=120,
+            )
+        finally:
+            for opened in (stdin_file, stdout_file):
+                if opened not in (None, subprocess.PIPE):
+                    opened.close()
         assert result.returncode == 0, f"{line}\n{result.stdout}{result.stderr}"
         assert b"Traceback" not in result.stderr
-    assert (tmp_path / "site-copy" / "index.html").exists() is False
-    assert (tmp_path / "site" / "copy.html").read_bytes() == b"<h1>hi</h1>"
+    if document == "README.md":
+        assert (tmp_path / "site-copy" / "index.html").exists() is False
+        assert (tmp_path / "site" / "copy.html").read_bytes() == b"<h1>hi</h1>"
+    elif (tmp_path / "work" / "stdout.bin").exists():
+        assert (tmp_path / "work" / "stdout.bin").read_bytes() == b"hello"
+        assert (tmp_path / "work" / "stdin.bin").read_bytes() == b"hello"
+        assert (tmp_path / "work" / "in.txt").read_bytes() == b"hello"
+        assert (tmp_path / "work" / "copy.txt").read_bytes() == b"hello"
+    else:
+        assert (tmp_path / "work-backup").exists() is False
+        assert (tmp_path / "work" / "copy.txt").read_bytes() == b"hello"

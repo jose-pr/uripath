@@ -13,7 +13,6 @@ from capabilities import requires_fifos, requires_junctions
 
 import pathlib_next
 from pathlib_next.mempath import MemPath
-from uripath import _oldcli as uripath
 from pathlib_next.sync import PathSyncer, SyncEvent
 
 IS_WINDOWS = sys.platform == "win32"
@@ -48,16 +47,15 @@ def _collect():
 # --- sync-missing-root-source-wipes-target ---------------------------------
 
 
-def test_missing_root_source_cli_keeps_target(tmp_path):
+def test_missing_root_source_cli_keeps_target(tmp_path, capsys):
+    pytest.importorskip("duho")
+    from uripath.cli import main
+
     target = tmp_path / "backup"
     _write(target / "file.txt", "precious")
-    stderr = io.StringIO()
-    code = uripath.main(
-        ["sync", "--remove-missing", str(tmp_path / "buidl"), str(target)],
-        stderr=stderr,
-    )
+    code = main(["sync", "--remove-missing", str(tmp_path / "buidl"), str(target)])
     assert code == 1
-    assert "FileNotFoundError" in stderr.getvalue()
+    assert "FileNotFoundError" in capsys.readouterr().err
     assert (target / "file.txt").read_text() == "precious"
 
 

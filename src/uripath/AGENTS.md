@@ -17,7 +17,8 @@ exports). A module or name that starts with an underscore is private and
 nothing there is contract: every scheme lives in a private module.
 
 `pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11`,
-`netimps>=0.4.0,<0.5` and `uritools>=5.0,<7`. There are no extras: every scheme
+`netimps>=0.4.0,<0.5` and `uritools>=5.0,<7`. The one extra, `cli`
+(`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
 in this package runs on the standard library and on `pathlib_next`. `sftp:`,
 `s3:`, `gs:` and `az:` and the `requests` HTTP transport are provided by other
 distributions ("Provided by other distributions").
@@ -1170,36 +1171,56 @@ chained (their text can carry credentials).
 
 ## Command line
 
-### `uripath` (`uripath._oldcli`, URI layer)
+### `uripath.cli` (`pip install "uripath[cli]"`)
 
 ```python
-def main(argv=None, *, stdin=None, stdout=None, stderr=None) -> int: ...
-def build_parser() -> argparse.ArgumentParser: ...
+def main(argv: Sequence[str] | None = None) -> int: ...
 ```
 
-Console script `uripath` = `uripath._oldcli:main`.
-`main()` returns the
-exit status and never raises `SystemExit`; `stdin` and `stdout` are binary
-streams, `stderr` is a text or a binary stream (defaults: the process's), and
-the usage and help text of the parser go to the process's own stderr and stdout;
-`build_parser()` returns the `argparse` parser. An argument with `://`, or with a
-scheme some class registers (`data:`, `zip:`, ...), is a `URIPath`; everything
-else (including `C:/x` and `notes:draft`) is a `LocalPath`. `-` is stdin/stdout
-where bytes are read or written.
+The `uripath` console script is `uripath.cli:main`, and `python -m uripath` runs
+the same function. It is built on `duho` and needs the `cli` extra; `import
+uripath` never imports `uripath.cli` or `duho`, and `uripath.cli` is not library
+API (it is absent from the root `__all__`): its one public name is `main`. Without `duho`, `main()`
+prints `pip install "uripath[cli]"` to stderr and returns 1. `main()` returns
+the exit status and never raises `SystemExit`; it reads and writes the
+process's standard streams (binary through `sys.stdin.buffer` and
+`sys.stdout.buffer`).
+
+Each command is a `duho` command class in `uripath.cli.<name>`; the root,
+`uripath.cli.Uripath`, is built on first use. Every command calls the library
+(`as_path()`, `copy_stream()`, `Path.copy()`, `Path.rm()`, `PathSyncer`), so
+nothing the command does is reachable only from it. A PATH is read by
+`as_path()`: an argument with `://`, or with a scheme some class registers
+(`data:`, `zip:`, ...), is a `URIPath`; everything else (including `C:/x` and
+`notes:draft`) is a `LocalPath`. `-` is stdin/stdout where bytes are read or
+written. `--` ends the options and takes no argument after it (a path that
+starts with `-` is written `./-name`).
 
 | Subcommand | Arguments and flags |
 | --- | --- |
 | `read PATH` | Copy `PATH`'s bytes to stdout in chunks. |
-| `write PATH [DATA] [--encoding utf-8]` | Write `DATA` encoded, or stdin's bytes when omitted. |
-| `rm PATH [-r/--recursive] [--missing-ok] [--ignore-error]` | `Path.rm()`. |
-| `cp SOURCE TARGET [-r/--recursive] [--overwrite] [--no-follow-symlinks] [--no-preserve-metadata]` | `Path.copy()`; with `-`, streams (an existing target needs `--overwrite`; no `-r`). |
-| `sync SOURCE TARGET [--dry-run] [--remove-missing] [--size-only] [-v/--verbose] [--no-follow-symlinks] [--no-follow-mounts]` | `PathSyncer` with content comparison; `--size-only` compares sizes. `--dry-run` prints `would copy SRC -> DST`/`would remove`/`would mkdir`/`would replace`/`would symlink`; `-v` prints the changes made. `--no-follow-mounts` fails (exit 1, `OSError(EXDEV)`) on a mount point inside TARGET instead of syncing into it. |
+| `write PATH [DATA] [--encoding utf-8]` | Write `DATA` encoded, or stdin's bytes when omitted, replacing `PATH`. |
+| `rm PATH [-r/--recursive] [--missing-ok] [--ignore-error]` | `Path.rm()`; a directory with content needs `--recursive`. |
+| `cp SOURCE TARGET [-r/--recursive] [--overwrite] [--follow-symlinks/--no-follow-symlinks] [--preserve-metadata/--no-preserve-metadata]` | `Path.copy()`; with `-`, `copy_stream()` (an existing target needs `--overwrite`; no `-r`). |
+| `sync SOURCE TARGET [--dry-run] [--remove-missing] [--size-only] [--follow-symlinks/--no-follow-symlinks] [--follow-mounts/--no-follow-mounts]` | `PathSyncer` with content comparison; `--size-only` compares sizes; nothing is deleted without `--remove-missing`. `--dry-run` prints `would copy SRC -> DST`/`would remove`/`would mkdir`/`would replace`/`would symlink`; `-v` prints the changes made. `--no-follow-mounts` fails (exit 1, `OSError(EXDEV)`) on a mount point inside TARGET instead of syncing into it. |
 
-Exit status: 0 success (also `--help`); 1 the operation failed, with one line
-`uripath: <Type>: <message>` on stderr; 2 a wrong invocation, with the usage on
-stderr (a missing or unknown argument, `cp -r` with `-`, an unknown
-`--encoding`); 130 Ctrl-C; 141 the reader of stdout went away, quietly (on
-Windows too, where a closed pipe reports `EINVAL`).
+Every command takes `-v`, `-q` and `--loglevel` (the `uripath` logger, on
+stderr). Results go to stdout, diagnostics to stderr, and no message carries a
+password or a token.
+
+Exit status: 0 success (also `--help` and `--version`); 1 the operation failed,
+with one line `uripath: <Type>: <message>` on stderr, or the `cli` extra is
+missing; 2 a wrong invocation, with the usage or the problem on stderr (a
+missing or unknown argument, `cp -r` with `-`, an unknown `--encoding`); 130
+Ctrl-C; 141 the reader of stdout went away, quietly (on Windows too, where a
+closed pipe reports `EINVAL`).
+
+Served as tools (`URIPATH_MCP=stdio uripath`) the five commands are the tools
+`uripath.read`, `uripath.write`, `uripath.rm`, `uripath.cp` and `uripath.sync`,
+with the schemas their fields give; `AGENT_HELP=1 uripath --help` prints one
+JSON document for the tree. A tool has no standard input: `-` as a source, and
+`write` without `DATA`, fail with a message. Every deleting or replacing
+option is off unless it is passed.
 
 ## Environment variables
 

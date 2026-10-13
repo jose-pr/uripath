@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   again. Leaving a `with` block calls it.
 - Building an `HTTPTransport` or an `FTPURIBackend` with `verify=False` and no
   `ssl_context` logs a warning on the `uripath` logger each time.
+- `uripath.as_path(text)` returns the `URIPath` or `LocalPath` that command-line
+  style text names (`C:/data`, `12:30.txt` and `notes:draft` are local paths;
+  `ftp://h/x` and `data:,abc` are URIs), and `uripath.copy_stream(source,
+  target)` copies the bytes of a path or a binary stream into another in chunks,
+  with `exclusive=True` for an exclusive create. The `uripath` command is built
+  on them. `copy_stream` raises `uripath.exceptions.OutputClosedError`, also a
+  `BrokenPipeError`, when the reader of a target stream went away.
+- `python -m uripath` runs the command, and `uripath --version` prints the
+  version. The command describes itself to an agent (`AGENT_HELP=1 uripath
+  --help` prints one JSON document) and can be served as tools
+  (`URIPATH_MCP=stdio uripath`): `read`, `write`, `rm`, `cp` and `sync`, with
+  the schemas their fields give. A tool has no standard input, so `-` as a
+  source and `write` without `DATA` fail with a message.
 
 ### Changed
 
@@ -209,7 +222,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming it;
   install it to use them. A proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too.
-- There are no extras. `uritools` and `netimps` are required dependencies, so
-  `pip install uripath` is all that `pathlib-next[uri]` was; the `http`,
-  `sftp`, `sftp-async`, `s3`, `gs` and `az` extras are the distributions named
-  above.
+- The only extra is `cli`, which holds the `uripath` command.
+  `uritools` and `netimps` are required dependencies, so `pip install uripath`
+  is all that `pathlib-next[uri]` was; the `http`, `sftp`, `sftp-async`, `s3`,
+  `gs` and `az` extras are the distributions named above.
+- The `uripath` command is rebuilt on `duho` and needs the `cli` extra:
+  `pip install "uripath[cli]"`. Was: part of the base install. Without the
+  extra the command (and `python -m uripath`) prints which extra to install on
+  stderr and exits with status 1. The subcommands, their options and meanings,
+  `-` for stdin and stdout, the exit statuses (0, 1 the operation failed, 2 a
+  wrong invocation, 130 Ctrl-C, 141 the reader of stdout went away) and the
+  `uripath: <Type>: <message>` line on stderr are as they were. What differs:
+  - `uripath.cli.main(argv=None)` returns the status and reads and writes the
+    process's standard streams. Was: `main(argv, *, stdin=, stdout=, stderr=)`
+    with injectable streams, and `build_parser()` returning an `argparse`
+    parser. Neither exists any more; build a command with `duho.parse` to test
+    one. The module `uripath._oldcli` (`pathlib_next.tools.uripath`) is gone.
+  - Usage, `--help` and the wording of a usage error are `duho`'s, not
+    `argparse`'s; a wrong invocation still exits with status 2.
+  - Every command takes `-v`, `-q` and `--loglevel`, which set the level of the
+    `uripath` logger. `sync -v`, which listed the changes made, is now a count
+    (`-vv` is accepted) and lists them while `-v` is given more often than
+    `-q`.
+  - A boolean option that is on by default has both spellings:
+    `--follow-symlinks` beside `--no-follow-symlinks`, `--preserve-metadata`
+    beside `--no-preserve-metadata`, `--follow-mounts` beside
+    `--no-follow-mounts`.
+  - `--` ends the options and accepts no argument after it. Was: `argparse`
+    took what followed as positional arguments, so `uripath rm -- -name`
+    removed `-name`; write `uripath rm ./-name`.

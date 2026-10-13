@@ -113,7 +113,7 @@ def scheme_sources() -> dict[str, str]:
             "schemes" in p.relative_to(PACKAGE).parts
             and p.relative_to(PACKAGE / "schemes").as_posix() not in CONTRACT_MODULES
         )
-        or p.name == "_oldcli.py"
+        or "cli" in p.relative_to(PACKAGE).parts
     }
 
 

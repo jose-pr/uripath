@@ -49,7 +49,7 @@ certificate verification, authentication, limits) are in
 - **Extensible**: subclass `URIPath` and declare `__SCHEMES` for a new scheme,
   or register it through a `uripath.schemes` entry point.
 - **`uripath` command**: `read`, `write`, `cp`, `rm` and `sync` across local
-  paths and URIs, with `-` for stdin/stdout.
+  paths and URIs, with `-` for stdin/stdout (`pip install "uripath[cli]"`).
 
 ## Installation
 
@@ -61,7 +61,8 @@ Requires `pathlib-next`, `netimps` and `uritools`, which pip installs with it.
 
 | Install | Adds |
 | --- | --- |
-| `pip install uripath` | every scheme in the first table above; there are no extras |
+| `pip install uripath` | every scheme in the first table above |
+| `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
 | `pip install "uripath-sftp[paramiko]"` or `[asyncssh]` | `sftp:` |
 | `pip install "uripath-objstore[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
 | `pip install uripath-http-requests` | the `requests` HTTP transport |
@@ -125,7 +126,9 @@ print(sorted(p.name for p in URIPath("file:site-copy").iterdir()))
 ## Command line
 
 `uripath` reads, writes, copies, removes and syncs local paths and URIs, with
-`-` for stdin or stdout. These commands run as written in an empty directory:
+`-` for stdin or stdout. It is built on `duho` and needs the `cli` extra,
+`pip install "uripath[cli]"`; without it the command says so and exits with
+status 1. These commands run as written in an empty directory:
 
 ```bash
 mkdir site
@@ -148,13 +151,14 @@ uripath sync --dry-run --remove-missing site/ ftp://host/site/
 The exit status is 0 on success, 1 when the operation failed, 2 for a wrong
 invocation, 130 on Ctrl-C and 141 when the reader of stdout went away. Every
 flag is described in the
-[CLI guide](https://jose-pr.github.io/uripath/guides/cli/).
+[CLI guide](https://jose-pr.github.io/uripath/guides/cli/), and `uripath` can
+be served to an agent as a set of tools.
 
 ## API overview
 
 | Module | Purpose |
 | --- | --- |
-| `uripath` | `URI`, `URIPath`, `URILike`, `Source`, `Query`, `QueryLike`, the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and `__version__` |
+| `uripath` | `URI`, `URIPath`, `URILike`, `Source`, `Query`, `QueryLike`, the functions `as_path` and `copy_stream`, the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and `__version__` |
 | `uripath.source` | `Source` (scheme, userinfo, host, port), `same_authority` and the helpers that read and compose a URI's text |
 | `uripath.query` | `Query`, an immutable query value, and `QueryLike` |
 | `uripath.exceptions` | The errors above and `InsecureTransportWarning` |

@@ -4,6 +4,7 @@ checker reads them."""
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import json
 import pathlib
 import re
@@ -106,12 +107,21 @@ def test_every_public_module_declares_all_and_the_others_are_private():
         if not any(part.startswith("_") for part in info.name.split(".")[1:])
     )
     assert public == [
+        "uripath.cli",
+        "uripath.cli.cp",
+        "uripath.cli.read",
+        "uripath.cli.rm",
+        "uripath.cli.sync",
+        "uripath.cli.write",
         "uripath.exceptions",
         "uripath.query",
         "uripath.schemes",
         "uripath.source",
     ]
+    has_duho = importlib.util.find_spec("duho") is not None
     for name in ["uripath", *public]:
+        if name.startswith("uripath.cli.") and not has_duho:
+            continue
         module = importlib.import_module(name)
         assert isinstance(module.__all__, (list, tuple)), name
         assert all(hasattr(module, member) for member in module.__all__), name

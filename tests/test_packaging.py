@@ -59,3 +59,14 @@ def test_distributions_leave_out_the_contributor_notes_and_agent_config(project)
     assert "/AGENTS.md" in sdist
     assert "CLAUDE*" in sdist
     assert "CLAUDE*" in wheel
+
+
+def test_the_console_script_is_the_command_line_and_its_extra_is_declared(project):
+    metadata = project["project"]
+    assert metadata["scripts"] == {"uripath": "uripath.cli:main"}
+    extras = metadata["optional-dependencies"]
+    assert set(extras) == {"cli", "dev", "docs"}
+    assert [
+        packaging_requirements.Requirement(spec).name for spec in extras["cli"]
+    ] == ["duho"]
+    assert "uripath[cli]" in extras["dev"]
