@@ -298,10 +298,11 @@ pairs, `to_dict(*, single=False)`. `Query.ENCODING` (`"utf-8"`) and
 
 The names a `UriPath` subclass overrides or calls beyond `Uri` and `UriPath`
 above, in one place: the built-in schemes use all of them, so they are
-contract (the core hooks they also use are under "For path implementers").
-The helpers were underscore names (`_same_authority`, `_DerivedBackend`,
-`_compose_uri`, `_compose_host`, `_encode`, `_is_drive`, `_SAFE_PATH`,
-`_ERRORS`); those spellings stay importable and are the same objects.
+contract (the hooks of `pathlib_next.Path` they also use are listed under "For
+path implementers" in the `pathlib-next` header). Each helper also keeps an
+underscore spelling that is the same object (`_same_authority`,
+`_DerivedBackend`, `_compose_uri`, `_compose_host`, `_encode`, `_is_drive`,
+`_SAFE_PATH`, `_ERRORS`).
 
 ```python
 class Uri(Pathname):
