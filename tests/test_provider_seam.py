@@ -184,7 +184,7 @@ def documented_names() -> set[str]:
             if line.startswith("```"):
                 fenced = not fenced
             elif not fenced and re.match(r"#{1,3} ", line):
-                inside = line.startswith(f"### {title}")
+                inside = line.lstrip("#").strip().startswith(title)
             if inside:
                 section.append(line)
         assert section, f"{header.name} has no '{title}' section"

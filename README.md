@@ -16,17 +16,26 @@ server, a web directory or a GitHub or GitLab repository. It builds on
 
 ## Features
 
-| Scheme (class) | Read | Write | List | Stat | mkdir | Delete | rename |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `file:` (`FileURIPath`) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `data:` (`DataURIPath`, RFC 2397) | Yes | No | No | Yes | No | No | No |
-| `zip:` (`ZipURIPath`) | Yes | Local `file:` archive only | Yes | Yes | Local archive only | Local archive only | Local archive only |
-| `tar:` (`TarURIPath`, incl. gz/bz2/xz) | Yes | No | Yes | Yes | No | No | No |
-| `archive:`, `archive+zip:`, `archive+tar:` | As `zip:`/`tar:` for the detected or pinned format | | | | | | |
-| `ftp:` / `ftps:` (`FTPURIPath`) | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
-| `http:` / `https:` (`HTTPURIPath`) | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
-| `dav:` / `davs:` (`DAVURIPath`, WebDAV) | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
-| `github:` / `gitlab:` / `git:` | Yes | No | Yes | Yes | No | No | No |
+| Scheme (class) | Extra | Read | Write | List | Stat | mkdir | Delete | rename |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `file:` (`FileURIPath`) | none | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `data:` (`DataURIPath`, RFC 2397) | none | Yes | No | No | Yes | No | No | No |
+| `zip:` (`ZipURIPath`) | none | Yes | Local `file:` archive only | Yes | Yes | Local archive only | Local archive only | Local archive only |
+| `tar:` (`TarURIPath`, incl. gz/bz2/xz) | none | Yes | No | Yes | Yes | No | No | No |
+| `archive:`, `archive+zip:`, `archive+tar:` | none | As `zip:`/`tar:` for the detected or pinned format | | | | | | |
+| `ftp:` / `ftps:` (`FTPURIPath`) | none | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
+| `http:` / `https:` (`HTTPURIPath`) | none | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
+| `dav:` / `davs:` (`DAVURIPath`, WebDAV) | none | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
+| `github:` / `gitlab:` / `git:` | none | Yes | No | Yes | Yes | No | No | No |
+
+The schemes that need a third-party library are other distributions, and
+using one without it raises an `ImportError` that names what to install:
+
+| Scheme | Distribution | Install |
+| --- | --- | --- |
+| `sftp:` | `uripath-sftp` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
+| `s3:`, `gs:`, `az:` | `uripath-objstore` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
+| the `requests` HTTP transport | `uripath-http-requests` | `pip install uripath-http-requests` |
 
 Every scheme gets `glob()`, `walk()`, `copy()`/`move()`, `rm()` and `PathSyncer`
 from the `pathlib-next` base classes. The per-scheme notes (timeouts,
@@ -39,10 +48,6 @@ certificate verification, authentication, limits) are in
   `git:` send through a replaceable transport built on `http.client`.
 - **Extensible**: subclass `URIPath` and declare `__SCHEMES` for a new scheme,
   or register it through a `uripath.schemes` entry point.
-- **Other distributions** provide what needs a third-party library: `sftp:`
-  (`uripath-sftp`), `s3:`, `gs:` and `az:` (`uripath-objstore`) and the
-  `requests` HTTP transport (`uripath-http-requests`). Using one of these
-  schemes without its distribution raises an `ImportError` that names it.
 - **`uripath` command**: `read`, `write`, `cp`, `rm` and `sync` across local
   paths and URIs, with `-` for stdin/stdout.
 
@@ -53,7 +58,13 @@ pip install uripath
 ```
 
 Requires `pathlib-next`, `netimps` and `uritools`, which pip installs with it.
-There are no extras.
+
+| Install | Adds |
+| --- | --- |
+| `pip install uripath` | every scheme in the first table above; there are no extras |
+| `pip install "uripath-sftp[paramiko]"` or `[asyncssh]` | `sftp:` |
+| `pip install "uripath-objstore[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
+| `pip install uripath-http-requests` | the `requests` HTTP transport |
 
 ## Quick start
 
@@ -143,10 +154,11 @@ flag is described in the
 
 | Module | Purpose |
 | --- | --- |
-| `uripath` | `URI`, `URIPath`, `URILike`, `DerivedBackend`, `same_authority` |
-| `uripath.source` | `Source` (scheme, userinfo, host, port) and its helpers |
-| `uripath.query` | `Query` |
-| `uripath.schemes` | The built-in schemes: `file`, `data`, `archive` (`zip`, `tar`), `ftp`, `http`, `dav`, `github`, `gitlab`, `git` |
+| `uripath` | `URI`, `URIPath`, `URILike`, `Source`, `Query`, `QueryLike`, the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and `__version__` |
+| `uripath.source` | `Source` (scheme, userinfo, host, port), `same_authority` and the helpers that read and compose a URI's text |
+| `uripath.query` | `Query`, an immutable query value, and `QueryLike` |
+| `uripath.exceptions` | The errors above and `InsecureTransportWarning` |
+| `uripath.schemes` | The contract and registry of schemes, `DerivedBackend`, and every built-in scheme's classes: `FileURIPath`, `DataURIPath`, `ZipURIPath`, `TarURIPath`, `ArchiveURIPath`, `FTPURIPath`, `HTTPURIPath`, `DAVURIPath`, `GitHubURIPath`, `GitLabURIPath`, `GitURIPath` and their backends |
 
 The full reference is on the [documentation site](https://jose-pr.github.io/uripath/);
 an agent-oriented API summary ships inside the package as `uripath/AGENTS.md`.
