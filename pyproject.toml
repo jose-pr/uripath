@@ -31,8 +31,6 @@ dependencies = [
     "pathlib-next>=0.10.0,<0.11",
     # 0.3.3 and 0.3.4 break asyncssh's SFTP server on Windows; 0.4.0 does not.
     "netimps>=0.4.0,<0.5",
-    # uritools 6 needs Python 3.10; 5.0 is the newest release for 3.9.
-    "uritools>=5.0,<7",
 ]
 
 [project.scripts]
@@ -43,6 +41,10 @@ uripath = "uripath.cli:main"
 cli = ['duho>=0.7.3,<0.8']
 dev = [
     'uripath[cli]',
+    # The oracle of the property tests, not a run-time dependency: parsing and
+    # composing are the standard library's. uritools 6 needs Python 3.10; 5.0 is
+    # the newest release for 3.9.
+    'uritools>=5.0,<7',
     'build',
     'twine',
     'hatchling',

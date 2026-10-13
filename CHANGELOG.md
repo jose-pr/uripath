@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `uripath`, the URI layer of `pathlib-next` as its own distribution: `URI`,
   `URIPath`, `Source` and `Query`, the schemes `file:`, `data:`, `ftp:`, `ftps:`,
   `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:`, `davs:`, `github:`,
-  `gitlab:` and `git:`, and the `uripath` command. It depends on `pathlib-next`,
-  `netimps` and `uritools`.
+  `gitlab:` and `git:`, and the `uripath` command. It depends on `pathlib-next`
+  and `netimps`.
 - `sftp:`, `s3:`, `gs:` and `az:` are known scheme names that this distribution
   does not implement. A path of one joins, compares and prints without the
   distribution that provides it; the first operation that needs the server
@@ -222,10 +222,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming it;
   install it to use them. A proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too.
-- The only extra is `cli`, which holds the `uripath` command.
-  `uritools` and `netimps` are required dependencies, so `pip install uripath`
-  is all that `pathlib-next[uri]` was; the `http`, `sftp`, `sftp-async`, `s3`,
-  `gs` and `az` extras are the distributions named above.
+- The only extra is `cli`, which holds the `uripath` command. `netimps` is a
+  required dependency, so `pip install uripath` is all that `pathlib-next[uri]`
+  was; the `http`, `sftp`, `sftp-async`, `s3`, `gs` and `az` extras are the
+  distributions named above.
+- `uritools` is not a dependency. The RFC 3986 split of a URI and its
+  percent-encoding and -decoding are done on `urllib.parse`, with the results
+  `uritools` gave for the same text (the tests compare the two over generated
+  URIs, components and encodings): the same safe sets, invalid escapes left as
+  they are, non-ASCII text kept, a lone surrogate or an escape that is not UTF-8
+  carried through `surrogateescape`, an empty authority told from none. Code
+  that imports `uritools` itself installs it.
+  `import uripath` loads neither `uritools` nor `netimps`; `netimps` is
+  imported where it is used.
 - The `uripath` command is rebuilt on `duho` and needs the `cli` extra:
   `pip install "uripath[cli]"`. Was: part of the base install. Without the
   extra the command (and `python -m uripath`) prints which extra to install on

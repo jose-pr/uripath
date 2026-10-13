@@ -107,7 +107,7 @@ def benchmark_uri_parse_unique():
     # microbenchmarks are not representative of real workloads and can
     # flatter/mislead by an order of magnitude if the underlying string
     # library caches by input (verified true of urllib.urlsplit, ~28x;
-    # not true of uritools/our own parser, but always bench unique inputs
+    # not true of our own parser, but always bench unique inputs
     # regardless so this stays an apples-to-apples comparison).
     from uripath import URI
 

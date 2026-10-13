@@ -57,7 +57,7 @@ certificate verification, authentication, limits) are in
 pip install uripath
 ```
 
-Requires `pathlib-next`, `netimps` and `uritools`, which pip installs with it.
+Requires `pathlib-next` and `netimps`, which pip installs with it.
 
 | Install | Adds |
 | --- | --- |

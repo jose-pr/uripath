@@ -18,8 +18,8 @@ reasons, in [Divergences from pathlib](divergences.md).
 pip install uripath
 ```
 
-It requires `pathlib-next`, `netimps` and `uritools`, which pip installs with
-it; its one extra, `cli`, adds the `uripath` command
+It requires `pathlib-next` and `netimps`, which pip installs with it; its one
+extra, `cli`, adds the `uripath` command
 (`pip install "uripath[cli]"`). The schemes of this package run on the standard
 library, including HTTP. `sftp:`, `s3:`, `gs:` and `az:` are provided by other
 distributions:

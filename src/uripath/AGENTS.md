@@ -16,8 +16,9 @@ errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and
 exports). A module or name that starts with an underscore is private and
 nothing there is contract: every scheme lives in a private module.
 
-`pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11`,
-`netimps>=0.4.0,<0.5` and `uritools>=5.0,<7`. The one extra, `cli`
+`pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11` and
+`netimps>=0.4.0,<0.5`; parsing and percent-coding use only the standard library
+(`urllib.parse`), and `netimps` is imported where it is used. The one extra, `cli`
 (`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
 in this package runs on the standard library and on `pathlib_next`. `sftp:`,
 `s3:`, `gs:` and `az:` and the `requests` HTTP transport are provided by other
