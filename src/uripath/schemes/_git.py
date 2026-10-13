@@ -45,7 +45,7 @@ class GitURIPath(URIPath):
         )
 
     def __new__(cls, *args, **kwargs):
-        uri = URI(*args, **kwargs)
+        uri = URI(*args)
         provider_cls = cls._provider_cls(uri.source, uri.path, uri.query, uri.fragment)
         inst = URIPath.__new__(provider_cls, *args, **kwargs)
         inst._init(uri.source, uri.path, uri.query, uri.fragment, **kwargs)

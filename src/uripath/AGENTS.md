@@ -84,7 +84,8 @@ absolute local path **object** (`pathlib.Path`, `LocalPath`) becomes
 `file:`; a relative one joins like a `PurePath`. A `str` argument is always
 URI text: wrap a path string (`LocalPath(s)`), because `URIPath("/abs/x")`
 is a path with no scheme whose I/O raises `NotImplementedError` and
-`URIPath("C:/Temp/x")` has the scheme `c`.
+`URIPath("C:/Temp/x")` has the scheme `c`. `URI` takes no keyword argument
+(`**options` is for the subclasses: see `_OPTIONS`).
 
 - Properties: `source -> Source`, `path -> str` (percent-decoded),
   `query -> Query` (**percent-encoded as received**, sent unchanged; empty
@@ -164,9 +165,12 @@ class URIPath(URI, Path):
 
 `URI` + `Path`. The bare class (or `findclass=True`)
 returns the subclass registered for the scheme, or plain `URIPath` for an
-unknown scheme (its I/O raises `NotImplementedError`). Keywords other than
-`schemesmap` and `findclass` are options of the path: `backend=` (see `backend`
-below) and those the scheme class reads. Resolution: classes
+unknown scheme (its I/O raises `NotImplementedError`). The keywords are
+`schemesmap`, `findclass`, `backend=` (see `backend` below) and the ones the
+scheme class names in `_OPTIONS`; any other is a `TypeError` naming it, so a
+misspelt `backend=` is never read as "use the default". The class of a scheme
+that another distribution implements and that is not installed takes any
+keyword: they are that distribution's to name. Resolution: classes
 already imported → built-in `uripath.schemes.*` module → entry point
 in group `uripath.schemes`, and an entry point never takes a built-in
 name. An explicit `schemesmap` is the only map consulted. It is an allow-list of classes for dispatch, not a sandbox:
@@ -884,6 +888,7 @@ class URI(Pathname):
     _raw_uris
     _source
     _query
+    _OPTIONS
 
 class URIPath(URI, Path):
     def _init(self, source, path, query, fragment, /, backend=None, **kwargs): ...
@@ -931,6 +936,12 @@ Building and deriving a path:
   `as_uri()` and `str()` call it, so a scheme with a different spelling
   overrides it. `_parse_uri(uri)` is its reverse for URI text: `(Source,
   decoded path, Query, fragment)`.
+- `_OPTIONS` — the names of the keyword arguments the constructor takes: a
+  `frozenset`, `{"backend", "schemesmap", "findclass"}` on `URIPath`, empty on
+  `URI`, and `None` for any. A scheme whose class reads keywords of its own
+  (`ssh_config=`, say) extends it (`_OPTIONS = URIPath._OPTIONS | {"ssh_config"}`)
+  and returns them from `_reduce_options()`; any name not listed is a
+  `TypeError` at construction, before the path is built.
 - `_load_parts()` — parses a path that was built from arguments and is not
   parsed yet; `source`, `path`, `query` and `fragment` call it. Call it
   before reading `_source`, `_query` or the backend state of a path that may

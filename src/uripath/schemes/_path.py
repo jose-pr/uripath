@@ -134,6 +134,8 @@ class URIPath(URI, Path):
         "_schemes_in_use",
     )
     __SCHEMES: _ty.Sequence[str] = ()
+    #: A scheme that takes keyword arguments of its own adds their names.
+    _OPTIONS = frozenset({"backend", "schemesmap", "findclass"})
 
     def __init_subclass__(cls, replace: bool = False, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -247,7 +249,7 @@ class URIPath(URI, Path):
         **kwargs,
     ) -> "URIPath":
         if cls is URIPath or findclass:
-            uri = URI(*args, **kwargs)
+            uri = URI(*args)
             cls: type[URIPath] = uri.source.get_scheme_cls(schemesmap)
             if cls is URIPath:
                 inst = URI.__new__(cls, *args, **kwargs)

@@ -163,17 +163,36 @@ class URI(Pathname):
     #: each one at None so `__init__` can tell an initialized instance.
     _slot_names: "tuple[str, ...]" = ()
 
+    #: The keyword arguments the constructor takes. Any other is a `TypeError`;
+    #: `None` takes any (a path whose scheme another distribution implements).
+    _OPTIONS: "frozenset[str] | None" = frozenset()
+
+    @classmethod
+    def _check_options(cls, options: "dict[str, object]") -> None:
+        accepted = cls._OPTIONS
+        if accepted is None:
+            return
+        for name in options:
+            if name not in accepted:
+                raise TypeError(
+                    f"{cls.__name__}() got an unexpected keyword argument {name!r}"
+                )
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._slot_names = _slot_names(cls)
 
     def __new__(cls, *uris, **options):
+        if options:
+            cls._check_options(options)
         inst = object.__new__(cls)
         for slot in cls._slot_names:
             setattr(inst, slot, None)
         return inst
 
     def __init__(self, *uris: URILike, **options):
+        if options:
+            self._check_options(options)
         if self._raw_uris or self._initiated:
             return
         _uris: list[str | URI] = []

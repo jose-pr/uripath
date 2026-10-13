@@ -723,3 +723,14 @@ mutant(
     f"{_DERIVATION}::test_a_path_only_derivation_keeps_the_query_and_the_fragment",
     "a token in the query stops following the names joined onto it",
 )
+
+# --- constructor keywords -----------------------------------------------------
+
+mutant(
+    "constructor-accepts-a-misspelt-backend",
+    "_uri.py",
+    "            if name not in accepted:\n",
+    "            if False:\n",
+    "tests/test_uri_constructor_options.py::test_an_unknown_keyword_argument_is_a_type_error_naming_it",
+    "a misspelt backend= is ignored and the path uses the default backend and ambient credentials",
+)

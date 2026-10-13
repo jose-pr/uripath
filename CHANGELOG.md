@@ -119,6 +119,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   there.
 - `URI.with_query(None)` removes the query. Was: a `TypeError` ("'NoneType' object
   is not iterable"). `with_fragment("")` removes the fragment as before.
+- A constructor raises `TypeError` for a keyword argument it does not name.
+  Was: `URI("x", anything=1)` and `URIPath("https://h/x", backnd=backend)`
+  were accepted and the keyword ignored, so a misspelt `backend=` meant "use
+  the default backend" (and the ambient credentials). Is: `TypeError:
+  HTTPURIPath() got an unexpected keyword argument 'backnd'`. `URI` takes no
+  keyword; a path takes `backend`, `schemesmap`, `findclass` and the ones its
+  scheme class names in `_OPTIONS`; the path of a scheme that another
+  distribution implements, when that distribution is not installed, takes any.
+  What to do: correct or remove the stray keyword; a scheme class of your own
+  that reads keywords lists them (`_OPTIONS = URIPath._OPTIONS | {"flavor"}`).
 - Text that is not a URI raises `URISyntaxError` where it raised a bare
   `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
   `Source.parse()` of text with a path, a `git:` URI on a host with no

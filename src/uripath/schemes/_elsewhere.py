@@ -85,6 +85,8 @@ class ProvidedElsewhere(URIPath):
     does too."""
 
     __slots__ = ()
+    #: The keyword arguments of the real class are that distribution's to name.
+    _OPTIONS = None
 
     def _initbackend(self):
         raise not_installed(self.source.scheme.lower())
