@@ -614,7 +614,8 @@ class HTTPResponse:
 - **`HTTPTransport(ssl_context=None, verify=True, proxies=None)`** is
   standard library only. `https:` is verified against `ssl_context`, else
   against `ssl.create_default_context()` (the system trust store, not
-  certifi); `verify=False` is the one way to turn verification off, and
+  certifi); `verify=False` is the one way to turn verification off (each
+  transport built with it logs a warning on the `uripath` logger), and
   `ssl_context` wins over it. Each thread keeps one idle connection per
   server (at most 8, closed when the thread ends or on `close()`), reused for
   its next request unless the server has closed it or sent bytes on it since
@@ -794,6 +795,7 @@ class FTPURIBackend(BaseFTPURIBackend):
 
 class BaseFTPURIBackend:
     def client(self, source, tls) -> _ftplib.FTP: ...
+    def close(self) -> None: ...
 ```
 
 - `FTPURIBackend` — `timeout`
@@ -801,10 +803,15 @@ class BaseFTPURIBackend:
   explicit TLS with `PROT P`; the certificate and host name are verified
   with `ssl.create_default_context()`; `ssl_context` (e.g.
   `ssl.create_default_context(cafile=...)`) wins over `verify`;
-  `verify=False` accepts any certificate. Data connections reuse the TLS
+  `verify=False` accepts any certificate (and logs a warning on the
+  `uripath` logger each time one is built). Data connections reuse the TLS
   session. No user in the URI → anonymous login.
 - `BaseFTPURIBackend.client()` — override to supply
-  connections. These two classes are not `pathlib_next.ftp.FTPBackend` and
+  connections. `close()` closes every connection the paths of the backend hold,
+  whichever thread opened it (one a command is running on closes when the
+  command ends), may be called twice, and a later use connects afresh; the
+  backend is a context manager that calls it. One backend may be shared
+  between threads, each of which keeps its own connection per server. These two classes are not `pathlib_next.ftp.FTPBackend` and
   `BaseFTPBackend`: those belong to one host, these connect to the `Source` of
   whichever path asks.
 - Paths without `backend=` share one default `FTPURIBackend()`. Connections

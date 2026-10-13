@@ -12,7 +12,7 @@ import pytest
 pytest.importorskip("uritools")
 
 from pathlib_next.ftp import _backend as ftp_mod
-from uripath.schemes import FTPURIBackend, FTPURIPath
+from uripath.schemes import BaseFTPURIBackend, FTPURIBackend, FTPURIPath
 
 from ftp_loopback import LoopbackFtp
 from waits import wait_until
@@ -297,6 +297,84 @@ def test_the_connection_of_a_thread_that_ended_is_closed(make):
     assert server.total == 20
     path("/d/f.txt").stat()
     assert len(server.live) == 1
+
+
+@pytest.fixture
+def lone_server():
+    """A server with one file; every connection cached to it is dropped when
+    the test ends."""
+    with LoopbackFtp(
+        files={"/f": b"hello"}, dirs={"/"}, entries={"/f": FILE}
+    ) as server:
+        yield server
+        for key in list(ftp_mod._CACHED_CLIENTS.cache):
+            if key[1].port == server.port:
+                ftp_mod._CACHED_CLIENTS.discard(*key)
+
+
+def test_a_backend_used_as_a_context_manager_closes_its_connections(lone_server):
+    with FTPURIBackend(timeout=5) as backend:
+        path = FTPURIPath(f"{lone_server.url}/f", backend=backend)
+        assert path.stat().st_size == 5
+        assert path.read_bytes() == b"hello"
+        assert len(lone_server.live) == 1
+    assert wait_until(lambda: not lone_server.live), "the connection stayed open"
+
+
+def test_close_ends_the_connection_of_a_thread_that_is_still_running(lone_server):
+    backend = FTPURIBackend(timeout=5)
+    path = FTPURIPath(f"{lone_server.url}/f", backend=backend)
+    opened, finish = threading.Event(), threading.Event()
+
+    def work():
+        path.stat()
+        opened.set()
+        finish.wait(10)
+
+    thread = threading.Thread(target=work)
+    thread.start()
+    try:
+        assert opened.wait(10)
+        path.stat()  # this thread's own connection
+        assert len(lone_server.live) == 2
+        backend.close()
+        assert wait_until(lambda: not lone_server.live), "a connection stayed open"
+    finally:
+        finish.set()
+        thread.join(10)
+
+
+def test_close_may_be_called_twice_and_a_later_use_connects_again(lone_server):
+    backend = FTPURIBackend(timeout=5)
+    path = FTPURIPath(f"{lone_server.url}/f", backend=backend)
+    path.stat()
+    backend.close()
+    backend.close()
+    assert wait_until(lambda: not lone_server.live)
+    assert path.stat().st_size == 5
+    assert lone_server.total == 2
+    assert len(lone_server.live) == 1
+
+
+def test_closing_one_backend_leaves_the_connection_of_another(lone_server):
+    first, second = FTPURIBackend(timeout=5), FTPURIBackend(timeout=5)
+    FTPURIPath(f"{lone_server.url}/f", backend=first).stat()
+    FTPURIPath(f"{lone_server.url}/f", backend=second).stat()
+    assert len(lone_server.live) == 2
+    first.close()
+    assert wait_until(lambda: len(lone_server.live) == 1)
+    assert FTPURIPath(f"{lone_server.url}/f", backend=second).stat().st_size == 5
+    assert lone_server.total == 2
+
+
+def test_a_custom_backend_is_a_context_manager_too():
+    class Mine(BaseFTPURIBackend):
+        __slots__ = ()
+
+    with Mine() as backend:
+        assert isinstance(backend, Mine)
+    backend.close()
+    backend.close()
 
 
 def test_a_connection_dropped_by_another_thread_mid_transfer_finishes_it_then_closes(

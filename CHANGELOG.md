@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   lists the four, and `URIPath.scheme_class()` raises the same error for them.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
+- `FTPURIBackend` and `BaseFTPURIBackend` have `close()` and are context
+  managers: `close()` closes the control connection every thread holds to the
+  servers of that backend, may be called twice, and a later use connects
+  again. Leaving a `with` block calls it.
+- Building an `HTTPTransport` or an `FTPURIBackend` with `verify=False` and no
+  `ssl_context` logs a warning on the `uripath` logger each time.
 
 ### Changed
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging as _logging
 import threading as _thread
 import typing as _ty
 import weakref as _weakref
@@ -16,6 +17,8 @@ from ._delegate import DelegatingPath
 if _ty.TYPE_CHECKING:
     import ssl as _ssl
 
+_log = _logging.getLogger(__name__)
+
 
 class BaseFTPURIBackend(object):
     """Protocol for obtaining a connected+logged-in FTP client (or
@@ -23,7 +26,10 @@ class BaseFTPURIBackend(object):
     handling (e.g. tests mock it directly, no real server);
     `FTPURIBackend` is the real implementation. A path to each endpoint
     (`Source` and `tls`) runs on a core `pathlib_next.ftp.BaseFTPBackend`
-    that asks `client()` for its connections."""
+    that asks `client()` for its connections.
+
+    A context manager: leaving the block calls `close()`. One backend may be
+    shared between threads; each thread keeps its own connection per server."""
 
     # Weakly referenceable so `URIPath` can record which backends a path
     # derived for itself (see `URIPath._supplied_backend()`).
@@ -32,6 +38,20 @@ class BaseFTPURIBackend(object):
     @_notimplemented
     def client(self, source: Source, tls: bool) -> "_ty.Any":
         """The connected, logged-in client for `source`; `tls` asks for `ftps:`."""
+
+    def close(self) -> None:
+        """Closes every control connection the paths of this backend hold,
+        whichever thread opened it; one a command is running on closes when
+        that command ends. Harmless when called again; a later use connects
+        afresh."""
+        for endpoint in _endpoints_of(self):
+            endpoint.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self.close()
 
 
 class FTPURIBackend(BaseFTPURIBackend):
@@ -61,6 +81,10 @@ class FTPURIBackend(BaseFTPURIBackend):
         self.timeout = timeout
         self.ssl_context = ssl_context
         self.verify = verify
+        if not verify and ssl_context is None:
+            _log.warning(
+                "FTPURIBackend(verify=False): TLS certificates are not verified"
+            )
 
     def client(self, source: Source, tls: bool):
         user, password = source.parsed_userinfo()
@@ -98,6 +122,10 @@ class _EndpointBackend(BaseFTPBackend):
     def client(self):
         return self.owner.client(self.source, self.tls)
 
+    # Drops the cached connections of the backend it is called on and reads
+    # nothing else of it.
+    close = FTPBackend.close
+
 
 _ENDPOINTS: "_weakref.WeakValueDictionary[tuple, _EndpointBackend]" = (
     _weakref.WeakValueDictionary()
@@ -115,6 +143,12 @@ def _endpoint_backend(owner: BaseFTPURIBackend, source: Source, tls: bool):
         if found is None:
             found = _ENDPOINTS[key] = _EndpointBackend(owner, source, tls)
         return found
+
+
+def _endpoints_of(owner: BaseFTPURIBackend) -> "list[_EndpointBackend]":
+    """The core backends that `owner` has made and that something still holds."""
+    with _ENDPOINTS_LOCK:
+        return [found for key, found in list(_ENDPOINTS.items()) if key[0] == id(owner)]
 
 
 class FTPURIPath(DelegatingPath):

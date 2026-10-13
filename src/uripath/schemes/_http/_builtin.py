@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import errno as _errno
 import http.client as _client
+import logging as _logging
 import select as _select
 import socket as _socket
 import ssl as _ssl
@@ -25,6 +26,8 @@ from ._headers import (
 )
 from ._proxies import ProxyAddress, proxies_for
 from ._response import HTTPResponse
+
+_log = _logging.getLogger(__name__)
 
 REUSE_WINDOW = 1.0
 """A request that cannot be sent again uses an idle connection only if the
@@ -290,6 +293,10 @@ class HTTPTransport:
     ):
         self._ssl_context = ssl_context
         self._verify = bool(verify)
+        if not self._verify and ssl_context is None:
+            _log.warning(
+                "HTTPTransport(verify=False): TLS certificates are not verified"
+            )
         self._proxies = proxies
         self._pool = _pool.Pool()
         self._finalizer = _pool.finalize_with(self, self._pool)
