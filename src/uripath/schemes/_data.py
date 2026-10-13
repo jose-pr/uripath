@@ -48,6 +48,26 @@ class DataURIPath(URIPath):
             return "text/plain" + header
         return header
 
+    @property
+    def charset(self) -> str:
+        """The charset the media type declares (`charset=utf-8`, quotes
+        removed), or `"utf-8"` when it declares none: a text payload is read
+        in it by `open()` and `read_text()` unless `encoding=` says
+        otherwise. UTF-8 reads what the RFC's US-ASCII default names, and more."""
+        header = self._header
+        if self._is_base64:
+            header = header.rsplit(";", 1)[0]
+        for parameter in header.split(";")[1:]:
+            name, _, value = parameter.partition("=")
+            if name.strip().lower() == "charset":
+                return value.strip().strip("\"'") or "utf-8"
+        return "utf-8"
+
+    def open(self, mode="r", buffering=-1, encoding=None, errors=None, newline=None):
+        if encoding is None and "b" not in mode:
+            encoding = self.charset
+        return super().open(mode, buffering, encoding, errors, newline)
+
     def _content(self) -> bytes:
         text = self.path
         if self.query:

@@ -396,6 +396,7 @@ end of the chain, and every other scheme splits on `/` only.
 ```python
 class DataURIPath(URIPath):
     mediatype: str
+    charset: str
 ```
 
 RFC 2397
@@ -404,6 +405,15 @@ RFC 2397
 what follows it are payload (`data:,a?b` reads `a?b`), while a `#` starts the
 fragment. Read-only single file: `open("r")` only,
 `stat().st_size` is the decoded size, listing → `NotADirectoryError`.
+`charset` is the `charset=` the media type declares (quotes removed), `"utf-8"`
+when it declares none; `open()` in text mode and `read_text()` decode with it
+unless `encoding=` is given. The path is the payload, not a hierarchy: `name`,
+`stem`, `suffix`, `suffixes`, `parent`, `parents`, `segments`, `with_name()`,
+`with_stem()`, `with_suffix()`, `with_segments()`, `/`, `joinpath()`,
+`relative_to()`, `is_relative_to()` and `match()`, and a constructor given
+more than one part, raise `NotImplementedError` instead of cutting the
+payload at a `/` (that would name another file). `with_path()`,
+`with_query()` and `with_fragment()` replace a component as asked.
 
 ### `HTTPURIPath` — `http:`, `https:` (`uripath.schemes`)
 

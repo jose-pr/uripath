@@ -104,3 +104,104 @@ def test_a_data_payload_with_a_query_reads_the_whole_text():
     assert str(path.query) == "b"
     assert path.as_uri() == "data:,a?b"
     assert path.stat().st_size == 3
+
+
+# --- the pure-path surface: a data: URI is one file ---------------------------
+
+PAYLOADS = [
+    "data:text/plain;charset=utf-8,%C3%BCber",
+    "data:,a/b",
+    "data:;base64,/9j/4AAQ",
+]
+PURE = {
+    "name": lambda p: p.name,
+    "stem": lambda p: p.stem,
+    "suffix": lambda p: p.suffix,
+    "suffixes": lambda p: p.suffixes,
+    "parent": lambda p: p.parent,
+    "parents": lambda p: p.parents,
+    "segments": lambda p: p.segments,
+    "with_name": lambda p: p.with_name("z"),
+    "with_stem": lambda p: p.with_stem("z"),
+    "with_suffix": lambda p: p.with_suffix(".txt"),
+    "with_segments": lambda p: p.with_segments("a", "b"),
+    "join": lambda p: p / "x",
+    "join-dotted": lambda p: p / "../x",
+    "join-uri": lambda p: p / URIPath("x"),
+    "joinpath": lambda p: p.joinpath("x"),
+    "rjoin": lambda p: "x" / p,
+    "relative_to": lambda p: p.relative_to("data:"),
+    "is_relative_to": lambda p: p.is_relative_to("data:"),
+    "match": lambda p: p.match("*"),
+    "constructor-join": lambda p: URIPath(p, "x").source,
+}
+
+
+@pytest.mark.parametrize("name", PURE)
+@pytest.mark.parametrize("url", PAYLOADS)
+def test_the_pure_path_derivations_of_a_data_uri_raise(url, name):
+    path = URIPath(url)
+    before = path.read_bytes()
+    with pytest.raises(NotImplementedError, match="data: URI"):
+        PURE[name](path)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("url", PAYLOADS)
+def test_what_a_data_uri_is_stays_available(url):
+    path = URIPath(url)
+    assert path.as_uri() == url
+    assert str(path) == url
+    assert repr(path) == f"DataURIPath({url!r})"
+    assert path == url
+    assert hash(path) == hash(URIPath(url))
+    assert path.exists() and path.is_file()
+    assert path.with_fragment("f").as_uri() == url + "#f"
+
+
+# --- the declared charset -----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "url, text",
+    [
+        ("data:text/plain;charset=utf-8,%C3%BCber", "über"),
+        ("data:text/plain;charset=latin-1,%FCber", "über"),
+        ("data:text/plain;charset=ISO-8859-1;base64,/GJlcg==", "über"),
+        ('data:text/plain;charset="latin-1",%FCber', "über"),
+        ("data:;CHARSET=Latin-1,%FCber", "über"),
+        ("data:text/plain,%C3%BCber", "über"),
+        ("data:,%C3%BCber", "über"),
+    ],
+)
+def test_text_is_read_in_the_charset_the_uri_declares(url, text):
+    path = URIPath(url)
+    assert path.read_text() == text
+    with path.open() as stream:
+        assert stream.read() == text
+    with path.open("rt") as stream:
+        assert stream.read() == text
+
+
+def test_the_charset_is_the_declared_one_and_utf8_when_none_is():
+    assert URIPath("data:text/plain;charset=latin-1,x").charset == "latin-1"
+    assert URIPath('data:text/plain;charset="UTF-16";base64,eA==').charset == "UTF-16"
+    assert URIPath("data:text/plain,x").charset == "utf-8"
+    assert URIPath("data:,x").charset == "utf-8"
+
+
+def test_an_encoding_argument_wins_over_the_declared_charset():
+    path = URIPath("data:text/plain;charset=latin-1,%C3%BCber")
+    assert path.read_text(encoding="utf-8") == "über"
+    assert path.read_text() == "Ã¼ber"
+    with path.open(encoding="utf-8") as stream:
+        assert stream.read() == "über"
+
+
+def test_binary_reads_ignore_the_charset():
+    path = URIPath("data:text/plain;charset=latin-1,%FCber")
+    assert path.read_bytes() == b"\xfcber"
+    with path.open("rb") as stream:
+        assert stream.read() == b"\xfcber"
+    with pytest.raises(ValueError):
+        path.open("rb", encoding="utf-8")

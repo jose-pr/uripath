@@ -297,12 +297,14 @@ def test_str_destination_reuses_the_backend_of_the_same_endpoint():
     "base,joined",
     [("data:,a/./b", "data:,a/./b/x"), ("data:,a/../b", "data:,a/../b/x")],
 )
-def test_join_never_normalizes_a_data_payload(base, joined):
+def test_a_data_payload_is_never_normalized(base, joined):
     """An RFC 2397 payload is an opaque octet string -- `_parse_uri` says so
-    and skips dot-segment removal for `data:`. Normalizing the joined result
-    ate the `,` that separates the payload, producing `data:b/x`, which is
-    not a data URI at all."""
-    assert str(URIPath(base) / "x") == joined
+    and skips dot-segment removal for `data:`. Normalizing it would eat the `,`
+    that separates the payload, giving `data:b/x`, which is not a data URI at
+    all; a join, which would have to, raises instead."""
+    assert str(URIPath(base)) == base
+    with pytest.raises(NotImplementedError):
+        URIPath(base) / "x"
 
 
 def test_join_uses_the_same_child_builder_as_a_listing():
@@ -371,7 +373,7 @@ def test_joining_a_path_never_builds_a_backend():
     # (`zip:`/`tar:` are left out on purpose: their "backend" is the shared
     # archive handle from the registry, stdlib-only and opened lazily, so it
     # is attached at construction and a join inherits it.)
-    for uri in ("sftp://h/mnt", "file:///tmp/x", "data:,abc"):
+    for uri in ("sftp://h/mnt", "file:///tmp/x", "ftp://h/x"):
         base = URIPath(uri)
         child = base / "child"
         assert child.path.endswith("/child")

@@ -747,6 +747,26 @@ mutant(
     "a URI is false against the canonical text of its own file",
 )
 
+# --- data: URIs ---------------------------------------------------------------
+
+_DATA = "tests/test_data_uri.py"
+mutant(
+    "data-uri-payload-is-sliced-into-names",
+    "_uri.py",
+    '        if self.source.scheme == "data":\n            raise NotImplementedError(\n',
+    "        if False:\n            raise NotImplementedError(\n",
+    f"{_DATA}::test_the_pure_path_derivations_of_a_data_uri_raise",
+    "a join or a parent of a data: URI cuts the payload and names another file",
+)
+mutant(
+    "data-uri-text-ignores-the-declared-charset",
+    "schemes/_data.py",
+    "            encoding = self.charset\n",
+    "            encoding = None\n",
+    f"{_DATA}::test_text_is_read_in_the_charset_the_uri_declares",
+    "read_text() decodes a data: payload with the locale instead of its declared charset",
+)
+
 # --- constructor keywords -----------------------------------------------------
 
 mutant(

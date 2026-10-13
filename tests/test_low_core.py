@@ -19,7 +19,7 @@ from pathlib_next import LocalPath
 from pathlib_next.mempath import MemPath, MemPathBackend
 from pathlib_next.protocols import BinaryOpen
 from uripath import URI, URIPath
-from uripath.schemes import DataURIPath
+from uripath.schemes import DataURIPath, HTTPURIPath
 from uripath.schemes import FileURIPath
 from uripath.source import Source
 from pathlib_next import checksum
@@ -246,12 +246,12 @@ def test_with_source_without_scheme_gives_plain_uripath():
 
 
 def test_truediv_does_not_mask_a_scheme_type_error(monkeypatch):
-    base = URIPath("data:,a")
+    base = URIPath("http://h/a")
 
     def broken_init(self, *args, **kwargs):
         raise TypeError("scheme bug")
 
-    monkeypatch.setattr(DataURIPath, "_init", broken_init)
+    monkeypatch.setattr(HTTPURIPath, "_init", broken_init)
     with pytest.raises(TypeError, match="scheme bug"):
         base / "b"
 

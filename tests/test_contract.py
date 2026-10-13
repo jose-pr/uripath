@@ -7,6 +7,7 @@ URIPath schemes) to be able to run against their own implementation -- see
 """
 
 import os
+import pickle
 import stat
 
 import pytest
@@ -216,6 +217,29 @@ class TestDataURIPathContract(ReadPathContract):
 
     def test_partial_reads_continue_where_the_last_stopped(self, root):
         self._single_resource()
+
+    # A data: URI has no names, parents or children: the pure-path surface
+    # raises, and the contract's hierarchical examples read that instead.
+    def test_pure_basics(self, root):
+        for name in ("name", "suffix", "stem", "parent", "parents"):
+            with pytest.raises(NotImplementedError):
+                getattr(root, name)
+
+    def test_pure_joinpath_truediv(self, root):
+        with pytest.raises(NotImplementedError):
+            root / "b"
+        with pytest.raises(NotImplementedError):
+            root.joinpath("b", "c")
+
+    def test_pure_match(self, root):
+        with pytest.raises(NotImplementedError):
+            root.match("*.txt")
+
+    def test_a_pickled_path_is_equal_to_the_original(self, root):
+        again = pickle.loads(pickle.dumps(root))
+        assert type(again) is type(root)
+        assert again == root
+        assert hash(again) == hash(root)
 
 
 # Ftp contract

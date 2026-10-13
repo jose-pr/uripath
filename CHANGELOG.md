@@ -136,6 +136,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   do: compare URIs with `==` instead of comparing their text, and expect
   `file:///` where code tested `file:/`. A `Source` built by hand with host
   `""` now means an empty authority (`file://`): use `None` for none.
+- The path of a `data:` URI is its payload, and `read_text()` uses the
+  declared charset. Was: `name`, `parent`, `with_name()` and `/` cut the
+  payload at a `/` (`data:text/plain;charset=utf-8,%C3%BCber` had the name
+  `plain;charset=utf-8,über` and `d / "x"` was the other file
+  `...%C3%BCber/x`), and `read_text()` decoded with the locale (`"Ã¼ber"` on
+  Windows). Is: those derivations (`name`, `stem`, `suffix`, `suffixes`,
+  `parent`, `parents`, `segments`, `with_name()`, `with_stem()`,
+  `with_suffix()`, `with_segments()`, `/`, `joinpath()`, `relative_to()`,
+  `is_relative_to()`, `match()` and a constructor given several parts) raise
+  `NotImplementedError`, and `open()` in text mode and `read_text()` decode
+  with the charset the URI declares (`DataURIPath.charset`, `"utf-8"` when it
+  declares none). What to do: name a destination yourself when you copy a
+  `data:` URI into a directory, pass `encoding=` to override the charset, and
+  read the payload with `read_bytes()` instead of slicing the path.
 - A constructor raises `TypeError` for a keyword argument it does not name.
   Was: `URI("x", anything=1)` and `URIPath("https://h/x", backnd=backend)`
   were accepted and the keyword ignored, so a misspelt `backend=` meant "use

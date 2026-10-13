@@ -132,11 +132,11 @@ def test_a_derived_backend_is_not_pickled_and_is_built_again():
 
 
 def test_a_pickle_keeps_the_allow_list_of_schemes():
-    from uripath.schemes import DataURIPath
+    from uripath.schemes import FTPURIPath
 
-    path = URIPath("data:,abc", schemesmap={"data": DataURIPath})
+    path = URIPath("ftp://h/abc", schemesmap={"ftp": FTPURIPath})
     again = _roundtrip(path)
-    assert again._schemes_in_use == {"data": DataURIPath}
+    assert again._schemes_in_use == {"ftp": FTPURIPath}
     assert type(again / URIPath("file:///x")) is URIPath
 
 

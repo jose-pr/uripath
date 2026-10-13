@@ -344,6 +344,11 @@ class URI(Pathname):
                 # Nothing but relative local paths and sourceless strings:
                 # still a local file.
                 source = _FILE_SOURCE
+            if source.scheme == "data" and sum(1 for path, _ in paths if path) > 1:
+                raise NotImplementedError(
+                    "a join with a data: URI: its path is the payload of a "
+                    "single file, with no names, parents or children"
+                )
 
         if _authority_of(source) and _path and not _path.startswith("/"):
             _path = "/" + _path
@@ -441,19 +446,12 @@ class URI(Pathname):
         the constructor and a `URI` argument keep it, and on an object store
         `d//y` and `d/y` are two keys.
 
-        A `data:` payload is an opaque octet string, so it never gets
-        segment treatment: the key is appended verbatim, exactly as
-        `_parse_uri` declines to normalize it.
+        A `data:` URI is one file whose path is its payload: it has no
+        children, so a join raises (`_refuse_data`).
         """
+        self._refuse_data("a join")
         if not key:
             return self
-        if self.source.scheme == "data":
-            path = self.path
-            if path and not path.endswith("/"):
-                path += "/"
-            return self._from_parsed_parts(
-                self.source, path + key, self.query, self.fragment
-            )
         segments = key.split("/")
         absolute = self._is_absolute_decoded(key)
         if absolute and segments[0] == "":
@@ -748,6 +746,7 @@ class URI(Pathname):
         the root), joined with `/`; an element may also be `bytes`, a
         `PurePath`, a `Pathname` or an `os.PathLike`, whose posix text is
         used."""
+        self._refuse_data("with_segments()")
         if not segments:
             return self.with_path("")
         return self.with_path("/".join(_segment_text(item) for item in segments))
@@ -780,6 +779,7 @@ class URI(Pathname):
     def segments(self):
         segments = self._segments_cache
         if segments is None:
+            self._refuse_data("the segments")
             path = self.path
             segments = tuple(path.split("/")) if path else ()
             self._segments_cache = segments
@@ -815,6 +815,16 @@ class URI(Pathname):
     def _has_authority(self) -> bool:
         return _authority_of(self.source)
 
+    def _refuse_data(self, what: str) -> None:
+        """Raise `NotImplementedError` if this is a `data:` URI. Its path is
+        the payload (RFC 2397), not a hierarchy: it has no names, parents or
+        children, and slicing it at a `/` would make another file."""
+        if self.source.scheme == "data":
+            raise NotImplementedError(
+                f"{what} of a data: URI: its path is the payload of a single "
+                "file, with no names, parents or children"
+            )
+
     def _match_parts(self) -> tuple[bool, list[str]]:
         # An authority with an empty path ("http://h") is that authority's
         # root, the same as "http://h/" (RFC 3986). The host itself is never
@@ -845,6 +855,7 @@ class URI(Pathname):
 
     def is_relative_to(self, other: URILike):
         """Return True if the path is relative to another path or False."""
+        self._refuse_data("is_relative_to()")
         # `other` is parsed standalone (`URI(other)`), not anchored at self's root, as
         # `relative_to()` and CPython do. A standalone parse leaves `other.source`
         # empty, which the guard below treats as compatible with any `self.source`.
@@ -865,6 +876,7 @@ class URI(Pathname):
         return _self[: len(_other)] == _other
 
     def relative_to(self, other: URILike, *, walk_up=False):
+        self._refuse_data("relative_to()")
         other = other if isinstance(other, URI) else URI(other)
         # No upfront `is_relative_to()` check: the step==0 iteration (path=other)
         # raises the same error, and an early one would skip the walk_up loop.
@@ -928,6 +940,7 @@ class URI(Pathname):
         # Only converting `key` decides NotImplemented: catching TypeError
         # around the whole construction would turn a bug inside a scheme's
         # __new__/_init into "unsupported operand type(s) for /".
+        self._refuse_data("a join")
         key = self._join_arg(key)
         if isinstance(key, str):
             return self._join_decoded(key)
@@ -941,6 +954,7 @@ class URI(Pathname):
         """Combine this URI with segments; a `str` is a decoded path (see
         `URI._join_arg`), anything else is joined as the constructor joins
         it -- pass a `URI` for a scheme-aware join."""
+        self._refuse_data("a join")
         result = self
         for arg in args:
             arg = result._join_arg(arg)
@@ -955,6 +969,7 @@ class URI(Pathname):
         this one, never URI syntax (so "C:/x" is not read as a scheme)."""
         if not isinstance(key, str):
             return NotImplemented
+        self._refuse_data("a join")
         # A plain URI: building the prefix must not touch `self.backend`.
         return self._join_object(URI()._from_decoded_path(key), self)
 
