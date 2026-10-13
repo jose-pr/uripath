@@ -17,7 +17,7 @@ from uripath.schemes._http import _select
 from uripath.schemes.http import HTTPBackend, HTTPTransport
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
-VARIABLE = "PATHLIB_NEXT_HTTP_TRANSPORT"
+VARIABLE = "URIPATH_HTTP_TRANSPORT"
 
 
 def test_without_a_setting_the_built_in_transport_is_used(monkeypatch):
@@ -37,6 +37,13 @@ def test_a_backend_builds_its_transport_on_first_use_and_keeps_it(monkeypatch):
 
 def test_the_variable_chooses_the_transport(monkeypatch):
     monkeypatch.setenv(VARIABLE, "builtin")
+    with HTTPBackend() as backend:
+        assert type(backend.transport) is HTTPTransport
+
+
+def test_the_pathlib_next_variable_does_not_choose_the_transport(monkeypatch):
+    monkeypatch.delenv(VARIABLE, raising=False)
+    monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", "requests")
     with HTTPBackend() as backend:
         assert type(backend.transport) is HTTPTransport
 

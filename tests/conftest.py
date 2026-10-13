@@ -215,9 +215,9 @@ TRANSPORT_KINDS = ["builtin"]
 @pytest.fixture(params=TRANSPORT_KINDS)
 def http_transport_kind(request, monkeypatch):
     """Runs the test once per HTTP transport: the default transport of every
-    backend the test builds is that kind (`PATHLIB_NEXT_HTTP_TRANSPORT`), and
+    backend the test builds is that kind (`URIPATH_HTTP_TRANSPORT`), and
     `http_fakes.make_transport(kind)` builds one of it."""
-    monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", request.param)
+    monkeypatch.setenv("URIPATH_HTTP_TRANSPORT", request.param)
     return request.param
 
 

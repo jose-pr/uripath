@@ -8,7 +8,7 @@ import typing as _ty
 
 from ._builtin import HTTPTransport
 
-TRANSPORT_ENV = "PATHLIB_NEXT_HTTP_TRANSPORT"
+TRANSPORT_ENV = "URIPATH_HTTP_TRANSPORT"
 """Names the transport a backend builds for itself: `builtin`, or `requests`
 (provided by `uripath-http-requests`). Read when that transport is first
 needed; unset means `DEFAULT_TRANSPORT`."""
@@ -19,7 +19,7 @@ CHOICES = ("builtin", "requests")
 
 
 def default_transport():
-    """A new transport of the kind `PATHLIB_NEXT_HTTP_TRANSPORT` names. A value
+    """A new transport of the kind `URIPATH_HTTP_TRANSPORT` names. A value
     that is empty, differently cased or unknown is `ValueError`; `requests` is
     `ImportError` naming the distribution that provides it."""
     value = _os.environ.get(TRANSPORT_ENV)

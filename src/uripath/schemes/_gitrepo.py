@@ -209,7 +209,7 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         stream=False,
     ) -> HTTPResponse:
         sent = _merge_headers(
-            {"User-Agent": "pathlib-next", "Accept": "*/*"}, self.headers, headers
+            {"User-Agent": "uripath", "Accept": "*/*"}, self.headers, headers
         )
         if self.token:
             sent.setdefault("Authorization", f"Bearer {self.token}")

@@ -25,7 +25,7 @@ _REASONS = {
 
 def current_kind():
     """The transport kind the test runs with: what `http_transport_kind` set."""
-    return os.environ.get("PATHLIB_NEXT_HTTP_TRANSPORT", "builtin")
+    return os.environ.get("URIPATH_HTTP_TRANSPORT", "builtin")
 
 
 def on_current_transport(path, **backend_args):

@@ -50,12 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   The `ftp:` backends are not `pathlib_next.ftp.FTPBackend` and `BaseFTPBackend`:
   those belong to one host, while `FTPURIBackend` connects to whichever server a
   path names.
+- The environment variable that chooses the default HTTP transport is
+  `URIPATH_HTTP_TRANSPORT`. `PATHLIB_NEXT_HTTP_TRANSPORT` is not read: set the
+  new one.
+- Requests of `http:`, `dav:`, `github:` and `gitlab:` send `User-Agent: uripath`
+  instead of `User-Agent: pathlib-next`. A backend's `headers=` still replaces
+  it.
 - The entry-point group for third-party schemes is `uripath.schemes`. A plugin
   registered under `pathlib_next.schemes` is not found: register it under the
   new group.
 - The `requests` HTTP transport is provided by `uripath-http-requests`.
   `HTTPURIPath.with_session()`, `RepoBackend(session=...)`, `RepoBackend(**requests_args)`
-  and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an `ImportError` naming it;
+  and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming it;
   install it to use them. A proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too.
 - There are no extras. `uritools` and `netimps` are required dependencies, so

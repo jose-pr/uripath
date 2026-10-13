@@ -729,7 +729,7 @@ def _accept(resp: HTTPResponse) -> None:
 _UNSET = object()
 """The `timeout` of a call that did not give one: the backend's own."""
 
-_BASE_HEADERS = {"User-Agent": "pathlib-next", "Accept": "*/*"}
+_BASE_HEADERS = {"User-Agent": "uripath", "Accept": "*/*"}
 
 
 class HTTPBackend(TransportOwner):

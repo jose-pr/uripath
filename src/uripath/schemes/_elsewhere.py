@@ -37,7 +37,7 @@ SCHEMES = {
     ),
 }
 
-#: The HTTP transport `PATHLIB_NEXT_HTTP_TRANSPORT=requests` and `with_session()`
+#: The HTTP transport `URIPATH_HTTP_TRANSPORT=requests` and `with_session()`
 #: ask for: (distribution, import name, what to run).
 REQUESTS_TRANSPORT = (
     "uripath-http-requests",

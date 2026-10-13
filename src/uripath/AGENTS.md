@@ -632,12 +632,12 @@ class HTTPResponse:
   `ImportError` naming it. Without either, a path's backend builds the
   built-in transport on first use (`HTTPBackend.close()` or leaving its
   `with` block closes a transport the backend built); the environment variable
-  `PATHLIB_NEXT_HTTP_TRANSPORT` (`builtin` or `requests`) names that default
+  `URIPATH_HTTP_TRANSPORT` (`builtin` or `requests`) names that default
   for the process. `HTTPBackend` is a class, no longer a named
   tuple: `HTTPBackend(transport=None, *, headers=None, timeout, write_method,
   append_mode)`.
 - **What the backend does for every transport.** It follows redirects, adds
-  credentials and default headers (`User-Agent: pathlib-next`, `Accept: */*`),
+  credentials and default headers (`User-Agent: uripath`, `Accept: */*`),
   applies the default timeout, and maps a status to a pathlib exception.
   `headers` given to the backend go with every request; request-specific
   headers merge over them by name (case-blind). A header value or URL with a
@@ -969,7 +969,7 @@ that class is used.
 
 For the `requests` transport, `HTTPURIPath.with_session()`, a
 `RepoBackend(session=...)` or `RepoBackend(**requests_args)` and
-`PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise `ImportError` naming
+`URIPATH_HTTP_TRANSPORT=requests` raise `ImportError` naming
 `uripath-http-requests`.
 
 ## Exceptions
@@ -1025,7 +1025,7 @@ Windows too, where a closed pipe reports `EINVAL`).
 
 ## Environment variables
 
-### `PATHLIB_NEXT_HTTP_TRANSPORT` (URI layer)
+### `URIPATH_HTTP_TRANSPORT` (URI layer)
 
 `builtin` (the default when unset) or `requests`: the transport that `http(s):`,
 `dav(s):`, `github:`, `gitlab:` and `git:` build for a backend that was not

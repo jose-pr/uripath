@@ -148,7 +148,7 @@ exception, so every transport behaves alike.
 - **The `requests` transport** is provided by the `uripath-http-requests`
   distribution (`~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi, SOCKS proxies,
   digest and NTLM authentication, cookies, mounted adapters). Without it,
-  `path.with_session(...)` and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an
+  `path.with_session(...)` and `URIPATH_HTTP_TRANSPORT=requests` raise an
   `ImportError` that names it.
 
 ## FTP

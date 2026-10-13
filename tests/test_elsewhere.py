@@ -190,7 +190,7 @@ def test_a_repository_backend_given_a_session_names_the_distribution(arguments):
 def test_the_requests_transport_asked_for_by_the_environment_names_the_distribution(
     monkeypatch,
 ):
-    monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", "requests")
+    monkeypatch.setenv("URIPATH_HTTP_TRANSPORT", "requests")
     with HTTPBackend() as backend:
         with pytest.raises(ImportError) as raised:
             backend.transport
