@@ -24,6 +24,11 @@ do about it.
   `ftps:`, `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:` and `davs:`,
   and the `uripath` command, with `uripath.__version__` (read from the
   installed metadata).
+- `pathlib_next.protocols.supports()` and `capabilities()` tell the truth about a URI
+  class: `data:` does not support `Listing`, a scheme that lists through `_listdir()`
+  or its own `_scandir()` does, and an instance of a `DelegatingURIPath` scheme
+  answers with its core path (`_supports()`), so a delegated hook the core path
+  lacks reads as absent.
 - `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and `gitlab:` are known
   scheme names that this distribution does not implement. A path of one joins,
   compares and prints without the distribution that provides it; the first

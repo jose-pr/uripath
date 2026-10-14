@@ -4,6 +4,7 @@ import io as _io
 from base64 import b64decode as _b64decode
 
 from pathlib_next import FileStat
+from pathlib_next import providers as _providers
 from .. import _rfc3986
 from ._path import URIPath
 from ..source import ERRORS
@@ -93,5 +94,6 @@ class DataURIPath(URIPath):
             raise NotImplementedError("data: URIs are read-only")
         return _io.BufferedReader(_io.BytesIO(self._content()))
 
+    @_providers.primitive
     def _listdir(self):
         raise NotADirectoryError(self)

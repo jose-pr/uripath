@@ -3,6 +3,8 @@ from __future__ import annotations
 import contextlib as _contextlib
 import typing as _ty
 
+from pathlib_next.protocols import supports as _supports
+
 from ._path import URIPath
 
 
@@ -97,6 +99,13 @@ class DelegatingURIPath(URIPath):
             names = {**({core: str(self)} if core else {}), **dict(extra)}
             _relabel(error, names)
             raise
+
+    def _supports(self, protocol):
+        """What the core path supports, for a protocol this class has a hook for;
+        `None` (the class's own answer, which is no) for one it has not."""
+        if not _supports(type(self), protocol):
+            return None
+        return _supports(self._core_path, protocol)
 
     def stat(self, *, follow_symlinks=True):
         hint = self._pop_stat_hint()

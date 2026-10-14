@@ -786,6 +786,7 @@ class DelegatingURIPath(URIPath):
     _RELABEL: bool
     def _make_core(self) -> Path: ...
     def _delegated(self, *extra) -> ContextManager[None]: ...
+    def _supports(self, protocol) -> bool | None: ...
     _core_path
 
 def same_authority(a, b) -> bool: ...
@@ -858,7 +859,11 @@ Building and deriving a path:
   `FileStat(is_dir=False, size_known=False)` rather than `None`: `walk()`,
   `glob()` and `rm(recursive=True)` then cost one request per directory.
   `http:` (an index without exact sizes) does.
-- `_listdir()` — the names `_scandir()` lists by default; a stub.
+- `_listdir()` — the names `_scandir()` lists by default; a stub. `iterdir()` and
+  the default `_scandir()` are built on it (`providers.derived_from`), so
+  `pathlib_next.protocols.supports(cls, Listing)` is true for a scheme that defines
+  `_listdir()` or its own `_scandir()` and false for one that does neither
+  (`data:`).
 - `_schemes()` — the scheme names this class registers.
 
 A stream that commits when it is closed (an upload, a rewrite of an archive)
@@ -903,6 +908,10 @@ distribution that provides it):
   `_same_filesystem` and `_node_key`; each calls the core path's method of the
   same name, and a hook not named stays what `URIPath` defines. `stat()` takes
   the listing's hint (see `_pop_stat_hint()`) before it asks the core path.
+- `_supports(protocol)` — what `protocols.supports()` asks an instance: the
+  core path's answer for a protocol this class has a hook for, so a scheme that
+  hands over `_utime` to a core path that cannot set times says no; `None` for a
+  protocol the class does not implement at all.
 - `_delegated(*extra)` — a context manager for the call of a core path that a
   scheme writes by hand (`rename()`, `copy()`): an `OSError` that names the core
   path, or a pair of `extra` `(core text, this text)`, names this path instead.

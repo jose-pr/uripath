@@ -562,6 +562,7 @@ class URIPath(URI, Path):
     @_providers.notimplemented
     def _listdir(self) -> "_ty.Iterator[str]": ...
 
+    @_providers.derived_from("_listdir")
     def _scandir(self) -> "_ty.Iterator[_ty.Tuple[str, _ty.Optional[FileStat]]]":
         """Default: derives from `_listdir()` + one `stat()` per child (no
         round-trip savings over `iterdir()`). Schemes whose listing
@@ -619,6 +620,7 @@ class URIPath(URI, Path):
                 return mode
         return super()._st_mode(follow_symlinks=follow_symlinks)
 
+    @_providers.derived_from("_scandir")
     def iterdir(self) -> "_ty.Iterator[Self]":
         for name, stat in self._scandir():
             yield self._make_child_relpath(name, stat_hint=stat)
