@@ -7,7 +7,7 @@ import pathlib
 import pytest
 
 import uripath
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 from uripath import URIPath, as_path
 from uripath.schemes import DataURIPath, HTTPURIPath
 

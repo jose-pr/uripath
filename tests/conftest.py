@@ -12,7 +12,7 @@ import census as census_module
 import hermetic
 from server_loops import stop_server
 from hermetic import NetworkAccessBlocked  # noqa: F401  (re-exported for tests)
-from pathlib_next.mempath import MemPath, MemPathBackend
+from pathapi.mempath import MemPath, MemPathBackend
 
 try:
     from hypothesis import settings as _hypothesis_settings
@@ -38,10 +38,10 @@ def fixture_tree(tmp_path):
           d.py
       empty_dir/
 
-    Built by the shipped `pathlib_next.testing.populate_fixture_tree()`, so
+    Built by the shipped `pathapi.testing.populate_fixture_tree()`, so
     the in-repo contracts and downstream users share one definition.
     """
-    from pathlib_next.testing import populate_fixture_tree
+    from pathapi.testing import populate_fixture_tree
 
     return populate_fixture_tree(tmp_path)
 
@@ -76,7 +76,7 @@ def pytest_addoption(parser):
         "--http-transports",
         default="builtin",
         help="the HTTP transports the transport suite runs against, by the "
-        "names of pathlib_next.http.transport_names(), separated by commas "
+        "names of pathapi.http.transport_names(), separated by commas "
         "(for example builtin,requests)",
     )
     parser.addoption(
@@ -200,7 +200,7 @@ def _close_cached_ftp_connections():
     yield
     import sys
 
-    ftp = sys.modules.get("pathlib_next.ftp._backend")
+    ftp = sys.modules.get("pathapi.ftp._backend")
     if ftp is not None:
         for key in list(ftp._CACHED_CLIENTS.cache):
             ftp._CACHED_CLIENTS.discard(*key)
@@ -230,9 +230,9 @@ def pytest_generate_tests(metafunc):
 def http_transport_kind(request, monkeypatch):
     """Runs the test once per HTTP transport (`--http-transports`): the
     default transport of every backend the test builds is that kind
-    (`PATHLIB_NEXT_HTTP_TRANSPORT`), and `http_fakes.make_transport(kind)` builds
+    (`PATHAPI_HTTP_TRANSPORT`), and `http_fakes.make_transport(kind)` builds
     one of it."""
-    monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", request.param)
+    monkeypatch.setenv("PATHAPI_HTTP_TRANSPORT", request.param)
     return request.param
 
 

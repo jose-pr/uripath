@@ -15,13 +15,13 @@ import sys
 
 import pytest
 
-import pathlib_next
+import pathapi
 import uripath
-from pathlib_next.mempath import MemPath
-from pathlib_next import NonRelativePatternError
-from pathlib_next import glob as _glob
-from pathlib_next.glob import _recursion, _selection
-from pathlib_next import FileStat
+from pathapi.mempath import MemPath
+from pathapi import NonRelativePatternError
+from pathapi import glob as _glob
+from pathapi.glob import _recursion, _selection
+from pathapi import FileStat
 
 WINDOWS = os.name == "nt"
 
@@ -237,7 +237,7 @@ sys.addaudithook(
 )
 root = sys.argv[1]
 sys.path.insert(0, sys.argv[2])
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 calls = [
     ("glob", "*.py"), ("rglob", "*.py"), ("glob", "**/*"), ("glob", ""),
     ("rglob", ""), ("glob", "/x"), ("rglob", "sub/*"), ("glob", "sub/"),
@@ -320,7 +320,7 @@ def _walked(top, pattern):
 
 
 _LINKED_IMPLS = {
-    "LocalPath": lambda top: pathlib_next.LocalPath(top),
+    "LocalPath": lambda top: pathapi.LocalPath(top),
     "FileURIPath": lambda top: uripath.URIPath(top.as_uri()),
 }
 

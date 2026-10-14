@@ -12,7 +12,7 @@ has the method names, signatures and exception types of `pathlib.Path`: write
 code once and run it against a local file, an archive member, an FTP or WebDAV
 server, a web directory or, through the `repopath` distribution, a GitHub or GitLab
 repository. It builds on
-[`pathlib-next`](https://github.com/jose-pr/pathlib-next) and is documented at
+[`pathapi`](https://github.com/jose-pr/pathapi) and is documented at
 <https://jose-pr.github.io/uripath/>.
 
 ## Features
@@ -39,11 +39,11 @@ The last seven rows are other distributions: a path of one of those schemes
 builds, joins and prints without it, and its first use of the server raises an
 `ImportError` that names what to install. The `requests` HTTP transport
 (`with_session()`, `~/.netrc`, SOCKS proxies) is the distribution
-`pathlib-next-requests`: once it is installed, `with_session()` and
-`PATHLIB_NEXT_HTTP_TRANSPORT=requests` use it, with nothing to configure.
+`pathapi-requests`: once it is installed, `with_session()` and
+`PATHAPI_HTTP_TRANSPORT=requests` use it, with nothing to configure.
 
 Every scheme gets `glob()`, `walk()`, `copy()`/`move()`, `rm()` and `PathSyncer`
-from the `pathlib-next` base classes. The per-scheme notes (timeouts,
+from the `pathapi` base classes. The per-scheme notes (timeouts,
 certificate verification, authentication, limits) are in
 [Schemes](https://jose-pr.github.io/uripath/guides/schemes/).
 
@@ -62,7 +62,7 @@ certificate verification, authentication, limits) are in
 pip install uripath
 ```
 
-Requires `pathlib-next` and `netimps`, which pip installs with it.
+Requires `pathapi` and `netimps`, which pip installs with it.
 
 | Install | Adds |
 | --- | --- |
@@ -70,7 +70,7 @@ Requires `pathlib-next` and `netimps`, which pip installs with it.
 | `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
 | `pip install "sftppath[paramiko]"` or `[asyncssh]` | `sftp:` |
 | `pip install "objpath[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
-| `pip install pathlib-next-requests` | the `requests` HTTP transport |
+| `pip install pathapi-requests` | the `requests` HTTP transport |
 
 ## Quick start
 
@@ -113,10 +113,10 @@ for child in URIPath("https://example.com/data/").iterdir():
 print(URIPath("ftp://user@host/pub/README").read_text())
 ```
 
-**Copy and sync across schemes**, with the `pathlib-next` syncer:
+**Copy and sync across schemes**, with the `pathapi` syncer:
 
 ```python
-from pathlib_next.sync import PathSyncer
+from pathapi.sync import PathSyncer
 from uripath import URIPath
 
 source = URIPath("file:site")
@@ -179,7 +179,7 @@ entry point. A scheme name belongs to one class: a second claim raises unless
 the class statement says `replace=True`, and `URIPath.schemes()` /
 `URIPath.scheme_class(name)` read the registry. Worked examples:
 [Extending](https://jose-pr.github.io/uripath/guides/extending/). The pytest
-contracts that verify a scheme are in `pathlib_next.testing`.
+contracts that verify a scheme are in `pathapi.testing`.
 
 ## Development
 

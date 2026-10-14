@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib as _contextlib
 import typing as _ty
 
-from pathlib_next.protocols import supports as _supports
+from pathapi.protocols import supports as _supports
 
 from ._path import URIPath
 

@@ -2,7 +2,7 @@
 credentials in a URL are an `Authorization` that a redirect to another scheme,
 host or port leaves behind, and a `Location` that cannot be requested is an
 `OSError` of the operation, whichever transport sends the requests. The rules
-themselves are `pathlib_next.http`'s."""
+themselves are `pathapi.http`'s."""
 
 import errno
 

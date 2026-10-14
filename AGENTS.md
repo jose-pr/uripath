@@ -9,7 +9,7 @@ commands, CI and release. It is not the API reference and it does not ship.
 
 [`docs/divergences.md`](docs/divergences.md) records every deliberate difference
 from `pathlib.Path` that this package owns; the ones of the classes in
-`pathlib-next` are on that project's site. `pathlib.Path` parity is the
+`pathapi` are on that project's site. `pathlib.Path` parity is the
 contract; a behavioral divergence that is not recorded is a bug.
 
 ## Layout
@@ -46,13 +46,10 @@ python -m venv .venv/3.14-posix-x86_64
 On Windows the interpreter is `.venv\<name>\Scripts\python.exe`. `dev` holds the
 `cli` extra, every test server and the oracles of the property tests.
 
-`pathlib-next` is a dependency. While the release this package asks for is not
-on PyPI, install the core editable from its checkout first (`pip install -e
-../pathlib-next`); its version then sits below the range `pyproject.toml`
-declares, so install this package with `--no-deps` and the rest by name (the
-`dependencies` and the `dev` extra of `pyproject.toml`). Install this package
-last: `pathlib-next` 0.9 installs a `uripath` script of its own, and the later
-install owns the name.
+`pathapi` is a dependency. While it is not on PyPI, install the core editable
+from its checkout first (`pip install -e ../pathapi`), then this package. A
+`pathlib-next` 0.9 left in the environment installs a `uripath` script of its
+own: uninstall it, or install this package last so that it owns the name.
 
 A missing test server does not fail the suite: its tests are skipped instead, so
 check `pytest -rs` before trusting a green run. A venv holding only this package
@@ -67,7 +64,7 @@ python -m black src/ tests/ benchmarks/ examples/    # formatting; --check to ve
 mkdocs build --strict                                # docs must build with no warnings
 python -m build && python -m twine check dist/*      # sdist + wheel into dist/
 python tests/mutation/run.py --jobs 4                # every guard's tests must fail on a broken copy
-python -m pytest -q tests --http-transports builtin,requests   # the path tests over each transport (needs pathlib-next-requests)
+python -m pytest -q tests --http-transports builtin,requests   # the path tests over each transport (needs pathapi-requests)
 python -m pytest -q -rs tests/test_public_surface.py -k "mypy_accepts or pyright_accepts"
 ```
 
@@ -104,7 +101,7 @@ performance claims in the changelog or release notes come from CI runs
 
 Workflows live in `.github/workflows/`:
 
-- `test.yml` runs on `workflow_dispatch` (inputs: `ref`, `pathlib_next_ref`,
+- `test.yml` runs on `workflow_dispatch` (inputs: `ref`, `pathapi_ref`,
   `benchmark`) or on a pushed `ci-*` tag, never on ordinary pushes. To test a
   commit without the dashboard, push a uniquely named throwaway tag
   (`ci-<topic>-<timestamp>`), follow the run to completion, then delete the tag
@@ -123,15 +120,15 @@ Workflows live in `.github/workflows/`:
 - `docs.yml` owns every GitHub Pages deploy: on a push to `main` that touches the
   docs sources and on `workflow_dispatch`, which `release.yml` fires for a final
   tag.
-- **Which `pathlib-next` the jobs install.** Every job that installs the package
-  first installs `pathlib-next` from `git+https://github.com/jose-pr/pathlib-next@<ref>`
-  when a ref is given: the `pathlib_next_ref` input of a manual run of
-  `test.yml` or `docs.yml`, else the repository variable `PATHLIB_NEXT_REF` (the
+- **Which `pathapi` the jobs install.** Every job that installs the package
+  first installs `pathapi` from `git+https://github.com/jose-pr/pathapi@<ref>`
+  when a ref is given: the `pathapi_ref` input of a manual run of
+  `test.yml` or `docs.yml`, else the repository variable `PATHAPI_REF` (the
   only source for a `ci-*` tag and for `release.yml`). With neither, pip takes
   the release range from PyPI. The ref must hold a version inside that range.
   Set the variable while the release is not on PyPI (`gh variable set
-  PATHLIB_NEXT_REF --body <branch-or-sha>`), delete it afterwards (`gh variable
-  delete PATHLIB_NEXT_REF`). `release.yml` refuses a final tag while it is set.
+  PATHAPI_REF --body <branch-or-sha>`), delete it afterwards (`gh variable
+  delete PATHAPI_REF`). `release.yml` refuses a final tag while it is set.
 
 ## Conventions
 
@@ -174,8 +171,8 @@ Workflows live in `.github/workflows/`:
    it by exit code.
 5. Push `main`, then the `v*` tag. Publishing is irreversible, so the tag is
    pushed only with the maintainer's explicit consent for that specific
-   release. The release the dependency ranges ask of `pathlib-next` and `netimps`
-   must be on PyPI first, and `PATHLIB_NEXT_REF` deleted.
+   release. The release the dependency ranges ask of `pathapi` and `netimps`
+   must be on PyPI first, and `PATHAPI_REF` deleted.
 
 Once per repository, before the first release: register PyPI Trusted Publishing
 for the project `uripath` (workflow `release.yml`, environment `pypi`); set

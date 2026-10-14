@@ -15,10 +15,10 @@ import zipfile
 
 import pytest
 
-from pathlib_next import LocalPath
-from pathlib_next.mempath import MemPath
-from pathlib_next.archive import detect_format, make_archive, unpack_archive
-from pathlib_next import FileStat
+from pathapi import LocalPath
+from pathapi.mempath import MemPath
+from pathapi.archive import detect_format, make_archive, unpack_archive
+from pathapi import FileStat
 
 PAYLOAD = bytes(range(256)) * 40  # 10240 bytes
 

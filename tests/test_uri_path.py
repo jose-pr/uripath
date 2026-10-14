@@ -3,7 +3,7 @@ import pytest
 from http_fakes import FakeTransport
 from uripath import Source, URI, URIPath
 from uripath.schemes import FileURIPath
-from pathlib_next import FileStat
+from pathapi import FileStat
 
 
 def test_scheme_dispatch_file():

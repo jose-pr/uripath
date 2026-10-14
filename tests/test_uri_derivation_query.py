@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from pathlib_next import FileStat
+from pathapi import FileStat
 from uripath import URI, URIPath
 
 BASE = "unk://h/d/f.txt?sig=abc#frag"

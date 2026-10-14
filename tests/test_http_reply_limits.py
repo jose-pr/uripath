@@ -9,7 +9,7 @@ import gzip
 
 import pytest
 
-import pathlib_next.http as core_http
+import pathapi.http as core_http
 from http_wire import Wire, response
 from uripath import URIPath
 from uripath.schemes import HTTPBackend

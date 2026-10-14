@@ -1,13 +1,13 @@
-"""`pathlib_next.protocols.supports()` on URI classes: what a class claims is
+"""`pathapi.protocols.supports()` on URI classes: what a class claims is
 what it can do, for `data:` and for a scheme that delegates to a core path."""
 
 from __future__ import annotations
 
 import pytest
 
-from pathlib_next import MemPath
-from pathlib_next.mempath import MemPathBackend
-from pathlib_next.protocols import (
+from pathapi import MemPath
+from pathapi.mempath import MemPathBackend
+from pathapi.protocols import (
     BinaryOpen,
     Chmod,
     Create,

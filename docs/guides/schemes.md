@@ -78,7 +78,7 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
   response raises `NotADirectoryError`, and an HTML file cannot be told apart
   from an index page. An index is read like a file: one that is cut short or
   stalls raises (`OSError` or `TimeoutError`) instead of listing part of it,
-  and one larger than `pathlib_next.http.MAX_REPLY_BYTES` (8 MiB)
+  and one larger than `pathapi.http.MAX_REPLY_BYTES` (8 MiB)
   raises `OSError` (`EFBIG`); assign a larger number to list it. Configure it with
   `path.with_transport(transport, headers=None, timeout=(10, 60),
   write_method="PUT", append_mode="rewrite")`; the default transport is the
@@ -137,7 +137,7 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
 `http:` and `dav:` send through a **transport**:
 any object with `send(method, url, *, headers, body=None, timeout,
 stream=False)` returning an `HTTPResponse`, and `close()`: the contract of
-[`pathlib_next.http`](https://jose-pr.github.io/pathlib-next/api/http/). The
+[`pathapi.http`](https://jose-pr.github.io/pathapi/api/http/). The
 library, not the transport, follows redirects, adds credentials and maps a
 status to an exception, so every transport behaves alike.
 
@@ -153,26 +153,26 @@ status to an exception, so every transport behaves alike.
   when one cannot be reached; `KeyError` means direct. A proxy is a URL or an
   object with a `url`, so a proxy resolver of that shape works as it is. Only `http://`
   proxies are supported (`CONNECT` for `https:`); for SOCKS or an `https://`
-  proxy use the `requests` transport of `pathlib-next-requests`.
-- **The `requests` transport** is provided by the `pathlib-next-requests`
+  proxy use the `requests` transport of `pathapi-requests`.
+- **The `requests` transport** is provided by the `pathapi-requests`
   distribution (`~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi, SOCKS proxies,
   digest and NTLM authentication, cookies, mounted adapters). Once it is
-  installed, `path.with_session(...)` and `PATHLIB_NEXT_HTTP_TRANSPORT=requests`
+  installed, `path.with_session(...)` and `PATHAPI_HTTP_TRANSPORT=requests`
   use it; without it they raise an `ImportError` that names it.
-  `pathlib_next.http.transport_names()` lists the transports, and a distribution
-  adds its own by declaring an entry point in the `pathlib_next.http_transports`
+  `pathapi.http.transport_names()` lists the transports, and a distribution
+  adds its own by declaring an entry point in the `pathapi.http_transports`
   group.
 
 ## FTP
 
 **`ftp(s):`** (`FTPURIPath`) uses stdlib `ftplib`, through
-[`pathlib_next.ftp.FTPPath`](https://jose-pr.github.io/pathlib-next/api/ftp/), which needs no URI: `FTPPath("/pub/x",
+[`pathapi.ftp.FTPPath`](https://jose-pr.github.io/pathapi/api/ftp/), which needs no URI: `FTPPath("/pub/x",
 host="h", user="u", tls=True)` is the same tree without a `ftp://` string.
 
 - `FTPURIBackend(timeout=30.0, ssl_context=None, verify=True)` configures it.
   Sockets time out after 30 seconds by default (`timeout=None` waits forever).
   It opens a connection for whichever server a path names, which is why it
-  is not `pathlib_next.ftp.FTPBackend`: that one belongs to a single host.
+  is not `pathapi.ftp.FTPBackend`: that one belongs to a single host.
 - **`ftps:` verifies the server certificate and host name** before logging in
   and reuses the TLS session on data connections. For a private CA pass
   `FTPURIBackend(ssl_context=ssl.create_default_context(cafile=...))`;
@@ -205,7 +205,7 @@ without it; the first operation that needs the server (`stat()`, `exists()`,
 | `gs:` | `pip install "objpath[gs]"` |
 | `az:` | `pip install "objpath[az]"` |
 | `repo:`, `github:`, `gitlab:` | `pip install repopath` (read-only paths for GitHub and GitLab repositories) |
-| the `requests` HTTP transport | `pip install pathlib-next-requests` |
+| the `requests` HTTP transport | `pip install pathapi-requests` |
 
 ## Archives
 
@@ -216,7 +216,7 @@ The `<archive-uri>` is any absolute URI with an explicit scheme, so
 `zip:ftp://host/nightly.zip!/index.html` work the same way. `name`,
 `parent`, `glob()`, ... operate on the inner path.
 
-The members are read and written by [`pathlib_next.archive`](https://jose-pr.github.io/pathlib-next/api/archive/)
+The members are read and written by [`pathapi.archive`](https://jose-pr.github.io/pathapi/api/archive/)
 (`ZipPath`, `TarPath`, `ArchivePath`), which take the archive as any `Path` and
 need no URI: `ZipPath("index.html", archive="/backups/site.zip")`.
 

@@ -21,7 +21,7 @@ import pytest
 duho = pytest.importorskip("duho")
 
 import uripath  # noqa: E402
-from pathlib_next import LocalPath  # noqa: E402
+from pathapi import LocalPath  # noqa: E402
 from uripath.cli import main  # noqa: E402
 from uripath.cli import sync as sync_module  # noqa: E402
 from uripath.cli._root import Uripath  # noqa: E402
@@ -343,7 +343,7 @@ def test_sync_quiet_flag_cancels_verbose(run, tmp_path):
 def test_sync_dry_run_fails_for_a_link_the_target_cannot_hold_like_the_real_run(
     tmp_path, monkeypatch, run
 ):
-    from pathlib_next.mempath import MemPath
+    from pathapi.mempath import MemPath
 
     source = tmp_path / "source"
     source.mkdir()

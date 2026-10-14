@@ -79,18 +79,18 @@ __all__ = [
 
 class _Module(_types.ModuleType):
     """The module, with the setting that is read where it takes effect
-    (`MEMBER_SPOOL_BYTES` in `pathlib_next.archive`) read from and written to
+    (`MEMBER_SPOOL_BYTES` in `pathapi.archive`) read from and written to
     there."""
 
     @property
     def MEMBER_SPOOL_BYTES(self) -> int:
-        from pathlib_next import archive
+        from pathapi import archive
 
         return archive.MEMBER_SPOOL_BYTES
 
     @MEMBER_SPOOL_BYTES.setter
     def MEMBER_SPOOL_BYTES(self, value: int) -> None:
-        from pathlib_next import archive
+        from pathapi import archive
 
         archive.MEMBER_SPOOL_BYTES = value
 

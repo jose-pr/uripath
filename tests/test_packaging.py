@@ -30,7 +30,7 @@ def _declared_requirements(project):
             specs += deps
     for spec in specs:
         requirement = packaging_requirements.Requirement(spec)
-        if requirement.name.replace("_", "-") != "pathlib-next":
+        if requirement.name.replace("_", "-") != "pathapi":
             yield requirement
 
 

@@ -4,8 +4,8 @@ import errno as _errno
 import io as _io
 import typing as _ty
 
-from pathlib_next import providers as _providers
-from pathlib_next.http import (
+from pathapi import providers as _providers
+from pathapi.http import (
     HTTPResponse,
     drop_body,
     os_error,
@@ -96,7 +96,8 @@ class _UploadStream(_providers.DiscardOnError, _io.BytesIO):
     stream whose constructor raised stays inert: `IOBase.__del__` still calls
     `close()` on it, and that must neither upload a half-built buffer nor
     fail on state the constructor never reached. A `with` block that raised
-    through the stream discards it (`DiscardOnError`): nothing is sent."""
+    through the stream, or collecting it unclosed, discards it
+    (`DiscardOnError`): nothing is sent."""
 
     _ready = False
 
@@ -106,6 +107,9 @@ class _UploadStream(_providers.DiscardOnError, _io.BytesIO):
 
     def _upload(self, data: bytes) -> None:
         raise NotImplementedError
+
+    def _holds_uncommitted(self):
+        return self._ready
 
     def discard(self):
         """Drop the buffer: `close()` sends nothing."""

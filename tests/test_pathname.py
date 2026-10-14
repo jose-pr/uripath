@@ -10,8 +10,8 @@ import sys
 
 import pytest
 
-from pathlib_next.fspath import PosixPathname
-from pathlib_next.mempath import MemPath
+from pathapi.fspath import PosixPathname
+from pathapi.mempath import MemPath
 from uripath import URI
 
 IMPLS = [PosixPathname, URI, MemPath]

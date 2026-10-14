@@ -191,7 +191,7 @@ _match_pattern_part = st.sampled_from(
 
 
 def _generic_classes():
-    from pathlib_next.mempath import MemPath
+    from pathapi.mempath import MemPath
 
     return (URI, MemPath)
 

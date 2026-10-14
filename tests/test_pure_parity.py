@@ -14,8 +14,8 @@ import sys
 
 import pytest
 
-from pathlib_next.fspath import LocalPath, PosixPathname, WindowsPathname
-from pathlib_next.mempath import MemPath, MemPathBackend
+from pathapi.fspath import LocalPath, PosixPathname, WindowsPathname
+from pathapi.mempath import MemPath, MemPathBackend
 from uripath import URI
 
 GENERIC = [MemPath, URI]
@@ -544,7 +544,7 @@ def test_generic_match_follows_312_semantics(cls, path, pattern, expected, monke
     change what only the 3.12 CI job would catch."""
     import types
 
-    from pathlib_next.path import _pure as path_module
+    from pathapi.path import _pure as path_module
 
     monkeypatch.setattr(
         path_module, "_sys", types.SimpleNamespace(version_info=(3, 12, 7))

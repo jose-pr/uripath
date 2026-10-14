@@ -10,7 +10,7 @@ import threading
 import pytest
 
 
-from pathlib_next.ftp import _backend as ftp_mod
+from pathapi.ftp import _backend as ftp_mod
 from uripath.schemes import BaseFTPURIBackend, FTPURIBackend, FTPURIPath
 
 from ftp_loopback import LoopbackFtp

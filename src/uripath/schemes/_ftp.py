@@ -7,9 +7,9 @@ import weakref as _weakref
 
 import netimps as _netimps
 
-from pathlib_next.ftp import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
-from pathlib_next.ftp import BaseFTPBackend, FTPBackend, FTPPath
-from pathlib_next.providers import notimplemented as _notimplemented
+from pathapi.ftp import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
+from pathapi.ftp import BaseFTPBackend, FTPBackend, FTPPath
+from pathapi.providers import notimplemented as _notimplemented
 from .._uri import URI
 from ..source import Source, fold_host
 from ._delegate import DelegatingURIPath
@@ -25,7 +25,7 @@ class BaseFTPURIBackend(object):
     its TLS variant) for a `Source`. Subclass this to plug in custom connection
     handling (e.g. tests mock it directly, no real server);
     `FTPURIBackend` is the real implementation. A path to each endpoint
-    (`Source` and `tls`) runs on a core `pathlib_next.ftp.BaseFTPBackend`
+    (`Source` and `tls`) runs on a core `pathapi.ftp.BaseFTPBackend`
     that asks `client()` for its connections.
 
     A context manager: leaving the block calls `close()`. One backend may be
@@ -155,7 +155,7 @@ def _endpoints_of(owner: BaseFTPURIBackend) -> "list[_EndpointBackend]":
 
 class FTPURIPath(DelegatingURIPath):
     """`ftp:`/`ftps:` scheme: full read/write access via the stdlib FTP client,
-    done by a `pathlib_next.ftp.FTPPath` on the connections of `backend`
+    done by a `pathapi.ftp.FTPPath` on the connections of `backend`
     (a thread-keyed LRU cache; a thread's connections close when it ends). A
     listing prefers MLSD (RFC 3659 -- type/size/modify facts in one round
     trip) and a stat MLST of the entry itself where FEAT lists it, else its

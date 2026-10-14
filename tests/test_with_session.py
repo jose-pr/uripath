@@ -1,6 +1,6 @@
 """The `requests` transport as a path asks for it: `with_session()` builds the
 transport that an installed distribution declares in the entry-point group
-`pathlib_next.http_transports`, and raises `ImportError` naming the
+`pathapi.http_transports`, and raises `ImportError` naming the
 distribution when there is none."""
 
 from __future__ import annotations
@@ -8,12 +8,12 @@ from __future__ import annotations
 import pytest
 
 from fake_distribution import install, run
-from pathlib_next.http import _transports
+from pathapi.http import _transports
 from uripath.schemes import HTTPURIPath
 
 REQUESTS_MESSAGE = (
-    "the 'requests' HTTP transport is provided by the pathlib-next-requests "
-    "distribution: pip install pathlib-next-requests"
+    "the 'requests' HTTP transport is provided by the pathapi-requests "
+    "distribution: pip install pathapi-requests"
 )
 
 
@@ -51,7 +51,7 @@ def provider(tmp_path):
     return install(
         tmp_path,
         "fake-transports",
-        {"pathlib_next.http_transports": {"requests": "fake_transports:Fake"}},
+        {"pathapi.http_transports": {"requests": "fake_transports:Fake"}},
         {"fake_transports": PROVIDER},
     )
 
@@ -100,6 +100,6 @@ def test_the_variable_names_the_installed_transport_a_path_sends_through(provide
             print(json.dumps([type(transport).__name__, transport.closed]))
         """,
         provider,
-        env={"PATHLIB_NEXT_HTTP_TRANSPORT": "requests"},
+        env={"PATHAPI_HTTP_TRANSPORT": "requests"},
     )
     assert found == ["Fake", 0]

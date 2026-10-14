@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io as _io
 
-from pathlib_next.sync import PathSyncer, SyncEvent
+from pathapi.sync import PathSyncer, SyncEvent
 
 from .. import as_path, copy_stream
 from ._common import Command, stdout

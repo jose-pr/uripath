@@ -1,11 +1,11 @@
-"""The seam between `pathlib_next` and the URI schemes.
+"""The seam between `pathapi` and the URI schemes.
 
 Every underscore name that a scheme module (or the command line) imports from
 the core or reads as an attribute of one of its objects is documented in the
-implementer sections of the two shipped headers (`pathlib_next`'s for a class
+implementer sections of the two shipped headers (`pathapi`'s for a class
 built on `Path`, this package's for a scheme), each helper that was made public
 is the same object as the underscore name it replaced, and every name this
-package takes from `pathlib_next` is public except the ones listed here.
+package takes from `pathapi` is public except the ones listed here.
 """
 
 from __future__ import annotations
@@ -17,10 +17,10 @@ import re
 
 import pytest
 
-import pathlib_next
+import pathapi
 import uripath
 
-CORE = pathlib.Path(pathlib_next.__file__).resolve().parent
+CORE = pathlib.Path(pathapi.__file__).resolve().parent
 PACKAGE = pathlib.Path(uripath.__file__).resolve().parent
 HEADERS = {
     "For path implementers": CORE / "AGENTS.md",
@@ -43,13 +43,13 @@ NOT_THE_CORES = {
 }
 
 # (module, file that imports it, private name): what this package takes from a
-# private place in `pathlib_next`. Nothing may be private.
-PRIVATE_FROM_PATHLIB_NEXT: set[tuple[str, str, str]] = set()
+# private place in `pathapi`. Nothing may be private.
+PRIVATE_FROM_PATHAPI: set[tuple[str, str, str]] = set()
 
 # (module, public name): documented helpers a provider calls, defined in a
 # private module and listed in the public module's `__all__`.
 PROVIDER_HELPERS = [
-    ("pathlib_next.providers", "check_follow"),
+    ("pathapi.providers", "check_follow"),
 ]
 
 # (public module, module that defines it, public name, the underscore name it
@@ -86,7 +86,7 @@ def core_sources() -> dict[str, str]:
         CORE / "http",
     )
     found = {
-        "pathlib_next/" + p.relative_to(CORE).as_posix(): p.read_text(encoding="utf-8")
+        "pathapi/" + p.relative_to(CORE).as_posix(): p.read_text(encoding="utf-8")
         for p in _files(CORE)
         if not any(s in p.parents for s in skipped) and p.name != "testing.py"
     }
@@ -241,7 +241,7 @@ def test_the_scheme_owned_names_are_all_still_read_by_their_module(core):
 def test_a_scheme_that_takes_an_undocumented_core_name_is_reported(core):
     sources = scheme_sources()
     sources["schemes/new.py"] = (
-        "from pathlib_next.path import _relation\n"
+        "from pathapi.path import _relation\n"
         "\n"
         "class New:\n"
         "    def go(self):\n"
@@ -267,9 +267,9 @@ def test_no_scheme_imports_an_underscore_name_from_the_core(core):
     assert imported == []
 
 
-def _taken_from_pathlib_next():
+def _taken_from_pathapi():
     """`(module, file, name)` for every name the package imports from
-    `pathlib_next`, and for every attribute it reads of a module imported
+    `pathapi`, and for every attribute it reads of a module imported
     from there (`_providers.stub`)."""
     taken = set()
     for p in _files(PACKAGE):
@@ -279,14 +279,12 @@ def _taken_from_pathlib_next():
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and not node.level:
                 module = node.module or ""
-                if module != "pathlib_next" and not module.startswith("pathlib_next."):
+                if module != "pathapi" and not module.startswith("pathapi."):
                     continue
                 for alias in node.names:
                     taken.add((module, p.name, alias.name))
-                    if module == "pathlib_next" and alias.name[:1].islower():
-                        aliases[alias.asname or alias.name] = (
-                            f"pathlib_next.{alias.name}"
-                        )
+                    if module == "pathapi" and alias.name[:1].islower():
+                        aliases[alias.asname or alias.name] = f"pathapi.{alias.name}"
         for node in ast.walk(tree):
             if (
                 isinstance(node, ast.Attribute)
@@ -297,9 +295,9 @@ def _taken_from_pathlib_next():
     return taken
 
 
-def test_every_name_taken_from_pathlib_next_is_public_but_the_listed_ones():
+def test_every_name_taken_from_pathapi_is_public_but_the_listed_ones():
     private = set()
-    for module, filename, name in _taken_from_pathlib_next():
+    for module, filename, name in _taken_from_pathapi():
         private_module = any(part.startswith("_") for part in module.split("."))
         if private_module or is_private(name):
             private.add((module, filename, name))
@@ -309,11 +307,11 @@ def test_every_name_taken_from_pathlib_next_is_public_but_the_listed_ones():
         except ImportError:
             pass
         else:
-            continue  # a public submodule (`pathlib_next.providers`)
+            continue  # a public submodule (`pathapi.providers`)
         exported = getattr(importlib.import_module(module), "__all__", None)
         if exported is not None:
             assert name in exported, (module, filename, name)
-    assert private == PRIVATE_FROM_PATHLIB_NEXT
+    assert private == PRIVATE_FROM_PATHAPI
 
 
 @pytest.mark.parametrize(("module", "owner", "public", "private"), PUBLIC_HELPERS)

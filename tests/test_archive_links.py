@@ -18,10 +18,10 @@ from pathlib import PurePosixPath
 import pytest
 
 
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 from uripath import URIPath
-from pathlib_next.archive import MAX_LINKS
-from pathlib_next.sync import PathSyncer
+from pathapi.archive import MAX_LINKS
+from pathapi.sync import PathSyncer
 
 #: (name, kind, payload): a file's bytes, or a link's text.
 TREE = [

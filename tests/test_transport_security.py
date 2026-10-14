@@ -33,7 +33,7 @@ import uripath
 from uripath import Source, URIPath
 from uripath.schemes._http import _settings as http_scheme
 from uripath.schemes import DAVURIPath
-from pathlib_next.ftp import FTPBackend
+from pathapi.ftp import FTPBackend
 from uripath.schemes import FTPURIBackend, FTPURIPath
 from uripath.schemes import HTTPBackend, HTTPURIPath
 

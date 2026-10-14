@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing as _ty
 
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 
 from .schemes._path import URIPath, _looks_like_uri
 

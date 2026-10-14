@@ -19,11 +19,11 @@ import pytest
 
 from test_archive_links import FORMATS, _archive, _root
 
-from pathlib_next import LocalPath
-from pathlib_next.mempath import MemPath
+from pathapi import LocalPath
+from pathapi.mempath import MemPath
 from uripath import URIPath
 from uripath.schemes import ArchiveURIPath
-from pathlib_next.sync import PathSyncer
+from pathapi.sync import PathSyncer
 
 RUNAWAY = 100_000
 

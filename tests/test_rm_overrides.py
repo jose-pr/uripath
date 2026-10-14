@@ -14,7 +14,7 @@ import inspect
 import pytest
 
 
-from pathlib_next import Path
+from pathapi import Path
 from uripath.schemes import _dav as dav
 
 CASES = [(dav.DAVURIPath, "dav://host/dir")]

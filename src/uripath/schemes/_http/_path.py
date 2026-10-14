@@ -6,10 +6,10 @@ import re as _re
 import typing as _ty
 import urllib.parse as _urlparse
 
-import pathlib_next.http as _http
-from pathlib_next import FileStat
-from pathlib_next import providers as _providers
-from pathlib_next.http import (
+import pathapi.http as _http
+from pathapi import FileStat
+from pathapi import providers as _providers
+from pathapi.http import (
     HTTPResponse,
     drop_body,
     is_redirect,
@@ -105,7 +105,7 @@ class HTTPURIPath(URIPath):
         """The body of the directory index `req` as text, read the way
         `open()` reads a file: a cut-short, stalled or undecodable body
         raises `TimeoutError`/`OSError` naming the path, and one longer than
-        `pathlib_next.http.MAX_REPLY_BYTES` raises `OSError(EFBIG)`."""
+        `pathapi.http.MAX_REPLY_BYTES` raises `OSError(EFBIG)`."""
         limit = _http.MAX_REPLY_BYTES
         too_large = OSError(
             _errno.EFBIG,
@@ -331,7 +331,7 @@ class HTTPURIPath(URIPath):
         append_mode: str = "rewrite",
     ):
         """This path with a backend that sends through `transport` (any object
-        with a `send()` method as `pathlib_next.http.HTTPTransport.send()`;
+        with a `send()` method as `pathapi.http.HTTPTransport.send()`;
         the caller closes
         it). `headers` go with every request; `write_method` (`"PUT"`, or
         e.g. `"POST"`) uploads on close, and `append_mode` is `"rewrite"` or
@@ -356,9 +356,9 @@ class HTTPURIPath(URIPath):
         (`session=None` makes a new one). `headers` and `timeout` in
         `requests_args` are the backend's; the others (`auth`, `verify`,
         `proxies`, `cert`, ...) go to the `requests` transport of
-        `pathlib-next-requests`, which must be installed: without it this raises
+        `pathapi-requests`, which must be installed: without it this raises
         `ImportError` naming it. The caller closes the transport."""
-        from pathlib_next.http import get_transport
+        from pathapi.http import get_transport
 
         headers = requests_args.pop("headers", None)
         timeout = requests_args.pop("timeout", _settings.DEFAULT_TIMEOUT)

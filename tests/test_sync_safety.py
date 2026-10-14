@@ -11,9 +11,9 @@ import sys
 import pytest
 from capabilities import requires_fifos, requires_junctions
 
-import pathlib_next
-from pathlib_next.mempath import MemPath
-from pathlib_next.sync import PathSyncer, SyncEvent
+import pathapi
+from pathapi.mempath import MemPath
+from pathapi.sync import PathSyncer, SyncEvent
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -111,7 +111,7 @@ class _NoStatMemPath(MemPath):
 import errno
 import stat as stat_module
 
-from pathlib_next import FileStat
+from pathapi import FileStat
 
 
 def _events():
@@ -191,7 +191,7 @@ def _nested_trees(tmp_path):
     (source / "l1" / "l2" / "f.txt").write_text("source")
     target = tmp_path / "dst"
     _write(target / "l1" / "l2" / "f.txt", "target")
-    return source, pathlib_next.LocalPath(target)
+    return source, pathapi.LocalPath(target)
 
 
 # sync-special-files-treated-as-directories
@@ -213,7 +213,7 @@ class _FifoMemPath(MemPath):
 
 # --- a listed entry is never "missing" ---------------------------------------
 
-from pathlib_next.sync import PathAndStat
+from pathapi.sync import PathAndStat
 
 
 def _dangling_layout(tmp_path):
@@ -266,12 +266,12 @@ def _junction(target, link):
 def mount_named_mounted(monkeypatch):
     """`is_mount()` answers True for a directory called `mounted`; creating a
     real mount point needs privileges."""
-    real_is_mount = pathlib_next.LocalPath.is_mount
+    real_is_mount = pathapi.LocalPath.is_mount
 
     def fake_is_mount(self):
         return self.name == "mounted" or real_is_mount(self)
 
-    monkeypatch.setattr(pathlib_next.LocalPath, "is_mount", fake_is_mount)
+    monkeypatch.setattr(pathapi.LocalPath, "is_mount", fake_is_mount)
 
 
 def _mutations_below(events, directory):
@@ -288,7 +288,7 @@ def _mount_trees(tmp_path):
     _write(src / "own.txt", "own")
     dst = tmp_path / "dst"
     _write(dst / "mounted" / "theirs.txt", "theirs")
-    return pathlib_next.LocalPath(src), pathlib_next.LocalPath(dst), dst
+    return pathapi.LocalPath(src), pathapi.LocalPath(dst), dst
 
 
 # --- the temporary sibling: replace fallback, name length, leftovers -------
@@ -296,8 +296,8 @@ def _mount_trees(tmp_path):
 import re
 import time
 
-from pathlib_next.mempath import MemPathBackend
-from pathlib_next.sync._replace import _is_leftover, _temp_sibling
+from pathapi.mempath import MemPathBackend
+from pathapi.sync._replace import _is_leftover, _temp_sibling
 
 DAY = 24 * 60 * 60
 
@@ -349,7 +349,7 @@ def _leftovers(directory):
     return sorted(name for name in directory if _is_leftover(name))
 
 
-class _FailingRenameLocal(pathlib_next.LocalPath):
+class _FailingRenameLocal(pathapi.LocalPath):
     """A local path whose rename of a temporary file fails."""
 
     def rename(self, target):
@@ -391,8 +391,8 @@ def _put(directory, name, text="partial", age=0.0):
     return path
 
 
-STALE = ".big.bin.aaaaaaaaaaaa.pathlib-next-tmp"
-FRESH = ".big.bin.bbbbbbbbbbbb.pathlib-next-tmp"
+STALE = ".big.bin.aaaaaaaaaaaa.pathapi-tmp"
+FRESH = ".big.bin.bbbbbbbbbbbb.pathapi-tmp"
 
 
 @pytest.fixture
@@ -404,8 +404,8 @@ def leftover_layout():
     _put(target, STALE, age=2 * DAY)
     _put(target, FRESH, age=3600)
     _put(target, "x-tmp", age=2 * DAY)
-    _put(target, ".big.bin.nothex.pathlib-next-tmp", age=2 * DAY)
-    (target / ".dir.cccccccccccc.pathlib-next-tmp").mkdir()
+    _put(target, ".big.bin.nothex.pathapi-tmp", age=2 * DAY)
+    (target / ".dir.cccccccccccc.pathapi-tmp").mkdir()
     source = MemPath("/src")
     source.mkdir()
     (source / "big.bin").write_text("new content, longer")
@@ -420,7 +420,7 @@ def _link_source(tmp_path):
     _write(source / "a.txt", "aaa")
     _symlink("a.txt", source / "lnk")
     _write(source / "z.txt", "zzz")
-    return pathlib_next.LocalPath(source)
+    return pathapi.LocalPath(source)
 
 
 # --- overlap is decided by where a path is, not how it is spelled ------------

@@ -16,10 +16,10 @@ import zipfile
 
 import pytest
 
-from pathlib_next import LocalPath
-from pathlib_next.mempath import MemPath
+from pathapi import LocalPath
+from pathapi.mempath import MemPath
 from uripath import URIPath
-from pathlib_next.archive import make_archive, unpack_archive
+from pathapi.archive import make_archive, unpack_archive
 
 
 def _zip_uri(path, inner=""):

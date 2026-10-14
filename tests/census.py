@@ -7,7 +7,7 @@ census looks at what exists instead.
 Switched on by `pytest --leak-census` (a report in the terminal summary) or
 `--leak-census=fail` (the session also exits non-zero). Where the run was
 started with `python -X tracemalloc=N`, each item names the first frame of
-`pathlib_next` or of the tests that created it; otherwise only the counts are
+`pathapi` or of the tests that created it; otherwise only the counts are
 known.
 """
 

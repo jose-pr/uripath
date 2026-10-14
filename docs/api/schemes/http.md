@@ -2,7 +2,7 @@
 
 Both run on the standard library, through a transport that can be replaced.
 The transport (`HTTPTransport` by default), `HTTPResponse` and the rules for
-redirects and credentials are those of `pathlib_next.http`; see its
+redirects and credentials are those of `pathapi.http`; see its
 documentation.
 
 ::: uripath.schemes.HTTPURIPath
@@ -18,5 +18,5 @@ documentation.
 
 ::: uripath.schemes.DAVURIPath
 
-`pathlib_next.http.MAX_REPLY_BYTES` (8 MiB) bounds a reply the backend reads
+`pathapi.http.MAX_REPLY_BYTES` (8 MiB) bounds a reply the backend reads
 whole, such as a directory index; assign a larger number to allow more.

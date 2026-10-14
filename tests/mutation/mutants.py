@@ -548,3 +548,22 @@ mutant(
     "tests/test_delegating_uri_path.py::test_delegated_extra_pairs_rename_the_text_of_a_hand_written_call",
     "a second path in an error of a hand-written call keeps the core name",
 )
+mutant(
+    "unclosed-upload-stream-is-sent-at-collection",
+    "schemes/_http/_streams.py",
+    "    def _holds_uncommitted(self):\n        return self._ready\n",
+    "    def _holds_uncommitted(self):\n        return False\n",
+    (
+        "tests/test_http_unclosed_upload.py::test_an_unclosed_binary_upload_is_discarded_at_collection",
+        "tests/test_http_unclosed_upload.py::test_an_unclosed_text_upload_is_discarded_at_collection",
+    ),
+    "a write stream that the collector finalizes unclosed uploads what it holds",
+)
+mutant(
+    "half-built-upload-stream-warns-at-collection",
+    "schemes/_http/_streams.py",
+    "    def _holds_uncommitted(self):\n        return self._ready\n",
+    "    def _holds_uncommitted(self):\n        return True\n",
+    "tests/test_http_writes.py::test_append_open_whose_read_fails_sends_no_upload",
+    "a stream whose constructor raised warns and discards when collected",
+)

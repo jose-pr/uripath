@@ -11,7 +11,7 @@ import zipfile
 import pytest
 
 from ftp_loopback import LoopbackFtp
-from pathlib_next.ftp import _backend as ftp_mod
+from pathapi.ftp import _backend as ftp_mod
 from uripath.schemes import FTPURIBackend, FTPURIPath, ZipURIPath
 
 DIRS = {"/", "/pub"}

@@ -14,7 +14,7 @@ import time
 import pytest
 
 from http_fakes import on_current_transport
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 from uripath.schemes import DAVURIPath
 from uripath import URIPath
 from uripath.schemes import HTTPURIPath

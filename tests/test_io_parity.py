@@ -9,11 +9,11 @@ import stat
 import pytest
 from capabilities import requires_posix_modes
 
-import pathlib_next
-from pathlib_next.mempath import MemPath
+import pathapi
+from pathapi.mempath import MemPath
 from uripath import URIPath
-from pathlib_next import FileStat
-from pathlib_next.sync import PathSyncer
+from pathapi import FileStat
+from pathapi.sync import PathSyncer
 
 # --- touch() on a generic backend -----------------------------------------
 
@@ -44,18 +44,18 @@ class _FlakyStatMemPath(MemPath):
 
 
 def _file_uri(path):
-    return URIPath(pathlib_next.LocalPath(path))
+    return URIPath(pathapi.LocalPath(path))
 
 
 def test_fileuri_touch_does_not_chmod(tmp_path, monkeypatch):
     calls = []
-    real_chmod = pathlib_next.LocalPath.chmod
+    real_chmod = pathapi.LocalPath.chmod
 
     def spy(self, mode, *, follow_symlinks=True):
         calls.append(mode)
         return real_chmod(self, mode, follow_symlinks=follow_symlinks)
 
-    monkeypatch.setattr(pathlib_next.LocalPath, "chmod", spy)
+    monkeypatch.setattr(pathapi.LocalPath, "chmod", spy)
     uri = _file_uri(tmp_path / "new.txt")
     assert type(uri).__name__ == "FileURIPath"
     uri.touch()

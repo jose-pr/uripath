@@ -14,10 +14,10 @@ import time
 import pytest
 from capabilities import requires_junctions
 
-import pathlib_next
-from pathlib_next.mempath import MemPath
+import pathapi
+from pathapi.mempath import MemPath
 from uripath import URIPath
-from pathlib_next import glob as _glob
+from pathapi import glob as _glob
 
 _FILES = (
     "a.txt",
@@ -64,7 +64,7 @@ _PATTERNS = [
     "**/.hd/**",
 ]
 # A trailing separator selects directories only from 3.11; older pathlib
-# ignored it, while pathlib_next applies it on every version.
+# ignored it, while pathapi applies it on every version.
 _TRAILING_SEP_WILDCARD = ["*/", "sub/*/", "**/*/"]
 
 _RGLOB_PATTERNS = ["*.py", "*", "rep", "nested/*", ".*", ""]
@@ -109,7 +109,7 @@ def _mempath(root: pathlib.Path) -> MemPath:
 
 
 _IMPLS = {
-    "LocalPath": lambda root: pathlib_next.LocalPath(root),
+    "LocalPath": lambda root: pathapi.LocalPath(root),
     "FileURIPath": lambda root: URIPath(root.as_uri()),
     "MemPath": _mempath,
 }
@@ -262,7 +262,7 @@ _FULL_MATCH_CASES = [
 def test_glob_none_expands_the_pattern_the_path_carries(tree, cls):
     """`glob("")` raises like pathlib; `glob(None)` is the supported way to
     expand a path that IS a pattern."""
-    root = pathlib_next.LocalPath(tree)
+    root = pathapi.LocalPath(tree)
     carrier = root / "*.py" if cls == "local" else URIPath((root / "*.py").as_uri())
     got = sorted(p.name for p in carrier.glob(None))
     assert got == sorted(p.name for p in root.glob("*.py"))
@@ -283,14 +283,14 @@ def unreadable_tree(tmp_path, monkeypatch):
     (tmp_path / "ok" / "a.json").write_text("{}")
     (tmp_path / "locked").mkdir()
     (tmp_path / "locked" / "b.json").write_text("{}")
-    real = pathlib_next.LocalPath._scandir
+    real = pathapi.LocalPath._scandir
 
     def refusing(self):
         if self.name == "locked":
             raise PermissionError(13, "Permission denied", str(self))
         return real(self)
 
-    monkeypatch.setattr(pathlib_next.LocalPath, "_scandir", refusing)
+    monkeypatch.setattr(pathapi.LocalPath, "_scandir", refusing)
     return tmp_path
 
 

@@ -7,8 +7,8 @@ allowed. Any *behavioral* divergence from `pathlib` on a method that exists
 in both must be listed here -- no silent divergence.
 
 The divergences below apply to `URI`/`URIPath` and the schemes of this package.
-The ones of the classes that live in `pathlib-next` are on its documentation
-site, <https://jose-pr.github.io/pathlib-next/divergences/>: `MemPath`, the
+The ones of the classes that live in `pathapi` are on its documentation
+site, <https://jose-pr.github.io/pathapi/divergences/>: `MemPath`, the
 generic `Path` operations, and what `FTPURIPath`, `ZipURIPath`, `TarURIPath`
 and `ArchiveURIPath` inherit from `FTPPath` and the archive paths (renaming onto
 an existing target, the mode of a listed entry, the exception types of an
@@ -17,14 +17,14 @@ archive, link members, member names, and a member below a file).
 ## Type relationships
 
 Stdlib inheritance is deliberately limited to local filesystem paths:
-`URI` and `URIPath` subclass the generic `pathlib_next.Pathname` and
-`pathlib_next.Path`, not `pathlib.Path`/`PurePath`. A plain stdlib
-`pathlib.Path` is not a `pathlib_next.Path`.
+`URI` and `URIPath` subclass the generic `pathapi.Pathname` and
+`pathapi.Path`, not `pathlib.Path`/`PurePath`. A plain stdlib
+`pathlib.Path` is not a `pathapi.Path`.
 
 The generic classes cannot safely inherit the stdlib classes: pathlib parses
 OS-specific path syntax and supplies operations whose semantics assume a local
 filesystem, neither of which applies to a URI. Code accepting every
-implementation should type against `pathlib_next.Path` or its documented
+implementation should type against `pathapi.Path` or its documented
 protocols; code requiring an OS path should type against `pathlib.Path`.
 
 ## Differences
@@ -50,7 +50,7 @@ protocols; code requiring an OS path should type against `pathlib.Path`.
 | `URI` path dot segments | `pathlib` keeps `..` lexically (`PurePosixPath("a/../b")` is `a/../b`) | `URI` removes dot segments as RFC 3986 5.2.4 requires of a URI reference, in the constructor and in every join, whether the argument is a `str` or a `URI`: `URI("a/../b")` is `b`, `URI("a/b/..")` is `a/`, `URI("http://h/x") / "a/../b"` is `http://h/x/b`, and `URI("http://h/d/") / "../x"`, `URI("http://h/d/", "../x")`, `URI("http://h/d/") / URI("../x")` and `URI("http://h/d/../x")` are all `http://h/x`. A join is pathlib-style concatenation first (`/d/` + `../x` is `/d/../x`) and the dot segments of that whole path are removed, so `URI("http://h/d/x") / ".."` is `http://h/d/`, as `URI("http://h/d/x/..")` is. A `..` that would pass the root of an absolute path is dropped (`URI("http://h/../x")` is `http://h/x`); a relative path keeps its leading `..` (`URI("a") / "../../x"` is `../x`). A percent-encoded dot segment (`%2e%2e`, `..%2F`) is removed after decoding, so `URI(u.as_uri()) == u`; a `str` join key is a decoded path, where `%2e%2e` is an ordinary name. A `file:` path on Windows keeps its drive: `..` never climbs above `C:/`. `MemPath` follows `pathlib` instead. | A URI is resolved, not spelled: `..` in a URI reference has a defined meaning that servers, caches and proxies already apply, so keeping it lexically would address a different resource than the same string typed into a browser. Resolving in the constructor but not in a join made one string address two resources depending on how it was built. |
 | Nested archive URIs | N/A | Each leading archive scheme in `<archive-uri>` consumes one `!/` (`zip:zip:file:///outer.zip!/inner.zip!/x.txt`); a member name containing `!/` is written `%21/`. Nested archives are read-only. | The first `!/` was always taken as the separator, so an archive inside an archive could not be addressed. |
 | `HTTPURIPath.iterdir()` on a file | pathlib raises `NotADirectoryError` | Raises `NotADirectoryError` for a non-HTML response, without downloading it. An HTML file cannot be told apart from an index page and lists as empty. | HTTP has no directory type; the response content type is the only signal. |
-| `HTTPURIPath.iterdir()` on a very large index | pathlib reads a directory incrementally and has no size limit | An index body is read whole (about a second per megabyte to parse) and one over `pathlib_next.http.MAX_REPLY_BYTES` (8 MiB, assign a larger number to allow more) raises `OSError(EFBIG)`; a body that is cut short or stalls raises `OSError(EIO)`/`TimeoutError` and never lists the part that arrived. | A page of links has no end marker, so a listing cut short looks complete, and `PathSyncer(remove_missing=True)` would delete what it did not list; an unbounded body also lets a server decide how long a listing takes. |
+| `HTTPURIPath.iterdir()` on a very large index | pathlib reads a directory incrementally and has no size limit | An index body is read whole (about a second per megabyte to parse) and one over `pathapi.http.MAX_REPLY_BYTES` (8 MiB, assign a larger number to allow more) raises `OSError(EFBIG)`; a body that is cut short or stalls raises `OSError(EIO)`/`TimeoutError` and never lists the part that arrived. | A page of links has no end marker, so a listing cut short looks complete, and `PathSyncer(remove_missing=True)` would delete what it did not list; an unbounded body also lets a server decide how long a listing takes. |
 | `HTTPURIPath` `st_mtime` of a listed entry | A file system keeps one instant for an entry | An index page prints a date with no zone, and it is read as UTC, so the `st_mtime` of an entry listed from it can be off by the server's offset from UTC. `stat()` of the entry reads `Last-Modified`, which names its zone. Compare sizes, or give `PathSyncer` `quick_check=False`, when the zone matters. | A page says nothing about the zone it printed in, and a listing is the only way to learn a whole directory in one request. |
 | `HTTPURIPath` `open("a")` default append mode | POSIX `O_APPEND` is atomic (all appends serialized) | Default "rewrite" mode is non-atomic (GET existing + append in client memory + PUT full body) -- concurrent appenders can race | HTTP has no native append primitive; rewrite mode trades atomicity for universality (works on any server that supports PUT). Opt-in "patch" mode using `Content-Range` PATCH is atomic on servers that support it (use `with_transport(..., append_mode="patch")`), and never falls back to rewrite: a rejected PATCH raises `PermissionError` for 401/403/405/501 and `OSError(EIO)` for other statuses (e.g. 400/415/416). |
 | `HTTPURIPath`/`DAVURIPath` writes, `unlink()`, `mkdir()`, `rename()` and `PROPFIND` answered by a redirect | A write to a path that exists either stores the bytes or raises; no redirect is involved | A 307 or 308 (for `PROPFIND` also a 301, 302 or 303) to the same scheme, host and port is sent once more with the same method and body; any other 3xx, a redirect to another origin and a second redirect raise `OSError(EIO)` naming the status and the `Location` (userinfo removed). `allow_redirects` in `with_session()` does not apply to these requests. `PROPFIND` is sent again with its body after a 301, 302, 303, 307 or 308 to the same origin, and refused with `OSError(EIO)` for another one; `GET`, `HEAD` and `OPTIONS` follow redirects as before. | `requests` follows a redirect as a browser does: a 301 re-sends a `PUT` without its body, a 302 or 303 turns it into a `GET`, and the final 2xx then reads as a successful write. Re-sending only a 307 or 308 to the same origin keeps the request intact and keeps credentials where the caller put them. |

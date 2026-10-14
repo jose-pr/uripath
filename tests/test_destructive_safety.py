@@ -15,11 +15,11 @@ import subprocess
 import pytest
 from capabilities import can_make_junctions, requires_junctions
 
-import pathlib_next
-from pathlib_next.mempath import MemPath
-from pathlib_next.sync import PathSyncer
+import pathapi
+from pathapi.mempath import MemPath
+from pathapi.sync import PathSyncer
 
-LocalPath = pathlib_next.LocalPath
+LocalPath = pathapi.LocalPath
 
 
 # --- copy -----------------------------------------------------------------
@@ -253,7 +253,7 @@ def _tree_with_one_link(tmp_path):
 def windows_flavoured(monkeypatch):
     """Every path counts as one read with Windows rules, so the rule runs on
     any platform against `MemPath`."""
-    from pathlib_next import _names
+    from pathapi import _names
 
     monkeypatch.setattr(_names, "is_windows_flavoured", lambda path: True)
 

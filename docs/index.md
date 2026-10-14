@@ -6,7 +6,7 @@ has the method names, signatures and exception types of `pathlib.Path`: write
 code once and it works against a local file, an archive member, an FTP or
 WebDAV server, a web directory or, through `repopath`, a GitHub or GitLab
 repository. `uripath`
-builds on [`pathlib-next`](https://jose-pr.github.io/pathlib-next/), which holds
+builds on [`pathapi`](https://jose-pr.github.io/pathapi/), which holds
 the `Path` base classes, the local, in-memory, FTP and archive paths, `glob` and
 `PathSyncer`.
 
@@ -19,7 +19,7 @@ reasons, in [Divergences from pathlib](divergences.md).
 pip install uripath
 ```
 
-It requires `pathlib-next` and `netimps`, which pip installs with it; its one
+It requires `pathapi` and `netimps`, which pip installs with it; its one
 extra, `cli`, adds the `uripath` command
 (`pip install "uripath[cli]"`). The schemes of this package run on the standard
 library, including HTTP. `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and
@@ -30,7 +30,7 @@ library, including HTTP. `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and
 | `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
 | `s3:`, `gs:`, `az:` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
 | `repo:`, `github:`, `gitlab:` | `pip install repopath` |
-| the `requests` HTTP transport | `pip install pathlib-next-requests` |
+| the `requests` HTTP transport | `pip install pathapi-requests` |
 
 ## Tour
 

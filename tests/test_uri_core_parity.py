@@ -18,8 +18,8 @@ import unittest.mock as mock
 
 import pytest
 
-import pathlib_next
-from pathlib_next.mempath import MemPath
+import pathapi
+from pathapi.mempath import MemPath
 from uripath import URI, URIPath
 from uripath.query import Query
 from uripath.schemes import FileURIPath
@@ -102,7 +102,7 @@ def test_query_characters_illegal_on_the_wire_are_encoded():
 
 @pytest.mark.parametrize(
     "relative",
-    [pathlib.Path("etc/x"), pathlib_next.LocalPath("etc/x")],
+    [pathlib.Path("etc/x"), pathapi.LocalPath("etc/x")],
     ids=["pathlib.Path", "LocalPath"],
 )
 def test_remote_join_with_relative_concrete_path_stays_remote(relative):
@@ -144,7 +144,7 @@ def test_file_localhost_drive_uri_renders_and_hashes():
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows drive letters")
 def test_file_uri_of_local_path_matches_the_pure_uri(tmp_path):
-    local = pathlib_next.LocalPath(tmp_path)
+    local = pathapi.LocalPath(tmp_path)
     assert URI(local) == URIPath(local)
     assert str(URIPath(local)) == str(URI(local))
     assert pathlib.Path(os.fspath(URIPath(local))) == tmp_path

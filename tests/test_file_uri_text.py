@@ -10,7 +10,7 @@ import pathlib
 
 import pytest
 
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 from uripath import URI, Source, URIPath
 from uripath.schemes import FileURIPath
 

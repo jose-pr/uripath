@@ -3,8 +3,8 @@ from __future__ import annotations
 import io as _io
 from base64 import b64decode as _b64decode
 
-from pathlib_next import FileStat
-from pathlib_next import providers as _providers
+from pathapi import FileStat
+from pathapi import providers as _providers
 from .. import _rfc3986
 from ._path import URIPath
 from ..source import ERRORS

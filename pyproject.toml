@@ -28,7 +28,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pathlib-next>=0.10.0,<0.11",
+    "pathapi>=0.1.0,<0.2",
     "netimps>=0.4.0,<0.5",
 ]
 

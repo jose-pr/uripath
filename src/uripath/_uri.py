@@ -10,9 +10,9 @@ if _ty.TYPE_CHECKING:
 else:
     TypeAlias = _ty.Any
 
-from pathlib_next import Path, Pathname
-from pathlib_next.providers import name_stem as _name_stem
-from pathlib_next.providers import name_suffix as _name_suffix
+from pathapi import Path, Pathname
+from pathapi.providers import name_stem as _name_stem
+from pathapi.providers import name_suffix as _name_suffix
 from . import _rfc3986
 from .query import Query, QueryLike, _coerce
 from .source import Source

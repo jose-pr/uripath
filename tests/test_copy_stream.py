@@ -8,7 +8,7 @@ import io
 import pytest
 
 import uripath
-from pathlib_next.mempath import MemPath
+from pathapi.mempath import MemPath
 from uripath import _transfer, copy_stream
 from uripath.exceptions import OutputClosedError, URIPathError
 

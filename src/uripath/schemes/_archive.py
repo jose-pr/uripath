@@ -3,8 +3,8 @@ from __future__ import annotations
 import re as _re
 import typing as _ty
 
-from pathlib_next.archive import ArchivePath, LinkTarget, TarPath, ZipPath
-from pathlib_next.providers import as_error_handler, check_follow
+from pathapi.archive import ArchivePath, LinkTarget, TarPath, ZipPath
+from pathapi.providers import as_error_handler, check_follow
 from .._uri import URI
 from ..exceptions import URISyntaxError
 from ..source import SAFE_PATH, Source, percent_encode
@@ -87,7 +87,7 @@ class ArchiveURIPath(DelegatingURIPath):
     ... all operate on the *inner* path; the outer archive handle is the
     `backend`, propagated through the normal backend machinery to every path
     derived from this one, and the members are read and written by a
-    `pathlib_next.archive.ArchivePath` (`ZipPath` or `TarPath` once the format
+    `pathapi.archive.ArchivePath` (`ZipPath` or `TarPath` once the format
     is known) on that handle.
 
     Also registered directly as the `archive:` catch-all scheme (see
@@ -312,7 +312,7 @@ class ZipURIPath(ArchiveURIPath):
     archive (nothing recompressed); overwriting/deleting/renaming an existing
     entry rewrites the whole archive, since the standard library's zip module has no in-place
     entry mutation, keeping every other entry's metadata and compression method.
-    The members are read and written by a `pathlib_next.archive.ZipPath`."""
+    The members are read and written by a `pathapi.archive.ZipPath`."""
 
     __SCHEMES = ("zip", "archive+zip")
     __slots__ = ()
@@ -324,7 +324,7 @@ class TarURIPath(ArchiveURIPath):
     the standard library's auto-detected "r:*" mode). Read-only. Members stored with a
     `./` prefix are addressed without it. `archive+tar:` is the same scheme
     under a second name. The members are read by a
-    `pathlib_next.archive.TarPath`."""
+    `pathapi.archive.TarPath`."""
 
     __SCHEMES = ("tar", "archive+tar")
     __slots__ = ()

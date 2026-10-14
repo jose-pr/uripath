@@ -13,7 +13,7 @@ import zipfile
 import pytest
 from capabilities import requires_posix_modes
 
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 from uripath import URIPath
 from uripath.schemes import ArchiveURIPath, TarURIPath, ZipURIPath
 from uripath.schemes._archive import _split_archive_path
@@ -501,8 +501,8 @@ def test_zip_rename_str_destination_is_a_literal_member_name(zip_archive, name):
 def test_sync_overlap_sees_one_archive_member_under_another_spelling(
     zip_archive, inner_source, spelling, overlap
 ):
-    from pathlib_next.sync import PathSyncer
-    from pathlib_next.sync._paths import _paths_overlap
+    from pathapi.sync import PathSyncer
+    from pathapi.sync._paths import _paths_overlap
 
     source = URIPath(_zip_uri(zip_archive, inner_source))
     target = URIPath(spelling.format(outer=zip_archive.as_uri()))

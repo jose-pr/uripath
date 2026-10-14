@@ -30,8 +30,8 @@ on:
       - ".github/workflows/docs.yml"
   workflow_dispatch:
     inputs:
-      pathlib_next_ref:
-        description: "Git ref of jose-pr/pathlib-next to install instead of the release (branch, tag, or SHA); empty uses the repository variable PATHLIB_NEXT_REF"
+      pathapi_ref:
+        description: "Git ref of jose-pr/pathapi to install instead of the release (branch, tag, or SHA); empty uses the repository variable PATHAPI_REF"
         required: false
         default: ""
 
@@ -39,11 +39,11 @@ permissions:
   contents: read
 
 env:
-  # The pathlib-next to install first: a git ref of jose-pr/pathlib-next from the
-  # dispatch input, else from the repository variable PATHLIB_NEXT_REF (a push
+  # The pathapi to install first: a git ref of jose-pr/pathapi from the
+  # dispatch input, else from the repository variable PATHAPI_REF (a push
   # has no input). With both empty, pip takes it from PyPI. The API pages import
   # the package, so the build needs it.
-  CORE_REF: ${{ inputs.pathlib_next_ref || vars.PATHLIB_NEXT_REF }}
+  CORE_REF: ${{ inputs.pathapi_ref || vars.PATHAPI_REF }}
 
 # Serialize deploys; never cancel an in-flight Pages deploy mid-publish.
 concurrency:
@@ -65,10 +65,10 @@ jobs:
       - uses: actions/configure-pages@v6
         with:
           enablement: true
-      - name: Install pathlib-next from the git ref, if one is set
+      - name: Install pathapi from the git ref, if one is set
         if: ${{ env.CORE_REF != '' }}
         shell: bash
-        run: python -m pip install "pathlib-next @ git+https://github.com/jose-pr/pathlib-next@${CORE_REF}"
+        run: python -m pip install "pathapi @ git+https://github.com/jose-pr/pathapi@${CORE_REF}"
       - name: Install package with docs tooling
         run: python -m pip install -e ".[dev,docs]"
       - name: Build docs

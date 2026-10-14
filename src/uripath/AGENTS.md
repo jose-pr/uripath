@@ -14,15 +14,15 @@ errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and
 `uripath.source`, `uripath.query`, `uripath.exceptions` and `uripath.schemes`
 (the contract a scheme implements, the registry, and the names every scheme
 exports). The HTTP transport that `http:` and `dav:` send through is
-`pathlib_next.http`, documented in the `pathlib-next` header. A module or name
+`pathapi.http`, documented in the `pathapi` header. A module or name
 that starts with an underscore is private and nothing there is contract: every
 scheme lives in a private module.
 
-`pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11` and
+`pip install uripath`. Required dependencies: `pathapi>=0.1.0,<0.2` and
 `netimps>=0.4.0,<0.5`; parsing and percent-coding use only the standard library
 (`urllib.parse`), and `netimps` is imported where it is used. The one extra, `cli`
 (`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
-in this package runs on the standard library and on `pathlib_next`. `sftp:`,
+in this package runs on the standard library and on `pathapi`. `sftp:`,
 `s3:`, `gs:` and `az:` are provided by other distributions ("Provided by other
 distributions"), and so is the `requests` HTTP transport.
 
@@ -33,9 +33,9 @@ its metadata. The rendered documentation is at
 
 ## URIs (`uripath`)
 
-The URI layer builds on `Path` and `Pathname` of `pathlib_next`: the method
+The URI layer builds on `Path` and `Pathname` of `pathapi`: the method
 surface of `Path` (`read_text()`, `iterdir()`, `glob()`, `walk()`, `copy()`,
-`move()`, `rm()`, ...) is that of the `pathlib-next` header. The classes are
+`move()`, `rm()`, ...) is that of the `pathapi` header. The classes are
 `pathlib`-shaped: their method names, signatures and exception types are those
 of `pathlib.Path`, and every deliberate difference is listed, with its
 rationale, at <https://jose-pr.github.io/uripath/divergences/>.
@@ -74,7 +74,7 @@ class URI(Pathname):
 ```
 
 Pure RFC 3986 URI, parsed lazily. Arguments
-(`str`, `bytes`, `URI`, `pathlib`/`pathlib_next` paths, `os.PathLike`;
+(`str`, `bytes`, `URI`, `pathlib`/`pathapi` paths, `os.PathLike`;
 `None` and `""` are the empty URI, anything else is a `TypeError` naming its
 type) join right to left like `joinpath` (an absolute one restarts); this is not RFC
 3986 reference resolution (`URI("http://h/d") / "x"` is `http://h/d/x`),
@@ -503,8 +503,8 @@ HTTP needs no library: a path sends through a **transport**, by default the
 built-in `HTTPTransport` on `http.client`. The transport contract, `HTTPResponse`,
 `HTTPTransport` (TLS, connection reuse, the `proxies=` provider), the rules for
 redirects and for `Authorization`, the cap on a reply read whole
-(`pathlib_next.http.MAX_REPLY_BYTES`) and the way a failed request becomes an
-`OSError` are those of `pathlib_next.http`, documented in the `pathlib-next`
+(`pathapi.http.MAX_REPLY_BYTES`) and the way a failed request becomes an
+`OSError` are those of `pathapi.http`, documented in the `pathapi`
 header under "HTTP requests". This section is what the paths add.
 
 - **Choosing the transport.** `path.with_transport(transport, headers=None,
@@ -514,14 +514,14 @@ header under "HTTP requests". This section is what the paths add.
   write_method="PUT", append_mode="rewrite", **requests_args)` is the same over
   a `requests.Session` (`None` makes a new one): `headers` and `timeout` in
   `requests_args` are the backend's, the rest go to the `requests` transport,
-  which the distribution `pathlib-next-requests` provides. Without that
+  which the distribution `pathapi-requests` provides. Without that
   distribution the call raises `ImportError` naming it. Without either, a
   path's backend builds the built-in transport on first use (`HTTPBackend.close()`
   or leaving its `with` block closes a transport the backend built); the
-  environment variable `PATHLIB_NEXT_HTTP_TRANSPORT` (`builtin`, or the name of an
+  environment variable `PATHAPI_HTTP_TRANSPORT` (`builtin`, or the name of an
   installed transport) names that default for the process.
   `HTTPBackend(transport=None, *, headers=None, timeout, write_method,
-  append_mode)` is the backend a path holds: a `pathlib_next.http.HTTPClient`
+  append_mode)` is the backend a path holds: a `pathapi.http.HTTPClient`
   whose `request()` takes a path or a URL.
 - **What the backend does for every transport.** It follows redirects, adds
   credentials and default headers (`User-Agent: uripath/<version>`, `Accept:
@@ -531,12 +531,12 @@ header under "HTTP requests". This section is what the paths add.
   by name (case-blind). A header value or URL with a control character (CR and
   LF included) is `ValueError`, before anything is sent. A reply it needs whole
   (a PROPFIND's, a git API's JSON, `request(stream=False)`'s) may be at most
-  `pathlib_next.http.MAX_REPLY_BYTES` after decoding, however small it is on the
+  `pathapi.http.MAX_REPLY_BYTES` after decoding, however small it is on the
   wire: more is `OSError(EFBIG)` naming the path, and the connection is closed.
   A reply whose body nobody looks at (a write's, a DELETE's, an error's) is read
   up to that many bytes and dropped, so its connection can be reused when the
   body was short. The content of a file (`open("r")`, a git file) is not limited.
-- Redirects: the rules are `pathlib_next.http`'s (`GET`/`HEAD`/`OPTIONS` follow
+- Redirects: the rules are `pathapi.http`'s (`GET`/`HEAD`/`OPTIONS` follow
   up to 30; a redirect that changes the scheme, host or port drops
   `Authorization`; every other request is sent again once after a 307/308, for
   `PROPFIND` also a 301, 302 or 303, to the same origin, and is otherwise
@@ -568,7 +568,7 @@ header under "HTTP requests". This section is what the paths add.
   as empty). Cannot always tell a file from an index page. The body is read
   like `open()` reads a file: a cut-short, stalled or undecodable one is
   `OSError(EIO)`/`TimeoutError` naming the path, never a partial list, and
-  one over `pathlib_next.http.MAX_REPLY_BYTES` (8 MiB after decoding; assign a
+  one over `pathapi.http.MAX_REPLY_BYTES` (8 MiB after decoding; assign a
   larger number to allow more) is `OSError(EFBIG)`. A name that is not
   UTF-8 (`caf%E9`) keeps its bytes (`surrogateescape`) and is requested as
   listed. A listed child carries neither the query nor the fragment of the
@@ -591,9 +591,10 @@ header under "HTTP requests". This section is what the paths add.
   failed) has uploaded nothing. A `with` block that ends in an exception (any
   `BaseException`) sends nothing, in binary and in text mode: the stream is
   discarded before it is closed (`discard()`, from
-  `pathlib_next.providers.DiscardOnError`), so the file keeps its content or
+  `pathapi.providers.DiscardOnError`), so the file keeps its content or
   is not created. A stream closed with `close()`, or by a block that ended
-  normally, sends once.
+  normally, sends once; one garbage collected unclosed sends nothing and emits a
+  `ResourceWarning`.
 - `unlink()` sends `DELETE` and refuses a directory (`IsADirectoryError`,
   judged by `stat()`); `rmdir()` requires an empty directory. No `mkdir()`,
   `rename()`, `chmod()`.
@@ -662,17 +663,17 @@ class BaseFTPURIBackend:
   whichever thread opened it (one a command is running on closes when the
   command ends), may be called twice, and a later use connects afresh; the
   backend is a context manager that calls it. One backend may be shared
-  between threads, each of which keeps its own connection per server. These two classes are not `pathlib_next.ftp.FTPBackend` and
+  between threads, each of which keeps its own connection per server. These two classes are not `pathapi.ftp.FTPBackend` and
   `BaseFTPBackend`: those belong to one host, these connect to the `Source` of
   whichever path asks.
 - Paths without `backend=` share one default `FTPURIBackend()`. Connections
   are cached per (backend, source, tls, thread) (LRU of 128, closed on
   eviction, and closed when their thread ends). A connection that carried
-  a command within the last `pathlib_next.ftp.IDLE_PROBE_SECONDS` (1 second) is used as it is; one idle for longer, or not
+  a command within the last `pathapi.ftp.IDLE_PROBE_SECONDS` (1 second) is used as it is; one idle for longer, or not
   yet used, is probed with `NOOP` and replaced when dead.
-- `FTPURIPath` is a `URIPath` over `pathlib_next.ftp.FTPPath`: the listing,
+- `FTPURIPath` is a `URIPath` over `pathapi.ftp.FTPPath`: the listing,
   stat, reads, writes, `rename()`, `chmod()` and `_utime()` are those
-  described under "What a path does" in the FTP section of the `pathlib-next`
+  described under "What a path does" in the FTP section of the `pathapi`
   header, and an `OSError` names the URI. A `with` block over `open("w")` that raised uploads nothing.
   Its URI-only parts are the endpoint (the `Source` and the
   scheme's `tls`) and the backend rules above.
@@ -720,23 +721,23 @@ with the scheme it was written with.
 - One shared handle per archive (keyed by the real local path, or the outer
   URI), released when no path references it. `ArchiveURIPath.refresh()` forgets
   what is held of the outer, so the next use reads it again; the rest is
-  described under `ArchivePath` in the `pathlib-next` header.
-- `ArchiveURIPath` is a `URIPath` over `pathlib_next.archive.ArchivePath` (`ZipURIPath`
+  described under `ArchivePath` in the `pathapi` header.
+- `ArchiveURIPath` is a `URIPath` over `pathapi.archive.ArchivePath` (`ZipURIPath`
   over `ZipPath`, `TarURIPath` over `TarPath`) on the shared handle of its outer:
   member names, the archive root, links, cost, writes, `batch()`, the removal
   and the damage errors are those described under "Archives
-  (`pathlib_next.archive`)" in the `pathlib-next` header, with an `OSError`
+  (`pathapi.archive`)" in the `pathapi` header, with an `OSError`
   naming the URI. A `with` block
   over `open("w")` that raised adds no member and creates no archive.
   `uripath.schemes.MEMBER_SPOOL_BYTES` is the same setting as
-  `pathlib_next.archive.MEMBER_SPOOL_BYTES`.
+  `pathapi.archive.MEMBER_SPOOL_BYTES`.
 
 ## For scheme implementers (`uripath`, `uripath.schemes`, `uripath.source`)
 
 The names a `URIPath` subclass overrides or calls beyond `URI` and `URIPath`
 above, in one place: the built-in schemes use all of them, so they are
-contract (the hooks of `pathlib_next.Path` they also use are listed under "For
-path implementers" in the `pathlib-next` header). Each helper also keeps an
+contract (the hooks of `pathapi.Path` they also use are listed under "For
+path implementers" in the `pathapi` header). Each helper also keeps an
 underscore spelling that is the same object (`_same_authority`,
 `_DerivedBackend`, `_compose_uri`, `_compose_host`, `_encode`, `_is_drive`,
 `_SAFE_PATH`, `_ERRORS`).
@@ -861,15 +862,16 @@ Building and deriving a path:
   `http:` (an index without exact sizes) does.
 - `_listdir()` — the names `_scandir()` lists by default; a stub. `iterdir()` and
   the default `_scandir()` are built on it (`providers.derived_from`), so
-  `pathlib_next.protocols.supports(cls, Listing)` is true for a scheme that defines
+  `pathapi.protocols.supports(cls, Listing)` is true for a scheme that defines
   `_listdir()` or its own `_scandir()` and false for one that does neither
   (`data:`).
 - `_schemes()` — the scheme names this class registers.
 
 A stream that commits when it is closed (an upload, a rewrite of an archive)
-inherits `pathlib_next.providers.DiscardOnError`, first in its bases, and defines
-`discard()`: a `with` block over the file that raised then commits nothing (the
-contract is in the `pathlib-next` header, "For path implementers"). The
+inherits `pathapi.providers.DiscardOnError`, first in its bases, and defines
+`discard()`: a `with` block over the file that raised, or the collector finalizing
+it unclosed, then commits nothing (the contract is in the `pathapi` header, "For
+path implementers"). The
 `HTTPWriteStream` and `HTTPAppendStream` of `http:` and `dav:` are such streams;
 a stream that writes through as it goes needs none.
 
@@ -900,7 +902,7 @@ Delegating to a path that needs no URI (`uripath.schemes.DelegatingURIPath`,
 the base of `file:`, `ftp:` and the archive schemes, and of `sftp:` in the
 distribution that provides it):
 
-- `_make_core()` — the `pathlib_next.Path` this URI names, built from `source`
+- `_make_core()` — the `pathapi.Path` this URI names, built from `source`
   and `path` and performing no I/O; it is made once per instance and is the
   `_core_path`. A scheme names the hooks it hands to it in `_DELEGATED`: any of
   `_scandir`, `_listdir`, `_open`, `_mkdir`, `unlink`, `rmdir`, `chmod`,
@@ -948,7 +950,7 @@ them:
 | `sftp:` | `sftppath` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
 | `s3:`, `gs:`, `az:` | `objpath` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
 | `repo:`, `github:`, `gitlab:` | `repopath` | `pip install repopath` |
-| the `requests` HTTP transport | `pathlib-next-requests` | `pip install pathlib-next-requests` |
+| the `requests` HTTP transport | `pathapi-requests` | `pip install pathapi-requests` |
 
 A path of one of the schemes builds, joins, compares and prints without its
 distribution, and is listed by `URIPath.schemes()`. Every operation that needs
@@ -964,8 +966,8 @@ a class that names one without `replace=True` is a `ValueError` where it is
 defined.
 
 For the `requests` transport, `HTTPURIPath.with_session()` and
-`PATHLIB_NEXT_HTTP_TRANSPORT=requests` use the class that the installed
-`pathlib-next-requests` declares in the group `pathlib_next.http_transports`,
+`PATHAPI_HTTP_TRANSPORT=requests` use the class that the installed
+`pathapi-requests` declares in the group `pathapi.http_transports`,
 and raise `ImportError` naming it when it is not installed.
 
 ## Exceptions
@@ -1056,15 +1058,15 @@ option is off unless it is passed.
 
 ## Environment variables
 
-### `PATHLIB_NEXT_HTTP_TRANSPORT` (read by `pathlib_next.http`)
+### `PATHAPI_HTTP_TRANSPORT` (read by `pathapi.http`)
 
 `builtin` (the default when unset), or the name of a transport an installed
-distribution declares in the group `pathlib_next.http_transports` (`requests`,
-from `pathlib-next-requests`): the transport that `http(s):` and `dav(s):`
+distribution declares in the group `pathapi.http_transports` (`requests`,
+from `pathapi-requests`): the transport that `http(s):` and `dav(s):`
 build for a backend that was not given one. `requests`
 without that distribution raises `ImportError` naming it. The value is
 case-sensitive, and an empty or unrecognised one raises `ValueError` naming the
-choices (`pathlib_next.http.transport_names()`). It is read when a backend first
+choices (`pathapi.http.transport_names()`). It is read when a backend first
 needs its transport, once per backend, so a change reaches backends built
 afterwards. `with_transport()` and `with_session()` do not read it.
 

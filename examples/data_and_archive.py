@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 import zipfile
 
-from pathlib_next import Path
+from pathapi import Path
 from uripath import URIPath
 
 

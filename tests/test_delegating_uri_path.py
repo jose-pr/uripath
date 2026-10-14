@@ -1,12 +1,12 @@
 """`uripath.schemes.DelegatingURIPath`: a scheme whose I/O is done by a
-`pathlib_next.Path` that needs no URI."""
+`pathapi.Path` that needs no URI."""
 
 from __future__ import annotations
 
 import pytest
 
-from pathlib_next import MemPath
-from pathlib_next.mempath import MemPathBackend
+from pathapi import MemPath
+from pathapi.mempath import MemPathBackend
 
 import uripath.schemes
 from uripath import URIPath

@@ -11,7 +11,7 @@ import pytest
 
 from http_fakes import is_client_error, on_current_transport, spy_on_sends
 from uripath import URIPath
-import pathlib_next.http as core_http
+import pathapi.http as core_http
 
 TIMEOUT = (5, 30)
 STALL_TIMEOUT = (5, 0.3)

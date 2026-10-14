@@ -13,7 +13,7 @@ import pytest
 
 
 from uripath import URIPath
-from pathlib_next.archive import _backend as _base
+from pathapi.archive import _backend as _base
 
 
 def _zip_uri(path, inner=""):

@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 from http_fakes import FakeTransport, reply
-from pathlib_next.providers import contains
+from pathapi.providers import contains
 from uripath import URI, Source, URIPath
 from uripath.schemes import FileURIPath, FTPURIBackend, FTPURIPath
 from uripath.schemes import HTTPURIPath

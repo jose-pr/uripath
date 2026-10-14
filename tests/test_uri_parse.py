@@ -3,7 +3,7 @@ import pathlib
 
 import pytest
 
-import pathlib_next
+import pathapi
 from uripath import URI
 
 test_uris = ["http://user:pass@google.com:80"]

@@ -16,12 +16,12 @@ import pytest
 
 from test_archive_batch import _fields, _members, _write_zip
 
-from pathlib_next import LocalPath
+from pathapi import LocalPath
 from uripath import URIPath
-from pathlib_next.archive import _snapshot as _base
-from pathlib_next.archive._zip import _ZipBackend
-from pathlib_next.archive._zipentries import _NO_LINK
-from pathlib_next.sync import PathSyncer
+from pathapi.archive import _snapshot as _base
+from pathapi.archive._zip import _ZipBackend
+from pathapi.archive._zipentries import _NO_LINK
+from pathapi.sync import PathSyncer
 
 DERIVATIONS = 2
 MEMBERS = 1000
@@ -153,7 +153,7 @@ def test_a_sync_that_changes_existing_members_derives_the_member_list_a_constant
     assert len(derived) <= DERIVATIONS
     members = _members(archive)
     assert members["tree/d3/f13.txt"] == b"y" * 60
-    assert not [name for name in members if ".pathlib-next-tmp" in name]
+    assert not [name for name in members if ".pathapi-tmp" in name]
 
 
 def test_a_change_to_a_name_the_archive_spells_twice_derives_it_again_and_is_one_set(

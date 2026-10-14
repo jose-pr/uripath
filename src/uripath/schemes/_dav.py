@@ -6,13 +6,13 @@ import typing as _ty
 import urllib.parse as _urlparse
 import xml.etree.ElementTree as _ET
 
-from pathlib_next import FileStat
-from pathlib_next import providers as _providers
-from pathlib_next.providers import check_follow
+from pathapi import FileStat
+from pathapi import providers as _providers
+from pathapi.providers import check_follow
 from .._uri import URI
 from ..source import compose_uri
 from . import _httpdate
-from pathlib_next.http import (
+from pathapi.http import (
     drop_body,
     os_error,
     peer_text,

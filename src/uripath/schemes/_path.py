@@ -8,8 +8,8 @@ import typing as _ty
 import weakref as _weakref
 import re as _re
 
-from pathlib_next import FileStat, Path
-from pathlib_next import providers as _providers
+from pathapi import FileStat, Path
+from pathapi import providers as _providers
 from .._uri import URI, URILike
 from .._uri import _DEFAULT_CHILD_BUILDERS
 from ..exceptions import UnsupportedSchemeError

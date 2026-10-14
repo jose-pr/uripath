@@ -8,7 +8,7 @@ import pytest
 from http_fakes import on_current_transport
 from http_wire import Wire, make_authority, response
 from uripath import URIPath
-from pathlib_next.http import HTTPTransport
+from pathapi.http import HTTPTransport
 from uripath.schemes import HTTPURIPath
 
 pytestmark = pytest.mark.usefixtures("http_transport_kind")

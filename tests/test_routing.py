@@ -13,14 +13,14 @@ import zipfile
 
 import pytest
 
-import pathlib_next
+import pathapi
 from http_fakes import on_current_transport
-from pathlib_next.mempath import MemPath
+from pathapi.mempath import MemPath
 
 
 from uripath import Source, URIPath  # noqa: E402
 
-LocalPath = pathlib_next.LocalPath
+LocalPath = pathapi.LocalPath
 
 
 # --- backend inheritance --------------------------------------------------

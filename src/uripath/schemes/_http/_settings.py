@@ -3,4 +3,4 @@ of this module, so assigning it applies at once."""
 
 from __future__ import annotations
 
-from pathlib_next.http import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT
+from pathapi.http import DEFAULT_TIMEOUT as DEFAULT_TIMEOUT

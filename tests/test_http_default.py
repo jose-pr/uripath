@@ -1,5 +1,5 @@
 """Which transport the backend of a path sends with when it is not given one
-(the choice is `pathlib_next.http`'s): the built-in one, the `requests` one only
+(the choice is `pathapi.http`'s): the built-in one, the `requests` one only
 when asked (and then provided elsewhere), and nothing imported that is not
 needed."""
 
@@ -14,11 +14,11 @@ import pytest
 import uripath
 from http_fakes import FakeTransport, reply
 from uripath import URIPath
-from pathlib_next.http import TRANSPORT_ENV, HTTPTransport
+from pathapi.http import TRANSPORT_ENV, HTTPTransport
 from uripath.schemes import HTTPBackend
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
-VARIABLE = "PATHLIB_NEXT_HTTP_TRANSPORT"
+VARIABLE = "PATHAPI_HTTP_TRANSPORT"
 
 
 def test_without_a_setting_the_built_in_transport_is_used(monkeypatch):
@@ -168,4 +168,4 @@ def test_http_and_dav_work_with_requests_and_urllib3_hidden():
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[:3] == ["True b'hello' 5", "5", "[]"]
-    assert "pathlib-next-requests" in lines[3]
+    assert "pathapi-requests" in lines[3]

@@ -3,13 +3,13 @@
 A new URI scheme is a `URIPath` subclass. You implement a small method surface;
 everything else (`open`/`read_text`/`write_text`/`glob`/`walk`/`touch`/`rm`/
 `copy`/`move`/`exists`/`is_dir`/`is_file`/...) is *derived* from the protocols
-in `pathlib_next.protocols`. The class registers itself and gets URI parsing,
+in `pathapi.protocols`. The class registers itself and gets URI parsing,
 joining, query and fragment handling from `URI`.
 
 A resource that is not naturally a URI (a database-backed virtual filesystem, a
-key-value store) is a subclass of `pathlib_next.Path` instead; that is
+key-value store) is a subclass of `pathapi.Path` instead; that is
 described in the
-[pathlib-next guide](https://jose-pr.github.io/pathlib-next/guides/extending/).
+[pathapi guide](https://jose-pr.github.io/pathapi/guides/extending/).
 
 Run the shared contract suite against your implementation -- see
 [Testing your implementation](#testing-your-implementation) below.
@@ -24,7 +24,7 @@ import errno
 import os
 
 from uripath import URIPath
-from pathlib_next import FileStat
+from pathapi import FileStat
 
 
 class MyPath(URIPath):
@@ -158,26 +158,26 @@ Conventions for a scheme implementation:
   `TypeError`.
 - A backend that cannot be written piecewise (an FTP `STOR`, an archive
   rewrite) is returned from `_open()` as
-  `pathlib_next.providers.CommitOnClose(commit)`: `commit(buffer)` runs once,
+  `pathapi.providers.CommitOnClose(commit)`: `commit(buffer)` runs once,
   when the stream is closed. A stream of your own that commits on close
-  inherits `pathlib_next.providers.DiscardOnError`, first in its bases, and
+  inherits `pathapi.providers.DiscardOnError`, first in its bases, and
   defines `discard()`, so that a `with` block that raised commits nothing.
 
 The shipped API header (`AGENTS.md` inside the package) lists the hooks and
 helpers of `URIPath` with their signatures, under "For scheme implementers";
-the one inside `pathlib_next` lists those of `Path`, under "For path
+the one inside `pathapi` lists those of `Path`, under "For path
 implementers". The built-in schemes use no other underscore name of either.
 
 ### Delegate to a path that needs no URI
 
 A protocol that is useful without a URI (a path to an FTP server, to an SFTP
-server) is best written once, as a `pathlib_next.Path` that takes its endpoint
+server) is best written once, as a `pathapi.Path` that takes its endpoint
 as keywords, and offered as a scheme by a thin class on top of it. Subclass
 `uripath.schemes.DelegatingURIPath`, list the hooks to hand over in
 `_DELEGATED` and build the path they run on in `_make_core()`:
 
 ```python
-from pathlib_next import MemPath
+from pathapi import MemPath
 from uripath.schemes import DelegatingURIPath
 
 
@@ -198,28 +198,28 @@ the core path inside `with self._delegated():`.
 
 The built-in schemes are worked examples of increasing size:
 [`FileURIPath`](../api/schemes/local.md) delegates to `LocalPath`,
-[`FTPURIPath`](../api/schemes/ftp.md) adapts the `pathlib_next` FTP path to a
+[`FTPURIPath`](../api/schemes/ftp.md) adapts the `pathapi` FTP path to a
 URI, and [`HTTPURIPath`](../api/schemes/http.md) scrapes HTML listings behind a
 replaceable transport.
 
 ## Provide an HTTP transport
 
 `http:` and `dav:` send through a transport that
-`pathlib_next.http` defines: any object with `send(method, url, *, headers,
+`pathapi.http` defines: any object with `send(method, url, *, headers,
 body=None, timeout, stream=False)` and `close()`. A distribution provides one by
 declaring a class that is built with no arguments in the entry-point group
-`pathlib_next.http_transports`, so that installing it is enough; how, what
+`pathapi.http_transports`, so that installing it is enough; how, what
 `prepare_request()` checks for you and the suite that holds the transport to the
-same promises (`python -m pathlib_next.http.testing --http-transports NAME`) are
-in the `pathlib-next` documentation. `PATHLIB_NEXT_HTTP_TRANSPORT=mytransport`
+same promises (`python -m pathapi.http.testing --http-transports NAME`) are
+in the `pathapi` documentation. `PATHAPI_HTTP_TRANSPORT=mytransport`
 then makes every backend that was given no transport build `MyTransport()`, and
 `path.with_transport(MyTransport(...))` installs one by hand. The name `requests`
 is the one `path.with_session()` builds, with the session as the first
-argument; the distribution `pathlib-next-requests` provides it.
+argument; the distribution `pathapi-requests` provides it.
 
 ## Testing your implementation
 
-To ensure custom implementations comply with `pathlib_next`'s expected behaviors, the library offers three contract levels in `pathlib_next.testing` which can be mixed into your `pytest` suite:
+To ensure custom implementations comply with `pathapi`'s expected behaviors, the library offers three contract levels in `pathapi.testing` which can be mixed into your `pytest` suite:
 
 1. **`PurePathContract`**: Covers logical pure-path operations (joining, parents, stems, suffix checks, and glob matching) that do not require any physical I/O.
 2. **`ReadPathContract`**: Extends `PurePathContract` to verify read-only I/O: `exists()`/`is_file()`/`is_dir()`, `read_text()`/`read_bytes()`, `open()` read modes, `iterdir()`, `stat()`, `glob()`/`rglob()` and `walk()`, plus the error paths with pathlib's exception types (a missing path raises `FileNotFoundError`, listing a file `NotADirectoryError`, reading a directory `IsADirectoryError` or, as pathlib does on Windows, `PermissionError`).
@@ -233,8 +233,8 @@ Both I/O levels need a `root` fixture pointing at a **fresh, function-scoped** d
 ```python
 import pytest
 
-from pathlib_next import LocalPath as MyPath  # your Path subclass here
-from pathlib_next.testing import PathContract, populate_fixture_tree
+from pathapi import LocalPath as MyPath  # your Path subclass here
+from pathapi.testing import PathContract, populate_fixture_tree
 
 
 class TestMyPath(PathContract):
@@ -255,7 +255,7 @@ A backend that genuinely cannot meet a rule sets the matching class attribute to
 | `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | none here (the repository trees of `repopath` set it: git trees cannot hold an empty directory) |
 | `distinguishes_file_types` | `ReadPathContract` | listing a file raises `NotADirectoryError`; reading a directory raises | `HTTPURIPath` (one URL serves an index page or a file) |
 | `supports_pickle` | `ReadPathContract` | `pickle.loads(pickle.dumps(path))` is equal to the path and hashes alike | none |
-| `supports_rename` | `PathContract` | `rename()` | none here (`MemPath` of `pathlib_next` sets it: `move()` copies instead) |
+| `supports_rename` | `PathContract` | `rename()` | none here (`MemPath` of `pathapi` sets it: `move()` copies instead) |
 | `supports_append` | `PathContract` | `open("a")` | `ZipURIPath`, `DAVURIPath` |
 | `supports_exclusive_create` | `PathContract` | `open("x")` | none |
 | `enforces_directory_hierarchy` | `PathContract` | `mkdir()`/writes below a missing parent raise `FileNotFoundError`; writing a file over a directory raises; `rename()` onto a non-empty directory raises | none (the object stores of `objpath` set it) |

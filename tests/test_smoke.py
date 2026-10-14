@@ -11,9 +11,9 @@ import textwrap
 
 import pytest
 
-import pathlib_next
-from pathlib_next import Path, glob
-from pathlib_next.mempath import MemPath
+import pathapi
+from pathapi import Path, glob
+from pathapi.mempath import MemPath
 
 
 def _uri():
@@ -40,7 +40,7 @@ def test_import_does_not_load_netimps_or_unrelated_backends():
     _uri()
     out = _run_python("""
         import sys
-        import pathlib_next
+        import pathapi
         from uripath import URIPath
 
         print(sorted(m for m in ("netimps", "requests", "botocore") if m in sys.modules))

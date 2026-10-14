@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing as _ty
 
-from pathlib_next.http import HTTPClient, HTTPResponse, split_userinfo
+from pathapi.http import HTTPClient, HTTPResponse, split_userinfo
 
 from ..._version import __version__
 from .._path import DerivedBackend
@@ -18,12 +18,12 @@ _UNSET = object()
 
 class HTTPBackend(HTTPClient):
     """The transport and the settings shared by an `HTTPURIPath` tree (see
-    `with_transport()` and `with_session()`): a `pathlib_next.http.HTTPClient`
+    `with_transport()` and `with_session()`): a `pathapi.http.HTTPClient`
     that takes a path or a URL for its address and adds `write_method` and
     `append_mode`.
 
     `transport` is any object with a `send()` method as
-    `pathlib_next.http.HTTPTransport.send()`; without one the backend builds the
+    `pathapi.http.HTTPTransport.send()`; without one the backend builds the
     built-in `HTTPTransport` on first use and closes it with `close()` or at the
     end of a `with` block. A transport it was given stays the caller's.
     `headers` are sent with every request, request-specific headers merged
@@ -84,7 +84,7 @@ class HTTPBackend(HTTPClient):
         character, before anything is sent.
 
         With `stream=False` the body is read before this returns, and a decoded
-        body over `pathlib_next.http.MAX_REPLY_BYTES` is `OSError(EFBIG)`; with
+        body over `pathapi.http.MAX_REPLY_BYTES` is `OSError(EFBIG)`; with
         `stream=True` the caller reads it, and closes the response."""
         url, auth = split_userinfo(uri if isinstance(uri, str) else uri.as_uri(False))
         return super().request(

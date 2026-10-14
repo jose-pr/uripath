@@ -11,12 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 The first release of `uripath`: the URI layer of `pathlib-next` 0.9.14
 (`pathlib_next.uri` and the `uripath` command) as a distribution of its own. It
-needs Python 3.9 or newer, `pathlib-next>=0.10.0,<0.11` and
+needs Python 3.9 or newer, `pathapi>=0.1.0,<0.2` and
 `netimps>=0.4.0,<0.5`, and nothing else; its one extra, `cli`, adds the command
 (`duho>=0.7.3,<0.8`). Every scheme it implements runs on the standard library.
 Under *Changed*, the migration from `pathlib_next.uri` comes in this order: the
 table of names, the table of extras, then every change of behaviour with what to
 do about it.
+
+It is built on `pathapi`, which was published as `pathlib-next` up to 0.10.0 (import
+name `pathlib_next`); the old names below are the ones before the move.
 
 ### Added
 
@@ -24,7 +27,7 @@ do about it.
   `ftps:`, `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:` and `davs:`,
   and the `uripath` command, with `uripath.__version__` (read from the
   installed metadata).
-- `pathlib_next.protocols.supports()` and `capabilities()` tell the truth about a URI
+- `pathapi.protocols.supports()` and `capabilities()` tell the truth about a URI
   class: `data:` does not support `Listing`, a scheme that lists through `_listdir()`
   or its own `_scandir()` does, and an instance of a `DelegatingURIPath` scheme
   answers with its core path (`_supports()`), so a delegated hook the core path
@@ -42,19 +45,19 @@ do about it.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
 - `http:`, `https:`, `dav:` and `davs:` send through the
-  HTTP client and transport of `pathlib_next.http`, which `uripath` does not
+  HTTP client and transport of `pathapi.http`, which `uripath` does not
   copy: `HTTPTransport`, `HTTPResponse`, the transport contract, the rules for
   redirects and credentials, the cap on a reply read whole
-  (`pathlib_next.http.MAX_REPLY_BYTES`), `PATHLIB_NEXT_HTTP_TRANSPORT` and the
-  entry-point group `pathlib_next.http_transports` all live there, and so does
-  `python -m pathlib_next.http.testing --http-transports NAME`, the suite that a
+  (`pathapi.http.MAX_REPLY_BYTES`), `PATHAPI_HTTP_TRANSPORT` and the
+  entry-point group `pathapi.http_transports` all live there, and so does
+  `python -m pathapi.http.testing --http-transports NAME`, the suite that a
   distribution providing a transport runs over it. `HTTPBackend` is a
-  `pathlib_next.http.HTTPClient` that adds what a path needs.
+  `pathapi.http.HTTPClient` that adds what a path needs.
 - `uripath.exceptions`: `URIPathError`, the base of what this package raises
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).
 - `uripath.schemes.DelegatingURIPath` is the base of a scheme whose I/O is
-  done by a `pathlib_next.Path` that needs no URI, and the one `file:`, `ftp:`
+  done by a `pathapi.Path` that needs no URI, and the one `file:`, `ftp:`
   and the archive schemes use. A distribution that provides a scheme this way
   (the `sftp:` of `sftppath`) lists the hooks it hands over in `_DELEGATED` and
   builds the path in `_make_core()`; the header documents both under "For
@@ -68,7 +71,7 @@ do about it.
   again. Leaving a `with` block calls it.
 - Building an `FTPURIBackend` with `verify=False` and no `ssl_context` logs a
   warning on the `uripath` logger each time (an `HTTPTransport` does the same on
-  the `pathlib_next` logger).
+  the `pathapi` logger).
 - `uripath.as_path(text)` returns the `URIPath` or `LocalPath` that command-line
   style text names (`C:/data`, `12:30.txt` and `notes:draft` are local paths;
   `ftp://h/x` and `data:,abc` are URIs), and `uripath.copy_stream(source,
@@ -95,7 +98,7 @@ do about it.
   | Was (in `pathlib_next.uri`, `pathlib_next` 0.9.14) | Is |
   | --- | --- |
   | the package `pathlib_next.uri` | `uripath` |
-  | `Path`, `Pathname`, `FileStat` imported from `pathlib_next.uri` | the same names in `pathlib_next` |
+  | `Path`, `Pathname`, `FileStat` imported from `pathlib_next.uri` | the same names in `pathapi` |
   | `Uri`, `UriPath`, `UriLike` | `uripath.URI`, `URIPath`, `URILike` |
   | `source.Source` | `uripath.Source`, also `uripath.source.Source` |
   | `source.compose_uri`, `compose_host`, `percent_encode`, `is_drive`, `SAFE_PATH`, `ERRORS` | the same names in `uripath.source` |
@@ -112,11 +115,11 @@ do about it.
   | `schemes.archive.ArchiveZipUri`, `ArchiveTarUri` | `uripath.schemes.ArchiveZipURIPath`, `ArchiveTarURIPath` |
   | `schemes.ftp.FtpPath` | `uripath.schemes.FTPURIPath` |
   | `schemes.ftp.FtpBackend`, `BaseFtpBackend` | `uripath.schemes.FTPURIBackend`, `BaseFTPURIBackend` |
-  | `schemes.ftp.DEFAULT_TIMEOUT`, `IDLE_PROBE_SECONDS`; `schemes.archive.MAX_LINKS`, `LinkTarget` | `pathlib_next.ftp` and `pathlib_next.archive`, which define them |
+  | `schemes.ftp.DEFAULT_TIMEOUT`, `IDLE_PROBE_SECONDS`; `schemes.archive.MAX_LINKS`, `LinkTarget` | `pathapi.ftp` and `pathapi.archive`, which define them |
   | `schemes.http.HttpPath`, `HttpBackend` | `uripath.schemes.HTTPURIPath`, `HTTPBackend` |
   | `schemes.http.HttpWriteStream`, `HttpAppendStream` | `uripath.schemes.HTTPWriteStream`, `HTTPAppendStream` |
-  | `schemes.http.HTTPTransport`, `HTTPResponse` | `pathlib_next.http.HTTPTransport`, `HTTPResponse` |
-  | `schemes.http.MAX_LISTING_BYTES` | `pathlib_next.http.MAX_REPLY_BYTES` (assign it there) |
+  | `schemes.http.HTTPTransport`, `HTTPResponse` | `pathapi.http.HTTPTransport`, `HTTPResponse` |
+  | `schemes.http.MAX_LISTING_BYTES` | `pathapi.http.MAX_REPLY_BYTES` (assign it there) |
   | `schemes.http.DEFAULT_TIMEOUT` | none: the default is the `timeout=` of the backend, `(10, 60)` |
   | `schemes.archive._base.MEMBER_SPOOL_BYTES` | `uripath.schemes.MEMBER_SPOOL_BYTES` |
   | `schemes.dav.DavPath` | `uripath.schemes.DAVURIPath` |
@@ -124,13 +127,13 @@ do about it.
   | `schemes.github.RepoBackend`; `schemes._gitrepo.BaseRepoBackend` | `repopath.RepoBackend`, `BaseRepoBackend` |
   | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `repopath.InsecureTransportWarning` |
   | `schemes.sftp`, `schemes.s3`, `schemes.gs`, `schemes.az` and the classes in them | the distributions `sftppath` and `objpath`, which name their own classes |
-  | `schemes.http.RequestsTransport` | the distribution `pathlib-next-requests` |
+  | `schemes.http.RequestsTransport` | the distribution `pathapi-requests` |
   | `pathlib_next.tools.uripath`: `main(argv, *, stdin, stdout, stderr)`, `build_parser()` | `uripath.cli.main(argv=None)`; no parser to build |
   | `PATHLIB_NEXT_SFTP_BACKEND` | `SFTPPATH_BACKEND`, read by `sftppath` |
   | the entry-point group `pathlib_next.schemes` | `uripath.schemes` |
   | the script `uripath = pathlib_next.tools.uripath:main` | `uripath = uripath.cli:main`, which needs the `cli` extra; `python -m uripath` runs it too |
 
-  The `ftp:` backends are not `pathlib_next.ftp.FTPBackend` and `BaseFTPBackend`:
+  The `ftp:` backends are not `pathapi.ftp.FTPBackend` and `BaseFTPBackend`:
   those belong to one host, while `FTPURIBackend` connects to whichever server a
   path names.
 
@@ -140,7 +143,7 @@ do about it.
   | Was | Install now |
   | --- | --- |
   | `pathlib-next[uri]` | `uripath` |
-  | `pathlib-next[http]` | `uripath`; add `pathlib-next-requests` only for a `requests.Session` or `PATHLIB_NEXT_HTTP_TRANSPORT=requests` |
+  | `pathlib-next[http]` | `uripath`; add `pathapi-requests` only for a `requests.Session` or `PATHAPI_HTTP_TRANSPORT=requests` |
   | `pathlib-next[sftp]` | `sftppath[paramiko]` |
   | `pathlib-next[sftp-async]` | `sftppath[asyncssh]` |
   | `pathlib-next[s3]`, `[gs]`, `[az]` | `objpath[s3]`, `[gs]`, `[az]` |
@@ -246,7 +249,7 @@ do about it.
   makes the block discard the stream, in binary and in text mode, and nothing
   is sent; the file keeps its content or is not created. `close()` outside a
   block and a block that ended normally send once, as before. The same holds
-  for `ftp:` and `zip:`, whose streams are the `pathlib-next` ones. What to do:
+  for `ftp:` and `zip:`, whose streams are the `pathapi` ones. What to do:
   nothing, unless code relied on the partial upload; a local file still keeps
   what a failed block wrote, as `pathlib` does.
 - A host keeps the spelling it was given. Was: the parser and the composer
@@ -288,11 +291,11 @@ do about it.
   version is `uripath.__version__`. A backend's `headers=` still replaces it.
 - A plugin registered in the `pathlib_next.schemes` entry-point group is not
   found. What to do: register it in `uripath.schemes`.
-- The `requests` HTTP transport is provided by `pathlib-next-requests`.
-  `HTTPURIPath.with_session()` and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
+- The `requests` HTTP transport is provided by `pathapi-requests`.
+  `HTTPURIPath.with_session()` and `PATHAPI_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
   distribution without it, and a proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too. What to do: install
-  `pathlib-next-requests` where one of them is used; with it installed they
+  `pathapi-requests` where one of them is used; with it installed they
   send through its transport and nothing else is configured.
 - `uritools` is not a dependency. The RFC 3986 split of a URI and its
   percent-encoding and -decoding are done on `urllib.parse`, with the results
@@ -327,6 +330,9 @@ do about it.
   - `--` ends the options and accepts no argument after it. Was: `argparse`
     took what followed as positional arguments, so `uripath rm -- -name`
     removed `-name`; write `uripath rm ./-name`.
+- An `http:` or `dav:` write stream that is garbage collected without being closed sends
+  nothing and emits a `ResourceWarning`; `pathlib-next` closed it, and so uploaded it.
+  What to do: close the file, or use `with`.
 
 [Unreleased]: https://github.com/jose-pr/uripath/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jose-pr/uripath/releases/tag/v0.1.0

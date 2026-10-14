@@ -16,7 +16,7 @@ import threading
 
 import pytest
 
-from pathlib_next.path._relation import _same_file
+from pathapi.path._relation import _same_file
 from uripath import URI, URIPath
 
 from http_fakes import on_current_transport
@@ -343,7 +343,7 @@ class DictScopePath(URIPath):
         return {}
 
     def stat(self, *, follow_symlinks=True):
-        from pathlib_next import FileStat
+        from pathapi import FileStat
 
         if self.path in self.store:
             return FileStat(st_mode=0o100644, st_size=len(self.store[self.path]))

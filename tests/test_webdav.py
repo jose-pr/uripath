@@ -6,7 +6,7 @@ PUT/DELETE/MKCOL/MOVE.
 import pytest
 
 from http_fakes import FakeTransport, reply
-from pathlib_next.http import HTTPResponse
+from pathapi.http import HTTPResponse
 from uripath.schemes import HTTPBackend
 from uripath.schemes import DAVURIPath
 
@@ -303,7 +303,7 @@ _MULTISTATUS_HOSTILE = b"""<?xml version="1.0"?>
 def test_propfind_dot_entries_are_not_children(tmp_path):
     # A listing href `%2E%2E/` decodes to ".."; a recursive copy joined it
     # onto the destination and wrote outside it.
-    from pathlib_next import LocalPath
+    from pathapi import LocalPath
 
     session = _FakeSession()
     session.responses[("PROPFIND", "http://host/share/", "0")] = _FakeResponse(

@@ -14,13 +14,13 @@ import sys
 
 import pytest
 
-import pathlib_next
-from pathlib_next.mempath import MemPath
-from pathlib_next import FileStat
-from pathlib_next.sync import PathAndStat, PathSyncer, SyncEvent
+import pathapi
+from pathapi.mempath import MemPath
+from pathapi import FileStat
+from pathapi.sync import PathAndStat, PathSyncer, SyncEvent
 
 IS_WINDOWS = sys.platform == "win32"
-LOGGER = "pathlib_next.sync"
+LOGGER = "pathapi.sync"
 
 
 def _size(entry):

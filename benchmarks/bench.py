@@ -249,7 +249,7 @@ def benchmark_walk_glob_http():
 def _benchmark_http_transports(url):
     """The same listing work and a run of small GETs on the transport
     `HTTPTransport` (the default above)."""
-    from pathlib_next.http import HTTPTransport
+    from pathapi.http import HTTPTransport
     from uripath.schemes import HTTPURIPath
 
     transports = [("builtin", HTTPTransport)]
