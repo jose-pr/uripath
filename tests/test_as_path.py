@@ -47,8 +47,8 @@ def test_a_uri_path_is_the_class_its_scheme_registers():
 @pytest.mark.parametrize(
     ("text", "distribution"),
     [
-        ("sftp://h/x", "uripath-sftp"),
-        ("sftp:x", "uripath-sftp"),
+        ("sftp://h/x", "sftppath"),
+        ("sftp:x", "sftppath"),
         ("s3://bucket/key", "uripath-objstore"),
         ("gs://bucket/key", "uripath-objstore"),
         ("az://container/blob", "uripath-objstore"),

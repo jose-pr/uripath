@@ -202,7 +202,7 @@ without it; the first operation that needs the server (`stat()`, `exists()`,
 
 | Provides | Install |
 | --- | --- |
-| `sftp:` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
+| `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
 | `s3:` | `pip install "uripath-objstore[s3]"` |
 | `gs:` | `pip install "uripath-objstore[gs]"` |
 | `az:` | `pip install "uripath-objstore[az]"` |

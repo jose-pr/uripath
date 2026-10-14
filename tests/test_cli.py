@@ -463,7 +463,7 @@ def test_write_to_a_colon_name_writes_a_local_file(run, tmp_path, monkeypatch):
 def test_a_scheme_another_distribution_provides_names_it(run):
     status, _, err = run("read", "sftp://h/x")
     assert status == 1
-    assert "ImportError" in err and "uripath-sftp" in err
+    assert "ImportError" in err and "sftppath" in err
 
 
 class _ClosedPipe(io.BytesIO):

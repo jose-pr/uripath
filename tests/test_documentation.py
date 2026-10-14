@@ -57,7 +57,10 @@ def test_the_readme_names_the_distribution_of_each_scheme_it_does_not_contain():
     rows = {
         re.search(r"`([a-z0-9]+):`", line).group(1): line
         for line in table.splitlines()
-        if line.startswith("| `") and "uripath-" in line
+        if line.startswith("| `")
+        and any(
+            distribution in line for distribution, _, _ in _elsewhere.SCHEMES.values()
+        )
     }
     assert set(rows) == set(_elsewhere.SCHEMES)
     for scheme, (distribution, _package, _install) in _elsewhere.SCHEMES.items():

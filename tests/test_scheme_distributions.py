@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 
 from fake_distribution import install, run
+from uripath.schemes import _elsewhere
 
 PROVIDED = ("sftp", "s3", "gs", "az")
 
@@ -155,7 +156,11 @@ def test_without_the_distribution_the_scheme_names_what_to_install(scheme):
         print(json.dumps([type(path).__name__, message]))
         """)
     assert found[0] == "ProvidedElsewhere"
-    assert f"the {scheme!r} scheme is provided by the uripath-" in found[1]
+    distribution = _elsewhere.SCHEMES[scheme][0]
+    assert (
+        f"the {scheme!r} scheme is provided by the {distribution} distribution"
+        in found[1]
+    )
     assert "pip install" in found[1]
     assert "host" not in found[1]
 

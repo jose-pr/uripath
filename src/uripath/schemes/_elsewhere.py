@@ -16,9 +16,9 @@ from ._path import URIPath
 #: `uripath.schemes`), which is found first.
 SCHEMES = {
     "sftp": (
-        "uripath-sftp",
-        "uripath_sftp",
-        'pip install "uripath-sftp[paramiko]" (or "uripath-sftp[asyncssh]")',
+        "sftppath",
+        "sftppath",
+        'pip install "sftppath[paramiko]" (or "sftppath[asyncssh]")',
     ),
     "s3": (
         "uripath-objstore",

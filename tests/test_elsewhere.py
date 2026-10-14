@@ -28,8 +28,8 @@ _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
 CASES = {
     "sftp": (
         "sftp://user:s3cr3t@host/dir/file.txt",
-        "the 'sftp' scheme is provided by the uripath-sftp distribution: "
-        'pip install "uripath-sftp[paramiko]" (or "uripath-sftp[asyncssh]")',
+        "the 'sftp' scheme is provided by the sftppath distribution: "
+        'pip install "sftppath[paramiko]" (or "sftppath[asyncssh]")',
     ),
     "s3": (
         "s3://bucket/dir/file.txt",

@@ -27,7 +27,7 @@ server, a web directory or a GitHub or GitLab repository. It builds on
 | `http:` / `https:` (`HTTPURIPath`) | nothing | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
 | `dav:` / `davs:` (`DAVURIPath`, WebDAV) | nothing | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
 | `github:` / `gitlab:` / `git:` (also `git+github:`, `git+gitlab:`) | nothing | Yes | No | Yes | Yes | No | No | No |
-| `sftp:` | `uripath-sftp[paramiko]` or `[asyncssh]` | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| `sftp:` | `sftppath[paramiko]` or `[asyncssh]` | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | `s3:` | `uripath-objstore[s3]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
 | `gs:` | `uripath-objstore[gs]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
 | `az:` | `uripath-objstore[az]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker blob) | Yes | Yes (same container) |
@@ -65,7 +65,7 @@ Requires `pathlib-next` and `netimps`, which pip installs with it.
 | --- | --- |
 | `pip install uripath` | every scheme whose Needs is nothing in the table above |
 | `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
-| `pip install "uripath-sftp[paramiko]"` or `[asyncssh]` | `sftp:` |
+| `pip install "sftppath[paramiko]"` or `[asyncssh]` | `sftp:` |
 | `pip install "uripath-objstore[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
 | `pip install pathlib-next-requests` | the `requests` HTTP transport |
 
