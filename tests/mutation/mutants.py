@@ -558,3 +558,19 @@ mutant(
     "tests/test_copy_stream.py::test_a_broken_pipe_of_a_target_path_is_not_output_closed",
     "a connection that breaks while a path is written is taken for the reader of the output going away",
 )
+mutant(
+    "delegated-error-names-the-core-path",
+    "schemes/_delegate.py",
+    "            _relabel(error, names)\n            raise\n",
+    "            raise\n",
+    "tests/test_delegating_uri_path.py::test_an_error_of_the_core_path_names_the_uri_and_not_the_core_path",
+    "an OSError of the core path reaches the caller naming the core path, not the URI",
+)
+mutant(
+    "delegated-extra-pairs-are-ignored",
+    "schemes/_delegate.py",
+    "            names = {**({core: str(self)} if core else {}), **dict(extra)}\n",
+    "            names = {core: str(self)} if core else {}\n",
+    "tests/test_delegating_uri_path.py::test_delegated_extra_pairs_rename_the_text_of_a_hand_written_call",
+    "a second path in an error of a hand-written call keeps the core name",
+)
