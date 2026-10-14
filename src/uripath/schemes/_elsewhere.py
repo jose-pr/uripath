@@ -21,19 +21,19 @@ SCHEMES = {
         'pip install "sftppath[paramiko]" (or "sftppath[asyncssh]")',
     ),
     "s3": (
-        "uripath-objstore",
-        "uripath_objstore",
-        'pip install "uripath-objstore[s3]"',
+        "objpath",
+        "objpath",
+        'pip install "objpath[s3]"',
     ),
     "gs": (
-        "uripath-objstore",
-        "uripath_objstore",
-        'pip install "uripath-objstore[gs]"',
+        "objpath",
+        "objpath",
+        'pip install "objpath[gs]"',
     ),
     "az": (
-        "uripath-objstore",
-        "uripath_objstore",
-        'pip install "uripath-objstore[az]"',
+        "objpath",
+        "objpath",
+        'pip install "objpath[az]"',
     ),
 }
 

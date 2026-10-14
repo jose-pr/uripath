@@ -27,7 +27,7 @@ do about it.
   distribution that provides it; the first operation that needs the server
   (`stat()`, `open()`, `iterdir()`, `exists()`, ...) raises an `ImportError`
   naming what to install: `sftppath[paramiko]` (or `[asyncssh]`) for
-  `sftp:`, and `uripath-objstore[s3]`, `[gs]` or `[az]`. `URIPath.schemes()`
+  `sftp:`, and `objpath[s3]`, `[gs]` or `[az]`. `URIPath.schemes()`
   lists the four, and `URIPath.scheme_class()` raises the same error for them.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
@@ -115,7 +115,7 @@ do about it.
   | `schemes.gitlab.GitLabPath` | `uripath.schemes.GitLabURIPath` |
   | `schemes.git.GitPath`, `GitHubGitPath`, `GitLabGitPath` | `uripath.schemes.GitURIPath`, `GitHubGitURIPath`, `GitLabGitURIPath` |
   | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `uripath.exceptions.InsecureTransportWarning` |
-  | `schemes.sftp`, `schemes.s3`, `schemes.gs`, `schemes.az` and the classes in them | the distributions `sftppath` and `uripath-objstore`, which name their own classes |
+  | `schemes.sftp`, `schemes.s3`, `schemes.gs`, `schemes.az` and the classes in them | the distributions `sftppath` and `objpath`, which name their own classes |
   | `schemes.http.RequestsTransport` | the distribution `pathlib-next-requests` |
   | `pathlib_next.tools.uripath`: `main(argv, *, stdin, stdout, stderr)`, `build_parser()` | `uripath.cli.main(argv=None)`; no parser to build |
   | `PATHLIB_NEXT_SFTP_BACKEND` | `SFTPPATH_BACKEND`, read by `sftppath` |
@@ -135,7 +135,7 @@ do about it.
   | `pathlib-next[http]` | `uripath`; add `pathlib-next-requests` only for a `requests.Session` or `PATHLIB_NEXT_HTTP_TRANSPORT=requests` |
   | `pathlib-next[sftp]` | `sftppath[paramiko]` |
   | `pathlib-next[sftp-async]` | `sftppath[asyncssh]` |
-  | `pathlib-next[s3]`, `[gs]`, `[az]` | `uripath-objstore[s3]`, `[gs]`, `[az]` |
+  | `pathlib-next[s3]`, `[gs]`, `[az]` | `objpath[s3]`, `[gs]`, `[az]` |
   | the `uripath` command (part of `pathlib-next[uri]`) | `uripath[cli]` |
 
   `uritools` is no longer installed with the URI layer; `netimps` is a required

@@ -33,18 +33,18 @@ CASES = {
     ),
     "s3": (
         "s3://bucket/dir/file.txt",
-        "the 's3' scheme is provided by the uripath-objstore distribution: "
-        'pip install "uripath-objstore[s3]"',
+        "the 's3' scheme is provided by the objpath distribution: "
+        'pip install "objpath[s3]"',
     ),
     "gs": (
         "gs://bucket/dir/file.txt",
-        "the 'gs' scheme is provided by the uripath-objstore distribution: "
-        'pip install "uripath-objstore[gs]"',
+        "the 'gs' scheme is provided by the objpath distribution: "
+        'pip install "objpath[gs]"',
     ),
     "az": (
         "az://account/container/file.txt",
-        "the 'az' scheme is provided by the uripath-objstore distribution: "
-        'pip install "uripath-objstore[az]"',
+        "the 'az' scheme is provided by the objpath distribution: "
+        'pip install "objpath[az]"',
     ),
 }
 

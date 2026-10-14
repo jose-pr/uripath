@@ -1037,7 +1037,7 @@ them:
 | Name | Distribution | Install |
 | --- | --- | --- |
 | `sftp:` | `sftppath` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
-| `s3:`, `gs:`, `az:` | `uripath-objstore` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
+| `s3:`, `gs:`, `az:` | `objpath` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
 | the `requests` HTTP transport | `pathlib-next-requests` | `pip install pathlib-next-requests` |
 
 A path of one of the schemes builds, joins, compares and prints without its

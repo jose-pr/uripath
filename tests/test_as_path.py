@@ -49,9 +49,9 @@ def test_a_uri_path_is_the_class_its_scheme_registers():
     [
         ("sftp://h/x", "sftppath"),
         ("sftp:x", "sftppath"),
-        ("s3://bucket/key", "uripath-objstore"),
-        ("gs://bucket/key", "uripath-objstore"),
-        ("az://container/blob", "uripath-objstore"),
+        ("s3://bucket/key", "objpath"),
+        ("gs://bucket/key", "objpath"),
+        ("az://container/blob", "objpath"),
     ],
 )
 def test_a_scheme_another_distribution_provides_names_it_on_first_use(
