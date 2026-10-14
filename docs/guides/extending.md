@@ -204,7 +204,7 @@ replaceable transport.
 
 ## Provide an HTTP transport
 
-`http:`, `dav:`, `github:` and `gitlab:` send through a transport that
+`http:` and `dav:` send through a transport that
 `pathlib_next.http` defines: any object with `send(method, url, *, headers,
 body=None, timeout, stream=False)` and `close()`. A distribution provides one by
 declaring a class that is built with no arguments in the entry-point group
@@ -214,9 +214,8 @@ same promises (`python -m pathlib_next.http.testing --http-transports NAME`) are
 in the `pathlib-next` documentation. `PATHLIB_NEXT_HTTP_TRANSPORT=mytransport`
 then makes every backend that was given no transport build `MyTransport()`, and
 `path.with_transport(MyTransport(...))` installs one by hand. The name `requests`
-is the one `path.with_session()` and `RepoBackend(session=...)` build, with the
-session as the first argument; the distribution `pathlib-next-requests` provides
-it.
+is the one `path.with_session()` builds, with the session as the first
+argument; the distribution `pathlib-next-requests` provides it.
 
 ## Testing your implementation
 
@@ -253,7 +252,7 @@ A backend that genuinely cannot meet a rule sets the matching class attribute to
 | Attribute | Contract | Covers | Built-in schemes that set it `False` |
 | --- | --- | --- | --- |
 | `supports_listing` | `ReadPathContract` | `iterdir()`, `glob()`, `walk()` | `DataURIPath` (a single resource) |
-| `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | `GitHubURIPath`, `GitLabURIPath` (git trees cannot hold an empty directory) |
+| `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | none here (the repository trees of `repopath` set it: git trees cannot hold an empty directory) |
 | `distinguishes_file_types` | `ReadPathContract` | listing a file raises `NotADirectoryError`; reading a directory raises | `HTTPURIPath` (one URL serves an index page or a file) |
 | `supports_pickle` | `ReadPathContract` | `pickle.loads(pickle.dumps(path))` is equal to the path and hashes alike | none |
 | `supports_rename` | `PathContract` | `rename()` | none here (`MemPath` of `pathlib_next` sets it: `move()` copies instead) |
@@ -272,6 +271,6 @@ A backend that genuinely cannot meet a rule sets the matching class attribute to
 `tests/test_contract.py` runs:
 
 - **Full `PathContract`**: `LocalPath`, `MemPath`, `FileURIPath`, `ZipURIPath` and `archive:`/`archive+zip:` (local outer archive), `FTPURIPath` (in-process pyftpdlib) and `DAVURIPath` (in-process WsgiDAV).
-- **`ReadPathContract`**: `HTTPURIPath` (local HTTP server), `TarURIPath` and `archive:`/`archive+tar:`, `DataURIPath` (listing skipped), and `GitHubURIPath`/`GitLabURIPath` and their `git+github:`/`git+gitlab:` spellings (in-process fake APIs).
+- **`ReadPathContract`**: `HTTPURIPath` (local HTTP server), `TarURIPath` and `archive:`/`archive+tar:`, and `DataURIPath` (listing skipped).
 
 See `tests/test_contract.py` for how each scheme's `root` fixture is wired.

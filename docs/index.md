@@ -4,7 +4,8 @@
 and `URIPath("ftp://...")` return the class registered for the scheme, and each
 has the method names, signatures and exception types of `pathlib.Path`: write
 code once and it works against a local file, an archive member, an FTP or
-WebDAV server, a web directory or a GitHub or GitLab repository. `uripath`
+WebDAV server, a web directory or, through `repopath`, a GitHub or GitLab
+repository. `uripath`
 builds on [`pathlib-next`](https://jose-pr.github.io/pathlib-next/), which holds
 the `Path` base classes, the local, in-memory, FTP and archive paths, `glob` and
 `PathSyncer`.
@@ -21,13 +22,14 @@ pip install uripath
 It requires `pathlib-next` and `netimps`, which pip installs with it; its one
 extra, `cli`, adds the `uripath` command
 (`pip install "uripath[cli]"`). The schemes of this package run on the standard
-library, including HTTP. `sftp:`, `s3:`, `gs:` and `az:` are provided by other
-distributions:
+library, including HTTP. `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and
+`gitlab:` are provided by other distributions:
 
 | Provides | Install |
 | --- | --- |
 | `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
 | `s3:`, `gs:`, `az:` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
+| `repo:`, `github:`, `gitlab:` | `pip install repopath` |
 | the `requests` HTTP transport | `pip install pathlib-next-requests` |
 
 ## Tour
@@ -75,7 +77,7 @@ print(URIPath("ftp://user@host/pub/README").read_text())
 `exists()`, `is_dir()`, `iterdir()`, `glob()`, `walk()`,
 `read_text()`/`write_text()`, `copy()`/`move()` and `rm()` behave the same way
 on every backend; what a backend cannot do (for example `mkdir()` over plain
-HTTP, or any write to a `github:` path) raises `NotImplementedError`. The
+HTTP, or any write to a `data:` path) raises `NotImplementedError`. The
 per-scheme capabilities are in [Schemes](guides/schemes.md).
 
 ## Where to go next

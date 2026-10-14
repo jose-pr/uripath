@@ -9,8 +9,9 @@ Where a backend lacks a primitive, the operation raises
 unavailable or the target is elsewhere.
 
 `URIPath("scheme://...")` returns the class registered for the scheme. None of
-the schemes below needs a third-party client library. `sftp:`, `s3:`, `gs:`
-and `az:` are provided by other distributions (see "Other distributions").
+the schemes below needs a third-party client library. `sftp:`, `s3:`, `gs:`,
+`az:`, `repo:`, `github:` and `gitlab:` are provided by other distributions (see
+"Other distributions").
 
 ## Capability matrix
 
@@ -24,12 +25,9 @@ and `az:` are provided by other distributions (see "Other distributions").
 | `ftp:` / `ftps:` (`FTPURIPath`) | Yes | Yes | Yes (`APPE`) | Yes | Yes | Yes | Yes | `SITE CHMOD`, if the server has it |
 | `http:` / `https:` (`HTTPURIPath`) | Yes | Yes (`PUT`) | Yes (rewrite or `PATCH`) | Yes (HTML index) | No | Yes (`DELETE`) | No | No |
 | `dav:` / `davs:` (`DAVURIPath`) | Yes | Yes | No | Yes (`PROPFIND`) | Yes (`MKCOL`) | Yes | Yes (`MOVE`) | No |
-| `github:` (`GitHubURIPath`) | Yes | No | No | Yes | No | No | No | No |
-| `gitlab:` (`GitLabURIPath`) | Yes | No | No | Yes | No | No | No | No |
-| `git:` / `git+github:` / `git+gitlab:` | As `github:`/`gitlab:` |  |  |  |  |  |  |  |
 
 `stat()` works everywhere. `st_mtime` is real on every implementation except
-`data:` and `github:`/`gitlab:`, where it is `0`. `readlink()` is implemented
+`data:`, where it is `0`. `readlink()` is implemented
 by the archive schemes; no scheme in this package implements `symlink_to()`.
 
 ## Common behavior
@@ -40,7 +38,7 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
   `TimeoutError`. Transport exceptions are not chained, because their text
   can carry credentials.
 - **Credentials** in a URI are redacted from `str()`/`repr()` (the password;
-  for `github:`/`gitlab:`/`git:` the whole userinfo). A backend (session,
+  for `repo:`/`github:`/`gitlab:` the whole userinfo). A backend (session,
   connection, token) is reused only for the same scheme, userinfo, host and
   port, so joining a path onto another host never sends it there.
 - **`rename()`** stays on one endpoint: a target on another host
@@ -136,7 +134,7 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
 
 ### Transports
 
-`http:`, `dav:`, `github:`, `gitlab:` and `git:` send through a **transport**:
+`http:` and `dav:` send through a **transport**:
 any object with `send(method, url, *, headers, body=None, timeout,
 stream=False)` returning an `HTTPResponse`, and `close()`: the contract of
 [`pathlib_next.http`](https://jose-pr.github.io/pathlib-next/api/http/). The
@@ -206,6 +204,7 @@ without it; the first operation that needs the server (`stat()`, `exists()`,
 | `s3:` | `pip install "objpath[s3]"` |
 | `gs:` | `pip install "objpath[gs]"` |
 | `az:` | `pip install "objpath[az]"` |
+| `repo:`, `github:`, `gitlab:` | `pip install repopath` (read-only paths for GitHub and GitLab repositories) |
 | the `requests` HTTP transport | `pip install pathlib-next-requests` |
 
 ## Archives
@@ -273,46 +272,8 @@ need no URI: `ZipPath("index.html", archive="/backups/site.zip")`.
   filenames on POSIX; copying or extracting it onto a Windows path is what
   refuses it. Exception types are the POSIX ones on every platform.
 
-## Git hosting
-
-**`github:`/`gitlab:`** (`<scheme>://host/owner/repo/path/in/repo?ref=<ref>`)
-are read-only views of a repository over the REST APIs, sent through the
-HTTP transport.
-
-- `ref` (branch, tag or SHA) is optional and carried to every child path.
-  Without it, `github:` uses the default branch server-side; `gitlab:` looks
-  the default branch up once per backend.
-- `host` defaults to `github.com`/`gitlab.com`. Another host is GitHub
-  Enterprise (`https://{host}/api/v3`) or self-hosted GitLab
-  (`https://{host}/api/v4`); `RepoBackend(api_base=...)` overrides the API
-  root. A GitLab project in a subgroup uses GitLab's separator:
-  `gitlab://host/group/subgroup/project/-/path`.
-- Authentication: `RepoBackend(token=...)`, or the token in the URI userinfo,
-  as the password (`github://x-access-token:TOKEN@github.com/owner/repo`) or
-  bare (`github://TOKEN@github.com/...`). These schemes redact the whole
-  userinfo from `str()`, `repr()`, `as_posix()` and error messages. A token
-  sent over plain `http://` to a host other than loopback (an `api_base` you
-  set) is still sent, with an `InsecureTransportWarning`.
-- Owner, repository and every path segment are percent-encoded into the API
-  URL, and a `.` or `..` segment (made with `with_name("..")`, say) raises
-  `ValueError` rather than leaving the repository's API root.
-- Requests time out after `(10, 60)` seconds (`RepoBackend(timeout=...)`).
-  Rate-limit replies raise `OSError(EAGAIN)`.
-- GitHub listings come from the contents API (with its type and size) and
-  switch to the Git Trees API for directories at its 1,000-entry cap; file
-  bodies use the raw media type. GitLab's tree listing has no sizes, so file
-  entries are `stat()`ed on demand (a `HEAD` request, no file content).
-  Symlinks and submodules read as plain files. Git has no empty directories.
-- A reply that is not the shape the API documents (a proxy's HTML page,
-  `null`, a truncated body, an array where an object belongs) raises
-  `OSError` (`EIO`) naming the path; `exists()` is `False`.
-- **`git:`** detects the provider for `github.com` and `gitlab.com` only;
-  other hosts raise `URISyntaxError` and need `github:`/`gitlab:` or the pinned
-  `git+github:`/`git+gitlab:` forms.
-
 See [Divergences from pathlib](../divergences.md) for the reasons behind these
 choices. Every class and backend signature is in the API reference:
 [`file:`/`data:`](../api/schemes/local.md),
 [`http:`/`dav:`](../api/schemes/http.md), [`ftp:`](../api/schemes/ftp.md),
-[archives](../api/schemes/archive.md) and
-[`github:`/`gitlab:`/`git:`](../api/schemes/git.md).
+and [archives](../api/schemes/archive.md).
