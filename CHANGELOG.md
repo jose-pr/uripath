@@ -31,23 +31,15 @@ do about it.
   lists the four, and `URIPath.scheme_class()` raises the same error for them.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
-- `uripath.transports`: `names()` lists the HTTP transports without importing
-  them and `get(name)` returns the class of one. A distribution provides a
-  transport by declaring an entry point in the `uripath.http_transports` group
-  (`uripath-http-requests` declares `requests`); `builtin` is always the
-  built-in `HTTPTransport`, and an entry of that name is ignored.
-  `URIPATH_HTTP_TRANSPORT` accepts any name `names()` lists.
-- `uripath.transports.prepare_request()` applies the checks of the transport
-  contract and the body framing of the built-in transport to the arguments of
-  `send()`, for a transport that another distribution provides, and
-  `HTTPResponse.buffered()` reads the rest of a body into memory and closes the
-  connection, which is what `send(stream=False)` returns.
-- `python -m uripath.testing --http-transports NAME` runs the tests that this
-  package runs over its own HTTP transport (`http:`, `dav:`, `github:` and
-  `gitlab:` over loopback servers, and the transport contract at the byte
-  level) over the transport that an installed distribution declares under
-  `NAME`. The test modules ship in the wheel, in `uripath/testing/suite`;
-  `uripath.testing.suite_directory()` returns their directory.
+- `http:`, `https:`, `dav:`, `davs:`, `github:` and `gitlab:` send through the
+  HTTP client and transport of `pathlib_next.http`, which `uripath` does not
+  copy: `HTTPTransport`, `HTTPResponse`, the transport contract, the rules for
+  redirects and credentials, the cap on a reply read whole
+  (`pathlib_next.http.MAX_REPLY_BYTES`), `PATHLIB_NEXT_HTTP_TRANSPORT` and the
+  entry-point group `pathlib_next.http_transports` all live there, and so does
+  `python -m pathlib_next.http.testing --http-transports NAME`, the suite that a
+  distribution providing a transport runs over it. `HTTPBackend` and
+  `RepoBackend` are `pathlib_next.http.HTTPClient`s that add what a path needs.
 - `uripath.exceptions`: `URIPathError`, the base of what this package raises
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).
@@ -59,8 +51,9 @@ do about it.
   managers: `close()` closes the control connection every thread holds to the
   servers of that backend, may be called twice, and a later use connects
   again. Leaving a `with` block calls it.
-- Building an `HTTPTransport` or an `FTPURIBackend` with `verify=False` and no
-  `ssl_context` logs a warning on the `uripath` logger each time.
+- Building an `FTPURIBackend` with `verify=False` and no `ssl_context` logs a
+  warning on the `uripath` logger each time (an `HTTPTransport` does the same on
+  the `pathlib_next` logger).
 - `uripath.as_path(text)` returns the `URIPath` or `LocalPath` that command-line
   style text names (`C:/data`, `12:30.txt` and `notes:draft` are local paths;
   `ftp://h/x` and `data:,abc` are URIs), and `uripath.copy_stream(source,
@@ -107,8 +100,8 @@ do about it.
   | `schemes.ftp.DEFAULT_TIMEOUT`, `IDLE_PROBE_SECONDS`; `schemes.archive.MAX_LINKS`, `LinkTarget` | `pathlib_next.ftp` and `pathlib_next.archive`, which define them |
   | `schemes.http.HttpPath`, `HttpBackend` | `uripath.schemes.HTTPURIPath`, `HTTPBackend` |
   | `schemes.http.HttpWriteStream`, `HttpAppendStream` | `uripath.schemes.HTTPWriteStream`, `HTTPAppendStream` |
-  | `schemes.http.HTTPTransport`, `HTTPResponse` | `uripath.schemes.HTTPTransport`, `HTTPResponse` |
-  | `schemes.http.MAX_LISTING_BYTES` | `uripath.schemes.MAX_LISTING_BYTES` (assign it there) |
+  | `schemes.http.HTTPTransport`, `HTTPResponse` | `pathlib_next.http.HTTPTransport`, `HTTPResponse` |
+  | `schemes.http.MAX_LISTING_BYTES` | `pathlib_next.http.MAX_REPLY_BYTES` (assign it there) |
   | `schemes.http.DEFAULT_TIMEOUT` | none: the default is the `timeout=` of the backend, `(10, 60)` |
   | `schemes.archive._base.MEMBER_SPOOL_BYTES` | `uripath.schemes.MEMBER_SPOOL_BYTES` |
   | `schemes.dav.DavPath` | `uripath.schemes.DAVURIPath` |
@@ -117,9 +110,8 @@ do about it.
   | `schemes.git.GitPath`, `GitHubGitPath`, `GitLabGitPath` | `uripath.schemes.GitURIPath`, `GitHubGitURIPath`, `GitLabGitURIPath` |
   | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `uripath.exceptions.InsecureTransportWarning` |
   | `schemes.sftp`, `schemes.s3`, `schemes.gs`, `schemes.az` and the classes in them | the distributions `uripath-sftp` and `uripath-objstore`, which name their own classes |
-  | `schemes.http.RequestsTransport` | the distribution `uripath-http-requests` |
+  | `schemes.http.RequestsTransport` | the distribution `pathlib-next-requests` |
   | `pathlib_next.tools.uripath`: `main(argv, *, stdin, stdout, stderr)`, `build_parser()` | `uripath.cli.main(argv=None)`; no parser to build |
-  | `PATHLIB_NEXT_HTTP_TRANSPORT` | `URIPATH_HTTP_TRANSPORT` |
   | `PATHLIB_NEXT_SFTP_BACKEND` | `URIPATH_SFTP_BACKEND`, read by `uripath-sftp` |
   | the entry-point group `pathlib_next.schemes` | `uripath.schemes` |
   | the script `uripath = pathlib_next.tools.uripath:main` | `uripath = uripath.cli:main`, which needs the `cli` extra; `python -m uripath` runs it too |
@@ -134,7 +126,7 @@ do about it.
   | Was | Install now |
   | --- | --- |
   | `pathlib-next[uri]` | `uripath` |
-  | `pathlib-next[http]` | `uripath`; add `uripath-http-requests` only for a `requests.Session` or `URIPATH_HTTP_TRANSPORT=requests` |
+  | `pathlib-next[http]` | `uripath`; add `pathlib-next-requests` only for a `requests.Session` or `PATHLIB_NEXT_HTTP_TRANSPORT=requests` |
   | `pathlib-next[sftp]` | `uripath-sftp[paramiko]` |
   | `pathlib-next[sftp-async]` | `uripath-sftp[asyncssh]` |
   | `pathlib-next[s3]`, `[gs]`, `[az]` | `uripath-objstore[s3]`, `[gs]`, `[az]` |
@@ -264,20 +256,17 @@ do about it.
   `ValueError`. Both derive from `URIPathError`; a caller's bad argument stays a
   plain `ValueError` or `TypeError`. What to do: nothing; catch `URIPathError`
   to catch what the package raises on its own.
-- `PATHLIB_NEXT_HTTP_TRANSPORT` is not read, so a process that set it to
-  `requests` now builds the built-in transport. What to do: set
-  `URIPATH_HTTP_TRANSPORT` (`builtin` or `requests`).
 - Requests of `http:`, `dav:`, `github:` and `gitlab:` send
   `User-Agent: uripath/<version>` instead of `User-Agent: pathlib-next`; the
   version is `uripath.__version__`. A backend's `headers=` still replaces it.
 - A plugin registered in the `pathlib_next.schemes` entry-point group is not
   found. What to do: register it in `uripath.schemes`.
-- The `requests` HTTP transport is provided by `uripath-http-requests`.
+- The `requests` HTTP transport is provided by `pathlib-next-requests`.
   `HTTPURIPath.with_session()`, `RepoBackend(session=...)`, `RepoBackend(**requests_args)`
-  and `URIPATH_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
+  and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
   distribution without it, and a proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too. What to do: install
-  `uripath-http-requests` where one of them is used; with it installed they
+  `pathlib-next-requests` where one of them is used; with it installed they
   send through its transport and nothing else is configured.
 - `uritools` is not a dependency. The RFC 3986 split of a URI and its
   percent-encoding and -decoding are done on `urllib.parse`, with the results

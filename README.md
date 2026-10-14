@@ -36,8 +36,8 @@ The last four rows are other distributions: a path of one of those schemes
 builds, joins and prints without it, and its first use of the server raises an
 `ImportError` that names what to install. The `requests` HTTP transport
 (`with_session()`, `~/.netrc`, SOCKS proxies) is the distribution
-`uripath-http-requests`: once it is installed, `with_session()` and
-`URIPATH_HTTP_TRANSPORT=requests` use it, with nothing to configure.
+`pathlib-next-requests`: once it is installed, `with_session()` and
+`PATHLIB_NEXT_HTTP_TRANSPORT=requests` use it, with nothing to configure.
 
 Every scheme gets `glob()`, `walk()`, `copy()`/`move()`, `rm()` and `PathSyncer`
 from the `pathlib-next` base classes. The per-scheme notes (timeouts,
@@ -67,7 +67,7 @@ Requires `pathlib-next` and `netimps`, which pip installs with it.
 | `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
 | `pip install "uripath-sftp[paramiko]"` or `[asyncssh]` | `sftp:` |
 | `pip install "uripath-objstore[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
-| `pip install uripath-http-requests` | the `requests` HTTP transport |
+| `pip install pathlib-next-requests` | the `requests` HTTP transport |
 
 ## Quick start
 

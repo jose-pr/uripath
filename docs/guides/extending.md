@@ -176,37 +176,19 @@ replaceable transport.
 
 ## Provide an HTTP transport
 
-`http:`, `dav:`, `github:` and `gitlab:` send through a transport: any object with
-`send(method, url, *, headers, body=None, timeout, stream=False)` and `close()`
-(the contract is in the shipped header, "The transport contract"). A
-distribution provides one by declaring a class that is built with no arguments,
-so that installing it is enough:
-
-```toml
-[project.entry-points."uripath.http_transports"]
-mytransport = "mypackage:MyTransport"
-```
-
-`uripath.transports.names()` then lists `mytransport` without importing it,
-`URIPATH_HTTP_TRANSPORT=mytransport` makes every backend that was given no
-transport build `MyTransport()`, and `path.with_transport(MyTransport(...))`
-installs one by hand. The name `requests` is the one `path.with_session()` and
-`RepoBackend(session=...)` build, with the session as the first argument; the
-distribution `uripath-http-requests` provides it. `builtin` is always the
-built-in transport.
-
-`uripath.transports.prepare_request()` makes the checks every transport makes
-before it sends (a header or URL with a control character, credentials in the
-URL, the framing of a body under a `Content-Length` or chunked), so a transport
-that starts with it refuses what the built-in one refuses. Return
-`HTTPResponse(...).buffered()` for `stream=False`.
-
-To hold the transport to the same promises, run the tests that `uripath` runs
-over its own with your distribution installed:
-
-```bash
-python -m uripath.testing --http-transports mytransport -q
-```
+`http:`, `dav:`, `github:` and `gitlab:` send through a transport that
+`pathlib_next.http` defines: any object with `send(method, url, *, headers,
+body=None, timeout, stream=False)` and `close()`. A distribution provides one by
+declaring a class that is built with no arguments in the entry-point group
+`pathlib_next.http_transports`, so that installing it is enough; how, what
+`prepare_request()` checks for you and the suite that holds the transport to the
+same promises (`python -m pathlib_next.http.testing --http-transports NAME`) are
+in the `pathlib-next` documentation. `PATHLIB_NEXT_HTTP_TRANSPORT=mytransport`
+then makes every backend that was given no transport build `MyTransport()`, and
+`path.with_transport(MyTransport(...))` installs one by hand. The name `requests`
+is the one `path.with_session()` and `RepoBackend(session=...)` build, with the
+session as the first argument; the distribution `pathlib-next-requests` provides
+it.
 
 ## Testing your implementation
 

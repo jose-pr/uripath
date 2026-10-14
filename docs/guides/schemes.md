@@ -80,7 +80,7 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
   response raises `NotADirectoryError`, and an HTML file cannot be told apart
   from an index page. An index is read like a file: one that is cut short or
   stalls raises (`OSError` or `TimeoutError`) instead of listing part of it,
-  and one larger than `uripath.schemes.MAX_LISTING_BYTES` (8 MiB)
+  and one larger than `pathlib_next.http.MAX_REPLY_BYTES` (8 MiB)
   raises `OSError` (`EFBIG`); assign a larger number to list it. Configure it with
   `path.with_transport(transport, headers=None, timeout=(10, 60),
   write_method="PUT", append_mode="rewrite")`; the default transport is the
@@ -138,9 +138,10 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
 
 `http:`, `dav:`, `github:`, `gitlab:` and `git:` send through a **transport**:
 any object with `send(method, url, *, headers, body=None, timeout,
-stream=False)` returning an `HTTPResponse`, and `close()`. The library, not the
-transport, follows redirects, adds credentials and maps a status to an
-exception, so every transport behaves alike.
+stream=False)` returning an `HTTPResponse`, and `close()`: the contract of
+[`pathlib_next.http`](https://jose-pr.github.io/pathlib-next/api/http/). The
+library, not the transport, follows redirects, adds credentials and maps a
+status to an exception, so every transport behaves alike.
 
 - **`HTTPTransport`** (the default) is standard library only (`http.client`,
   `ssl`). `HTTPTransport(ssl_context=None, verify=True, proxies=None)`: `https:`
@@ -154,14 +155,15 @@ exception, so every transport behaves alike.
   when one cannot be reached; `KeyError` means direct. A proxy is a URL or an
   object with a `url`, so a proxy resolver of that shape works as it is. Only `http://`
   proxies are supported (`CONNECT` for `https:`); for SOCKS or an `https://`
-  proxy use the `requests` transport of `uripath-http-requests`.
-- **The `requests` transport** is provided by the `uripath-http-requests`
+  proxy use the `requests` transport of `pathlib-next-requests`.
+- **The `requests` transport** is provided by the `pathlib-next-requests`
   distribution (`~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi, SOCKS proxies,
   digest and NTLM authentication, cookies, mounted adapters). Once it is
-  installed, `path.with_session(...)` and `URIPATH_HTTP_TRANSPORT=requests` use
-  it; without it they raise an `ImportError` that names it.
-  `uripath.transports.names()` lists the transports, and a distribution adds
-  its own by declaring an entry point in the `uripath.http_transports` group.
+  installed, `path.with_session(...)` and `PATHLIB_NEXT_HTTP_TRANSPORT=requests`
+  use it; without it they raise an `ImportError` that names it.
+  `pathlib_next.http.transport_names()` lists the transports, and a distribution
+  adds its own by declaring an entry point in the `pathlib_next.http_transports`
+  group.
 
 ## FTP
 
@@ -204,7 +206,7 @@ without it; the first operation that needs the server (`stat()`, `exists()`,
 | `s3:` | `pip install "uripath-objstore[s3]"` |
 | `gs:` | `pip install "uripath-objstore[gs]"` |
 | `az:` | `pip install "uripath-objstore[az]"` |
-| the `requests` HTTP transport | `pip install uripath-http-requests` |
+| the `requests` HTTP transport | `pip install pathlib-next-requests` |
 
 ## Archives
 
