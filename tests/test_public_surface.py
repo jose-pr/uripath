@@ -54,14 +54,6 @@ DOCUMENTED = {
         "same_authority",
     },
     "uripath.query": {"Query", "QueryLike"},
-    "uripath.testing": {"HELPERS", "MODULES", "run", "suite_directory"},
-    "uripath.transports": {
-        "GROUP",
-        "PreparedRequest",
-        "get",
-        "names",
-        "prepare_request",
-    },
     "uripath.cli": {"main"},
     "uripath.schemes": {
         "ArchiveTarURIPath",
@@ -82,11 +74,8 @@ DOCUMENTED = {
         "GitURIPath",
         "HTTPAppendStream",
         "HTTPBackend",
-        "HTTPResponse",
-        "HTTPTransport",
         "HTTPURIPath",
         "HTTPWriteStream",
-        "MAX_LISTING_BYTES",
         "MEMBER_SPOOL_BYTES",
         "RepoBackend",
         "TarURIPath",
@@ -130,8 +119,6 @@ def test_every_public_module_declares_all_and_the_others_are_private():
         "uripath.query",
         "uripath.schemes",
         "uripath.source",
-        "uripath.testing",
-        "uripath.transports",
     ]
     has_duho = importlib.util.find_spec("duho") is not None
     for name in ["uripath", *public]:

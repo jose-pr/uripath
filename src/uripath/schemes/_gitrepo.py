@@ -9,25 +9,20 @@ import urllib.parse as _urlparse
 import warnings as _warnings
 
 from pathlib_next import providers as _providers
+from pathlib_next.http import (
+    DEFAULT_TIMEOUT,
+    HTTPClient,
+    HTTPResponse,
+    HTTPStatusError,
+    get_transport,
+    json_body,
+    peer_text,
+)
 from .._version import __version__
 from ..exceptions import InsecureTransportWarning
 from ..source import Source
 from ._path import URIPath
 from ..source import compose_host, fold_host
-from ._http import HTTPResponse, TransportOwner
-from ._http import _follow
-from ._http._headers import check_headers as _check_headers
-from ._http._headers import check_url as _check_url
-from ._http._headers import merge_headers as _merge_headers
-from ._http._headers import peer_text
-from ._http._status import HTTPStatusError as _HTTPStatusError
-from ._http._status import json_body as _json_body
-from ._http._status import too_large as _too_large
-
-DEFAULT_TIMEOUT = (10, 60)
-"""`(connect, read)` timeout, in seconds, `RepoBackend` sends with every
-request unless the caller supplies `timeout` (`RepoBackend(timeout=...)` or
-per request); `timeout=None` waits without a limit."""
 
 _UNSET = object()
 """The `timeout` of a call that did not give one: the backend's own."""
@@ -45,10 +40,10 @@ def _is_loopback(host: "str | None") -> bool:
         return False
 
 
-def _warn_if_plaintext(url: str, headers: dict) -> None:
+def _warn_if_plaintext(url: str, authorized: bool) -> None:
     if not url.lower().startswith("http://"):
         return
-    if not any(name.lower() == "authorization" for name in headers):
+    if not authorized:
         return
     host = _urlparse.urlsplit(url).hostname
     if _is_loopback(host):
@@ -86,18 +81,13 @@ def _rate_limit_error(response, path_obj) -> "OSError | None":
     )
 
 
-def _raise_for_status(resp: HTTPResponse) -> None:
-    if resp.status >= 400:
-        raise _HTTPStatusError(resp)
-
-
 @_contextlib.contextmanager
 def _translate_repo_errors(path_obj):
     # `from None`: a chained cause is printed by every traceback. The status
     # code or exception type stays in the message.
     try:
         yield
-    except _HTTPStatusError as e:
+    except HTTPStatusError as e:
         response = e.response
         status = response.status
         reason = peer_text(response.reason or "")
@@ -119,14 +109,6 @@ def _translate_repo_errors(path_obj):
         ) from None
 
 
-def _reply_limit() -> int:
-    """The most bytes of a reply the library reads whole: the limit a listing
-    has (`MAX_LISTING_BYTES`), read now so that assigning it applies."""
-    from ._http import _settings
-
-    return _settings.MAX_LISTING_BYTES
-
-
 class BaseRepoBackend(object):
     """Protocol for issuing an authenticated HTTP request against a
     GitHub/GitLab REST API. Subclass this to plug in custom auth/session
@@ -141,17 +123,18 @@ class BaseRepoBackend(object):
         """Send one request to the API and return its `HTTPResponse`."""
 
 
-class RepoBackend(TransportOwner, BaseRepoBackend):
+class RepoBackend(HTTPClient, BaseRepoBackend):
     """The transport and the optional bearer `token` sent on every request
     (mirrors `HTTPBackend`). Unauthenticated works fine for
     public repos, subject to the host's anonymous rate limit (60 req/h for
     github.com).
 
     `transport` is any object with a `send()` method as
-    `HTTPTransport.send()`; without one the built-in `HTTPTransport` is built
-    on first use (see `HTTPBackend`). `session=` (a `requests.Session`) and
-    `requests_args` (`verify=`, `proxies=`, ...) select the `requests`
-    transport of `uripath-http-requests`; without it they raise `ImportError`.
+    `pathlib_next.http.HTTPTransport.send()`; without one the built-in
+    `HTTPTransport` is built on first use (see `HTTPBackend`). `session=` (a
+    `requests.Session`) and `requests_args` (`verify=`, `proxies=`, ...) select
+    the `requests` transport of `pathlib-next-requests`; without it they raise
+    `ImportError`.
     `headers` go with every request, under the request's own.
     `api_base`, when set, overrides the scheme's convention-derived API root
     entirely (e.g. `https://api.github.com`/`https://{host}/api/v3`) -- the
@@ -164,7 +147,7 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
     redirects as `HTTPBackend` does, dropping the token when the host
     changes."""
 
-    __slots__ = ("token", "api_base", "headers", "timeout", "cache")
+    __slots__ = ("token", "api_base", "cache")
 
     def __init__(
         self,
@@ -180,14 +163,15 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         if session is not None or requests_args:
             if transport is not None:
                 raise TypeError("give a transport, or a session and its arguments")
-            from .. import transports
-
-            transport = transports.get("requests")(session, **requests_args)
-        super().__init__(transport)
+            transport = get_transport("requests")(session, **requests_args)
+        super().__init__(
+            transport,
+            headers=headers,
+            timeout=timeout,
+            user_agent=f"uripath/{__version__}",
+        )
         self.token = token or None
         self.api_base = api_base.rstrip("/") if api_base else None
-        self.headers = dict(headers or {})
-        self.timeout = timeout
         # Generic per-backend memoization slot for schemes that need it
         # (GitLabURIPath's resolved default-branch lookup, see `_resolved_ref`)
         # -- shared across every path instance that shares this backend.
@@ -207,45 +191,26 @@ class RepoBackend(TransportOwner, BaseRepoBackend):
         timeout=_UNSET,
         stream=False,
     ) -> HTTPResponse:
-        sent = _merge_headers(
-            {"User-Agent": f"uripath/{__version__}", "Accept": "*/*"},
-            self.headers,
-            headers,
+        sent = dict(headers or {})
+        authorized = bool(self.token) or any(
+            name.lower() == "authorization" for name in (*self.headers, *sent)
         )
-        if self.token:
-            sent.setdefault("Authorization", f"Bearer {self.token}")
-        _warn_if_plaintext(url, sent)
         if params:
             query = _urlparse.urlencode(
                 [(k, v) for k, v in dict(params).items() if v is not None], doseq=True
             )
             if query:
                 url = url + ("&" if "?" in url else "?") + query
-        _check_url(url)
-        _check_headers(sent)
-        if timeout is _UNSET:
-            timeout = self.timeout
-        transport = self.transport
-        # Streamed from the transport and, unless the caller asked to read it,
-        # held in memory only up to the limit a listing has.
-        if method.upper() in _follow.FOLLOWED_METHODS and data is None:
-            resp = _follow.send_following(
-                transport, method, url, headers=sent, timeout=timeout, stream=True
-            )
-        else:
-            resp = _follow.send_once(
-                transport,
-                method,
-                url,
-                headers=sent,
-                body=data,
-                timeout=timeout,
-                stream=True,
-            )
-        if not stream:
-            limit = _reply_limit()
-            resp._buffered(limit, _too_large(_follow.shown(url), limit))
-        return resp
+        _warn_if_plaintext(url, authorized)
+        return super().request(
+            method,
+            url,
+            data=data,
+            headers=sent,
+            stream=stream,
+            timeout=self.timeout if timeout is _UNSET else timeout,
+            auth=f"Bearer {self.token}" if self.token else None,
+        )
 
 
 class _RepoAPIPath(URIPath):
@@ -311,7 +276,7 @@ class _RepoAPIPath(URIPath):
         `null`, a truncated body -- is `OSError(EIO)` naming this path, so
         `exists()` answers `False` and `stat()` raises."""
         try:
-            data = _json_body(resp, _reply_limit(), self)
+            data = json_body(resp, self)
         except ValueError:
             data = None
         if not isinstance(data, expected):

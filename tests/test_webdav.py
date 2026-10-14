@@ -6,7 +6,8 @@ PUT/DELETE/MKCOL/MOVE.
 import pytest
 
 from http_fakes import FakeTransport, reply
-from uripath.schemes import HTTPBackend, HTTPResponse
+from pathlib_next.http import HTTPResponse
+from uripath.schemes import HTTPBackend
 from uripath.schemes import DAVURIPath
 
 

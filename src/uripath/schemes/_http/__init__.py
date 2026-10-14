@@ -1,18 +1,5 @@
-"""HTTP on a replaceable transport, for `http:`, `dav:`, `github:` and
-`gitlab:`. Private: the public names are exported by `uripath.schemes`."""
+"""HTTP for `http:` and `dav:` (and the REST clients of `github:` and `gitlab:`),
+on the transport of `pathlib_next.http`. Private: the public names are exported
+by `uripath.schemes`."""
 
 from __future__ import annotations
-
-from ._builtin import HTTPTransport
-from ._headers import Headers
-from ._response import HTTPResponse
-from ._select import TRANSPORT_ENV, TransportOwner, default_transport
-
-__all__ = [
-    "HTTPResponse",
-    "HTTPTransport",
-    "Headers",
-    "TRANSPORT_ENV",
-    "TransportOwner",
-    "default_transport",
-]

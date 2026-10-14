@@ -1,7 +1,9 @@
 # `http:` and `dav:`
 
-Both run on the standard library, through a transport that can be replaced
-(`HTTPTransport` by default).
+Both run on the standard library, through a transport that can be replaced.
+The transport (`HTTPTransport` by default), `HTTPResponse` and the rules for
+redirects and credentials are those of `pathlib_next.http`; see its
+documentation.
 
 ::: uripath.schemes.HTTPURIPath
     options:
@@ -10,15 +12,11 @@ Both run on the standard library, through a transport that can be replaced
 
 ::: uripath.schemes.HTTPBackend
 
-::: uripath.schemes.HTTPTransport
-
-::: uripath.schemes.HTTPResponse
-
 ::: uripath.schemes.HTTPWriteStream
 
 ::: uripath.schemes.HTTPAppendStream
 
 ::: uripath.schemes.DAVURIPath
 
-`uripath.schemes.MAX_LISTING_BYTES` (8 MiB) bounds a reply the backend reads
+`pathlib_next.http.MAX_REPLY_BYTES` (8 MiB) bounds a reply the backend reads
 whole, such as a directory index; assign a larger number to allow more.

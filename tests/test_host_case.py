@@ -224,26 +224,6 @@ def test_a_file_uri_on_localhost_is_a_local_path_in_any_case(host, tmp_path):
     assert path.read_text() == "x"
 
 
-def test_proxy_rules_see_the_host_in_lower_case(monkeypatch):
-    from uripath.schemes._http._headers import check_url
-    from uripath.schemes._http._proxies import proxies_for
-
-    monkeypatch.setenv("http_proxy", "http://proxy.example:3128")
-    monkeypatch.setenv("no_proxy", "NASA.Example,.Internal")
-    for url in (
-        "http://NASA.EXAMPLE/x",
-        "http://nasa.example/x",
-        "http://A.INTERNAL/x",
-    ):
-        target = check_url(url)
-        assert target.host == target.host.lower()
-        assert proxies_for(None, url, target.scheme, target.host) == [None]
-    other = check_url("http://Other.Example/x")
-    assert [
-        p.host for p in proxies_for(None, "http://Other.Example/x", "http", other.host)
-    ] == ["proxy.example"]
-
-
 # --- the connection cache -------------------------------------------------------------
 
 

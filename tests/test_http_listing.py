@@ -11,7 +11,7 @@ import pytest
 
 from http_fakes import is_client_error, on_current_transport, spy_on_sends
 from uripath import URIPath
-from uripath import schemes as http_module
+import pathlib_next.http as core_http
 
 TIMEOUT = (5, 30)
 STALL_TIMEOUT = (5, 0.3)
@@ -187,12 +187,12 @@ def test_undecodable_index_body_is_an_oserror_naming_the_path(site):
 # --- a listing body is capped ---
 
 
-def test_listing_cap_is_a_documented_module_constant():
-    assert http_module.MAX_LISTING_BYTES == 8 * 1024 * 1024
+def test_listing_cap_is_the_reply_cap_of_the_http_package():
+    assert core_http.MAX_REPLY_BYTES == 8 * 1024 * 1024
 
 
 def test_index_over_the_cap_raises_before_it_is_read(site, monkeypatch):
-    monkeypatch.setattr(http_module, "MAX_LISTING_BYTES", len(INDEX) - 1)
+    monkeypatch.setattr(core_http, "MAX_REPLY_BYTES", len(INDEX) - 1)
     site.on("GET", "/d/", (200, {"Content-Type": "text/html"}, INDEX))
     with pytest.raises(OSError) as raised:
         list(_http(site, "/d/").iterdir())
@@ -201,7 +201,7 @@ def test_index_over_the_cap_raises_before_it_is_read(site, monkeypatch):
 
 
 def test_unsized_index_over_the_cap_raises_while_reading(site, monkeypatch):
-    monkeypatch.setattr(http_module, "MAX_LISTING_BYTES", 1000)
+    monkeypatch.setattr(core_http, "MAX_REPLY_BYTES", 1000)
 
     def chunked(handler):
         handler.send_response(200)
@@ -220,7 +220,7 @@ def test_unsized_index_over_the_cap_raises_while_reading(site, monkeypatch):
 
 
 def test_index_of_exactly_the_cap_is_listed(site, monkeypatch):
-    monkeypatch.setattr(http_module, "MAX_LISTING_BYTES", len(INDEX))
+    monkeypatch.setattr(core_http, "MAX_REPLY_BYTES", len(INDEX))
     site.on("GET", "/d/", (200, {"Content-Type": "text/html"}, INDEX))
     names = [p.name for p in _http(site, "/d/").iterdir()]
     assert len(names) == 100

@@ -12,14 +12,18 @@ from pathlib_next.providers import check_follow
 from .._uri import URI
 from ..source import compose_uri
 from . import _httpdate
-from ._http import _settings
-from ._http._errors import _path_error, _server_size, _translate_http_errors
-from ._http._follow import split_userinfo as _split_userinfo
-from ._http._headers import _IDENTITY_ENCODING, peer_text
+from pathlib_next.http import (
+    drop_body,
+    os_error,
+    peer_text,
+    raise_for_status,
+    read_limited,
+    server_size,
+    split_userinfo,
+    translate_errors,
+)
+from ._http._headers import _IDENTITY_ENCODING
 from ._http._path import HTTPURIPath
-from ._http._status import drop_body as _drop_body
-from ._http._status import raise_for_status as _raise_for_status
-from ._http._status import read_limited as _read_limited
 from ._http._streams import _EXCLUSIVE_CREATE, _UploadStream, _response_reader
 
 _NS = {"D": "DAV:"}
@@ -66,7 +70,7 @@ def _parse_response(elem) -> "tuple[str, bool, int, str]":
     )
     size_elem = _find_prop(props, "D:getcontentlength")
     # A missing, non-numeric or negative length is no size.
-    size = _server_size(size_elem.text if size_elem is not None else None) or 0
+    size = server_size(size_elem.text if size_elem is not None else None) or 0
     lm_elem = _find_prop(props, "D:getlastmodified")
     lm = lm_elem.text if lm_elem is not None else None
     # Still percent-encoded: decoding before `urlsplit()` would read a
@@ -118,9 +122,7 @@ def _raise_for_multistatus(resp, path) -> None:
     """RFC 4918 9.6.1/9.9.4: DELETE and MOVE answer 207 when a member of
     the collection could not be processed -- a partial failure, not a
     success."""
-    failures = _multistatus_failures(
-        _read_limited(resp, _settings.MAX_LISTING_BYTES, path)
-    )
+    failures = _multistatus_failures(read_limited(resp, path))
     if failures == []:
         return
     detail = (
@@ -193,7 +195,7 @@ class DAVURIPath(HTTPURIPath):
     def _dav_request(self, method, *, statuses=None, keep=False, **kwargs):
         """Send `method` to this resource with pathlib exception types:
         `statuses` maps a status code to the exception class raised for it
-        (called with `self`), ahead of `_translate_http_errors`' generic
+        (called with `self`), ahead of `translate_errors`' generic
         mapping; a 207 to DELETE/MOVE raises for its failed members; 423
         Locked is a PermissionError. The body of the reply is dropped (see
         `drop_body`) unless `keep`, when the caller reads it."""
@@ -204,23 +206,23 @@ class DAVURIPath(HTTPURIPath):
             423: PermissionError,
             **(statuses or {}),
         }
-        with _translate_http_errors(self):
+        with translate_errors(self):
             resp = self.backend.request(method, self._wire_uri(), stream=True, **kwargs)
             try:
                 error = statuses.get(resp.status)
                 if error is not None:
                     if isinstance(error, type):
                         # `(errno, strerror, filename)`, as pathlib raises it.
-                        raise _path_error(error, self)
+                        raise os_error(error, self)
                     raise error(self)
                 if resp.status == 207 and method in ("DELETE", "MOVE"):
                     _raise_for_multistatus(resp, self)
-                _raise_for_status(resp)
+                raise_for_status(resp)
             except BaseException:
-                _drop_body(resp, _settings.MAX_LISTING_BYTES)
+                drop_body(resp)
                 raise
         if not keep:
-            _drop_body(resp, _settings.MAX_LISTING_BYTES)
+            drop_body(resp)
         return resp
 
     def _propfind(self, depth="0"):
@@ -235,7 +237,7 @@ class DAVURIPath(HTTPURIPath):
             data=_PROPFIND_BODY,
             keep=True,
         )
-        body = _read_limited(resp, _settings.MAX_LISTING_BYTES, self)
+        body = read_limited(resp, self)
         try:
             root = _ET.fromstring(body)
         except _ET.ParseError:
@@ -443,14 +445,14 @@ class DAVURIPath(HTTPURIPath):
         # No userinfo in the header: the credentials already travel as `auth=` and a
         # header value ends up in server and proxy logs. No fragment either: a server
         # does not resolve it.
-        dest = _split_userinfo(moved.with_fragment("")._wire_uri())[0]
+        dest = split_userinfo(moved.with_fragment("")._wire_uri())[0]
         self._dav_request(
             "MOVE",
             headers={"Destination": dest, "Overwrite": "F"},
             statuses={
                 # 409: the destination's parent collection is missing.
-                409: lambda _self: _path_error(FileNotFoundError, target),
-                412: lambda _self: _path_error(FileExistsError, target),
+                409: lambda _self: os_error(FileNotFoundError, target),
+                412: lambda _self: os_error(FileExistsError, target),
             },
         )
         # pathlib returns the new path.

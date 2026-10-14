@@ -11,19 +11,20 @@ documents them. The root `uripath` exports `URI`, `URIPath`, `URILike`,
 `Source`, `Query`, `QueryLike`, the functions `as_path` and `copy_stream`, the
 errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and
 `__version__`; the other public modules are
-`uripath.source`, `uripath.query`, `uripath.exceptions`, `uripath.schemes`
+`uripath.source`, `uripath.query`, `uripath.exceptions` and `uripath.schemes`
 (the contract a scheme implements, the registry, and the names every scheme
-exports) and `uripath.transports` (the HTTP transports that exist, and what a
-new one starts from). A module or name that starts with an underscore is private and
-nothing there is contract: every scheme lives in a private module.
+exports). The HTTP transport that `http:` and `dav:` send through is
+`pathlib_next.http`, documented in the `pathlib-next` header. A module or name
+that starts with an underscore is private and nothing there is contract: every
+scheme lives in a private module.
 
 `pip install uripath`. Required dependencies: `pathlib-next>=0.10.0,<0.11` and
 `netimps>=0.4.0,<0.5`; parsing and percent-coding use only the standard library
 (`urllib.parse`), and `netimps` is imported where it is used. The one extra, `cli`
 (`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
 in this package runs on the standard library and on `pathlib_next`. `sftp:`,
-`s3:`, `gs:` and `az:` and the `requests` HTTP transport are provided by other
-distributions ("Provided by other distributions").
+`s3:`, `gs:` and `az:` are provided by other distributions ("Provided by other
+distributions"), and so is the `requests` HTTP transport.
 
 `uripath.__version__` is the version of the installed distribution, read from
 its metadata. The rendered documentation is at
@@ -496,172 +497,56 @@ class HTTPWriteStream(BytesIO):
 class HTTPAppendStream(BytesIO):
     def discard(self) -> None: ...
 
-MAX_LISTING_BYTES = 8388608
 ```
 
-HTTP needs no library: a path sends through a
-**transport**, by default the built-in `HTTPTransport` on `http.client`.
+HTTP needs no library: a path sends through a **transport**, by default the
+built-in `HTTPTransport` on `http.client`. The transport contract, `HTTPResponse`,
+`HTTPTransport` (TLS, connection reuse, the `proxies=` provider), the rules for
+redirects and for `Authorization`, the cap on a reply read whole
+(`pathlib_next.http.MAX_REPLY_BYTES`) and the way a failed request becomes an
+`OSError` are those of `pathlib_next.http`, documented in the `pathlib-next`
+header under "HTTP requests". This section is what the paths add.
 
-```python
-class HTTPTransport:
-    def __init__(self, *, ssl_context=None, verify=True, proxies=None): ...
-    def send(
-        self, method, url, *, headers, body=None, timeout, stream=False,
-    ): ...
-    def close(self): ...
-
-class HTTPResponse:
-    status: int
-    reason: str
-    headers: Mapping[str, str]
-    url: str
-    def __init__(
-        self, status, reason, headers, url, body=b"", *, decode=True,
-    ): ...
-    def read(self, size=-1): ...
-    def iter_bytes(self, chunk_size=65536): ...
-    def buffered(self): ...
-    def close(self): ...
-```
-
-- **The transport contract.** Any object with `send(method, url, *, headers,
-  body=None, timeout, stream=False) -> HTTPResponse` and `close()` is a
-  transport (a context manager is optional). `send()` makes exactly one
-  request: it follows no redirect, adds no credentials and retries nothing
-  but what is stated below. `body` is `None`, `bytes`, a binary file or an
-  iterable of `bytes` (never `str`: `TypeError`). A body is sent under a
-  `Content-Length` when its length is known without reading it: `bytes`, a
-  list or tuple of `bytes`, a file that is seekable (the bytes from `tell()`
-  to its end, the position restored) and a regular file (its size less
-  `tell()`). Any other body (an iterator, a generator, a pipe or another
-  stream that cannot report its size) is sent `Transfer-Encoding: chunked`.
-  Both transports send the same. A `Content-Length` in `headers` is trusted:
-  that many bytes are sent and nothing is chunked, a longer body is cut
-  there, a count that is not a number or is larger than a body whose length
-  is known is `ValueError` before anything is sent, and a body that runs out
-  first is `OSError(EIO)` with its connection closed. No body is sent past
-  its length (a file that grew after it was measured is cut there). A file or
-  iterator is never rewound and never sent twice, whatever its length is
-  known to be. `timeout` is seconds, a
-  `(connect, read)` pair or `None` (no limit); the read half bounds each wait
-  on the server, not the whole reply. With `stream=False` the body has been
-  read when `send()` returns; with `stream=True` it is read from the
-  response, which the caller closes (an unread rest of a body closes its
-  connection). A transport raises only `TimeoutError`, `ConnectionError`,
-  `ssl.SSLError`, `ValueError` (before anything is sent, for a header or URL
-  with a control character, a URL with credentials, or another scheme) or
-  else `OSError(EIO)`; no third-party exception and no URL or header value is
-  in its text. A reply below 200 is never the one `send()` returns:
-  `HTTPTransport` skips interim (1xx) replies, at most 8, and past that is
-  `OSError(EIO)` with its connection closed.
-- **`HTTPResponse`**: `status`, `reason`, `headers` (read-only, names compare
-  without case, a name sent twice reads as `"a, b"` and `headers.get_all()`
-  lists them), `url` (the URL requested, without fragment; an empty path is
-  `/`), `read(size=-1)`, `iter_bytes(chunk_size)`, `buffered()` (reads the
-  rest of the body into memory, closes the connection and returns the
-  response, which stays readable: what `send(stream=False)` returns), `close()`
-  and a context manager. A `gzip` or `deflate` body is decoded, in steps of at most 256
-  KiB of output per step, unless the request set an `Accept-Encoding` naming
-  a coding of its own (`identity` counts as none); `headers` stay as
-  received, so `Content-Length` counts the encoded bytes. A body that ends
-  before the length the server stated, a chunked body cut short, and a coded
-  body that is not valid are `OSError(EIO)`, never a shorter read. A
-  transport builds one from `bytes` or from an object with `read(amount)` and
-  `close()`; a fake transport in a test does the same.
-- **`HTTPTransport(ssl_context=None, verify=True, proxies=None)`** is
-  standard library only. `https:` is verified against `ssl_context`, else
-  against `ssl.create_default_context()` (the system trust store, not
-  certifi); `verify=False` is the one way to turn verification off (each
-  transport built with it logs a warning on the `uripath` logger), and
-  `ssl_context` wins over it. Each thread keeps one idle connection per
-  server (at most 8, closed when the thread ends or on `close()`), reused for
-  its next request unless the server has closed it or sent bytes on it since
-  (checked before anything is sent). A request that fails before any byte of a reply on a
-  reused connection that the server had closed is sent once more on a new
-  connection **only** if it is `GET`, `HEAD`, `OPTIONS`, `PUT`, `DELETE` or
-  `PROPFIND` and its body is `None` or in memory; any other request uses an
-  idle connection only if it carried a reply within the last second. A
-  timeout is never retried. `stream=False` holds the whole body in memory;
-  read a body that may be large with `stream=True`.
-- **Proxies.** `proxies=None` reads the environment (`HTTP_PROXY`,
-  `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, through `urllib.request`, which
-  matches names and suffixes in `NO_PROXY`; a CIDR block there, such as
-  `10.0.0.0/8` or `fd00::/8`, also sends an IP-literal host direct, and a
-  host name is never resolved to be matched against one).
-  Otherwise `proxies` is indexed with the request URL (no fragment): it
-  returns `None` (direct), one proxy, or an iterable of them to try in order
-  when a connection cannot be made (`None` in the order is a direct
-  attempt, and an empty iterable is direct as well); `KeyError` means direct
-  and the environment is not read; `{}` sends everything direct (unlike
-  other clients, which still read the environment); an exception of the
-  provider other than `KeyError` reaches the caller as it is. A proxy is a `str` URL or any object with a `url`
-  attribute, so a proxy resolver from another library works as it is, with
-  none imported here:
-
-  ```
-  class Resolver:  # tries the first proxy, then connects directly
-      def __getitem__(self, url):
-          return ["http://user:secret@proxy.example:3128", None]
-
-  transport = HTTPTransport(proxies=Resolver())
-  ```
-
-  A plain `dict` may use the keys the `requests` library
-  does (`"http"`, `"https"`, `"all"`, `"scheme://host"`). Only `http://`
-  proxies work: absolute-form requests for `http:` and `CONNECT` for
-  `https:`, with `Proxy-Authorization: Basic` from the proxy URL's userinfo
-  (sent to the proxy only); any other scheme (`socks5`, `https`) is
-  `OSError(EPROTONOSUPPORT)` naming the scheme and `uripath-http-requests`. A
-  proxy that refuses `CONNECT` is a `ConnectionError` and the next proxy is
-  not tried. Proxy credentials are in no message, `repr()` or traceback.
 - **Choosing the transport.** `path.with_transport(transport, headers=None,
   timeout=(10, 60), write_method="PUT", append_mode="rewrite")` installs a
-  backend over any transport (the caller closes it). `path.with_session(
-  session, write_method="PUT", append_mode="rewrite", **requests_args)` is the
-  same over a `requests.Session` (`None` makes a new one): `headers` and
-  `timeout` in `requests_args` are the backend's, the rest go to the `requests`
-  transport, which `uripath-http-requests` provides ("For transport
-  implementers"). Without that distribution the call raises `ImportError`
-  naming it. Without either, a path's backend builds the
-  built-in transport on first use (`HTTPBackend.close()` or leaving its
-  `with` block closes a transport the backend built); the environment variable
-  `URIPATH_HTTP_TRANSPORT` (`builtin`, or the name of an installed transport)
-  names that default for the process. `HTTPBackend(transport=None, *,
-  headers=None, timeout, write_method, append_mode)` is the backend a path holds.
+  backend over any transport (any object with `send()` and `close()` as that
+  contract says; the caller closes it). `path.with_session(session,
+  write_method="PUT", append_mode="rewrite", **requests_args)` is the same over
+  a `requests.Session` (`None` makes a new one): `headers` and `timeout` in
+  `requests_args` are the backend's, the rest go to the `requests` transport,
+  which the distribution `pathlib-next-requests` provides. Without that
+  distribution the call raises `ImportError` naming it. Without either, a
+  path's backend builds the built-in transport on first use (`HTTPBackend.close()`
+  or leaving its `with` block closes a transport the backend built); the
+  environment variable `PATHLIB_NEXT_HTTP_TRANSPORT` (`builtin`, or the name of an
+  installed transport) names that default for the process.
+  `HTTPBackend(transport=None, *, headers=None, timeout, write_method,
+  append_mode)` is the backend a path holds: a `pathlib_next.http.HTTPClient`
+  whose `request()` takes a path or a URL.
 - **What the backend does for every transport.** It follows redirects, adds
-  credentials and default headers (`User-Agent: uripath/<version>`, `Accept: */*`),
-  applies the default timeout, and maps a status to a pathlib exception.
-  `headers` given to the backend go with every request; request-specific
-  headers merge over them by name (case-blind). A header value or URL with a
-  control character (CR and LF included) is `ValueError`, before anything is
-  sent. A reply it needs whole (a PROPFIND's, a git API's JSON,
-  `request(stream=False)`'s) may be at most `MAX_LISTING_BYTES` after
-  decoding, however small it is on the wire: more is `OSError(EFBIG)` naming
-  the path, and the connection is closed. A reply whose body nobody looks at
-  (a write's, a DELETE's, an error's) is read up to that many bytes and
-  dropped, so its connection can be reused when the body was short. The
-  content of a file (`open("r")`, a git file) is not limited.
-- Timeout: `(10, 60)` seconds (connect, read) unless given;
-  `timeout=None` waits forever.
-- Redirects: `GET`/`HEAD`/`OPTIONS` follow up to 30 (a `303` becomes a
-  `GET`); a redirect whose `Location` is missing or that a request cannot be
-  sent to (another scheme, a port out of range, a host that is not a name) is
-  `OSError(EIO)` naming the status, never `ValueError`, which is reserved
-  for the caller's own URL and headers. A
-  redirect that changes the scheme, host or port drops `Authorization` for
-  every later hop, the asking again of `stat()`, `exists()`, `is_dir()`,
-  `unlink()`, `open("x")` and a patch-mode append included (also on a
-  redirect from `https:` to `http:`), and nothing else: headers
-  other than `Authorization` from `with_transport(headers=...)` (`X-Api-Key`,
-  a vendor token header, a cookie) are sent to the new host as well, even to
-  a plain `http:` one, so keep a secret in `Authorization`, or point the path
-  at the final URL. Every other request
-  (`PROPFIND`, `write_method`, `PATCH`, `DELETE`, `MKCOL`, `MOVE`) is sent
-  without following: a 307/308 (for `PROPFIND` also a 301, 302 or 303) to the
-  same scheme, host and port is re-sent once with the same method, headers
-  and body; any other 3xx, another origin or a second redirect raises
-  `OSError(EIO)` naming the status and the `Location` (userinfo and query
-  removed). A body that is not `bytes` cannot be re-sent, so it raises too.
+  credentials and default headers (`User-Agent: uripath/<version>`, `Accept:
+  */*`), applies the default timeout `(10, 60)` seconds (`timeout=None` waits
+  forever), and the path maps a status to a pathlib exception. `headers` given
+  to the backend go with every request; request-specific headers merge over them
+  by name (case-blind). A header value or URL with a control character (CR and
+  LF included) is `ValueError`, before anything is sent. A reply it needs whole
+  (a PROPFIND's, a git API's JSON, `request(stream=False)`'s) may be at most
+  `pathlib_next.http.MAX_REPLY_BYTES` after decoding, however small it is on the
+  wire: more is `OSError(EFBIG)` naming the path, and the connection is closed.
+  A reply whose body nobody looks at (a write's, a DELETE's, an error's) is read
+  up to that many bytes and dropped, so its connection can be reused when the
+  body was short. The content of a file (`open("r")`, a git file) is not limited.
+- Redirects: the rules are `pathlib_next.http`'s (`GET`/`HEAD`/`OPTIONS` follow
+  up to 30; a redirect that changes the scheme, host or port drops
+  `Authorization`; every other request is sent again once after a 307/308, for
+  `PROPFIND` also a 301, 302 or 303, to the same origin, and is otherwise
+  `OSError(EIO)`). A path asks again after a redirect where it needs the final
+  answer, `stat()`, `exists()`, `is_dir()`, `unlink()`, `open("x")` and a
+  patch-mode append included, and none of those sends `Authorization` to the
+  other origin. Headers other than `Authorization` from
+  `with_transport(headers=...)` (`X-Api-Key`, a vendor token header, a cookie)
+  are sent to the new host as well, even to a plain `http:` one, so keep a
+  secret in `Authorization`, or point the path at the final URL.
 - URL userinfo is sent as `Authorization: Basic` (not in the URL) unless
   `headers` or the call name an `Authorization`. Percent-escapes stand for
   octets, and those octets are the credential: `caf%C3%A9` is sent as UTF-8
@@ -683,7 +568,7 @@ class HTTPResponse:
   as empty). Cannot always tell a file from an index page. The body is read
   like `open()` reads a file: a cut-short, stalled or undecodable one is
   `OSError(EIO)`/`TimeoutError` naming the path, never a partial list, and
-  one over `uripath.schemes.MAX_LISTING_BYTES` (8 MiB after decoding; assign a
+  one over `pathlib_next.http.MAX_REPLY_BYTES` (8 MiB after decoding; assign a
   larger number to allow more) is `OSError(EFBIG)`. A name that is not
   UTF-8 (`caf%E9`) keeps its bytes (`surrogateescape`) and is requested as
   listed. A listed child carries neither the query nor the fragment of the
@@ -823,7 +708,7 @@ write method raise `NotImplementedError`.
 - `RepoBackend` (`BaseRepoBackend` is its base): `Authorization: Bearer <token>`, timeout default
   `(10, 60)`, `cache` dict; `api_base` overrides the API root;
   `BaseRepoBackend.request(method, url, headers=None, params=None, **kwargs)`
-  is the override point and returns an `HTTPResponse`.
+  is the override point and returns a `pathlib_next.http.HTTPResponse`.
   A request that carries `Authorization` (the token, or one given in
   `headers=`) to a plain `http://` URL on a host other than loopback is
   still sent, with an `InsecureTransportWarning` (a `UserWarning`).
@@ -1115,102 +1000,6 @@ Composing text:
   (`"surrogateescape"`: a byte that is not UTF-8 survives the round trip).
 - `is_drive(segment)` — whether a segment is a Windows drive (`"C:"`).
 
-## For transport implementers (`uripath.transports`)
-
-```python
-# uripath.transports
-GROUP = "uripath.http_transports"
-def names() -> tuple[str, ...]: ...
-def get(name: str) -> type: ...
-
-class PreparedRequest(NamedTuple):
-    method: str
-    url: str
-    headers: dict[str, str]
-    body: Any
-    timeout: tuple[float | None, float | None]
-    decode: bool
-
-def prepare_request(
-    method, url, *, headers, body=None, timeout,
-) -> PreparedRequest: ...
-```
-
-A distribution provides an HTTP transport by declaring an entry point in the
-group `uripath.http_transports`: the name is the transport's (`requests`) and
-the value names a class that is built with no arguments (`pyproject.toml`:
-`[project.entry-points."uripath.http_transports"]`, `requests =
-"uripath_http_requests:RequestsTransport"`). The class implements "The
-transport contract" above: `send()` and `close()`.
-
-- `names()` — the transport names, sorted: `builtin`, every entry of the group
-  of an installed distribution, and `requests` whether or not its distribution
-  is installed. Nothing is imported to list them.
-- `get(name)` — the class called `name`; the name is case-sensitive.
-  `builtin` is always `uripath.schemes.HTTPTransport`: an entry called
-  `builtin` in the group is ignored. A transport that another distribution
-  provides and that is not installed raises `ImportError` naming it; any other
-  name is a `ValueError` listing `names()`; an entry that does not load a class
-  is a `TypeError`.
-- Who calls it: `URIPATH_HTTP_TRANSPORT=<name>` builds `get(name)()` for a
-  backend that was given no transport; `path.with_session(session,
-  **requests_args)` and `RepoBackend(session=session, **requests_args)` build
-  `get("requests")(session, **requests_args)`. A distribution that provides
-  `requests` therefore takes `session=None` and the keyword arguments of
-  `requests.Session.request()`.
-- `prepare_request(method, url, *, headers, body=None, timeout)` — the
-  arguments of `send()` as the contract reads them, so a transport that
-  starts with it refuses what the built-in transport refuses and frames a
-  body the same way. `method` is upper-cased and the fragment is dropped from
-  `url`. `headers` come back as a `dict` of text values with the
-  `Content-Length` of a body whose length is known (`0` for a `PATCH`, `POST` or
-  `PUT` without one) and `Accept-Encoding: gzip, deflate` unless the caller
-  named an encoding. `body` is `None`, `bytes`, an object that yields
-  exactly the `Content-Length` bytes (a file or a list of `bytes`, cut at the
-  length it was measured at) or an iterable of `bytes` to send chunked.
-  `timeout` is the `(connect, read)` pair. `decode` is what to pass as
-  `HTTPResponse(..., decode=decode)`. It raises `ValueError`, before anything
-  is sent, for a method or header name that is not a token, a header value or
-  URL with a control character, a URL with credentials or another scheme, a
-  `Content-Length` that is not a count of bytes or exceeds the body, and a
-  timeout that is not a positive number, `None` or a pair of them; and
-  `TypeError` for a `str` body. No message quotes the URL or a header value.
-
-### Running the transport suite (`uripath.testing`)
-
-```python
-# uripath.testing
-def suite_directory() -> pathlib.Path: ...
-def run(arguments=None) -> int: ...
-```
-
-A distribution that provides a transport holds it to the promises of the
-built-in one by running the tests `uripath` runs over its own, with the
-distribution and `pytest` installed:
-
-```
-python -m uripath.testing --http-transports requests -q
-```
-
-Everything after `python -m uripath.testing` goes to pytest. `--http-transports`
-takes names that `names()` lists, separated by commas (default `builtin`):
-each test that depends on the transport runs once per name, with
-`URIPATH_HTTP_TRANSPORT` set to it, so the backends the test builds use `get(name)()`
-and the same tests also send through `with_session()` where they do. The tests
-are `http:`, `dav:`, `github:` and `gitlab:` over loopback servers, the
-`Path` contract of each, redirects, credentials, replies cut short or too large, and
-the transport contract against servers scripted at the byte level (what the
-server received is what is asserted). The modules also hold tests that do not
-depend on the transport; they pass whatever the name. Every connection stays on the loopback
-interface, and a test that tries another host fails.
-
-- `run(arguments=None)` runs the suite with pytest and returns the exit status;
-  it raises `ImportError` without pytest.
-- `suite_directory()` is the directory that holds the test modules,
-  `MODULES` (their file names) and `HELPERS` (the files they import):
-  `uripath/testing/suite` in an installed package, `tests/` in a source
-  checkout; `FileNotFoundError` when neither is there.
-
 ## Provided by other distributions
 
 `uripath` knows these schemes and this transport by name and does not contain
@@ -1220,7 +1009,7 @@ them:
 | --- | --- | --- |
 | `sftp:` | `uripath-sftp` | `pip install "uripath-sftp[paramiko]"` (or `[asyncssh]`) |
 | `s3:`, `gs:`, `az:` | `uripath-objstore` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
-| the `requests` HTTP transport | `uripath-http-requests` | `pip install uripath-http-requests` |
+| the `requests` HTTP transport | `pathlib-next-requests` | `pip install pathlib-next-requests` |
 
 A path of one of the schemes builds, joins, compares and prints without its
 distribution, and is listed by `URIPath.schemes()`. Every operation that needs
@@ -1237,9 +1026,9 @@ defined.
 
 For the `requests` transport, `HTTPURIPath.with_session()`, a
 `RepoBackend(session=...)` or `RepoBackend(**requests_args)` and
-`URIPATH_HTTP_TRANSPORT=requests` use the class that the installed
-`uripath-http-requests` declares in the group `uripath.http_transports`, and
-raise `ImportError` naming it when it is not installed.
+`PATHLIB_NEXT_HTTP_TRANSPORT=requests` use the class that the installed
+`pathlib-next-requests` declares in the group `pathlib_next.http_transports`,
+and raise `ImportError` naming it when it is not installed.
 
 ## Exceptions
 
@@ -1333,18 +1122,17 @@ option is off unless it is passed.
 
 ## Environment variables
 
-### `URIPATH_HTTP_TRANSPORT` (URI layer)
+### `PATHLIB_NEXT_HTTP_TRANSPORT` (read by `pathlib_next.http`)
 
 `builtin` (the default when unset), or the name of a transport an installed
-distribution declares (`requests`, from `uripath-http-requests`): the
-transport that `http(s):`, `dav(s):`, `github:`, `gitlab:` and `git:` build for
-a backend that was not given one. `requests` without that distribution raises
-`ImportError` naming it. The value is case-sensitive, and an empty or
-unrecognised one raises `ValueError` naming the choices (`transports.names()`).
-It is read when a
-backend first needs its transport, once per backend, so a change reaches
-backends built afterwards. `with_transport()` and `with_session()` do not read
-it.
+distribution declares in the group `pathlib_next.http_transports` (`requests`,
+from `pathlib-next-requests`): the transport that `http(s):`, `dav(s):`,
+`github:` and `gitlab:` build for a backend that was not given one. `requests`
+without that distribution raises `ImportError` naming it. The value is
+case-sensitive, and an empty or unrecognised one raises `ValueError` naming the
+choices (`pathlib_next.http.transport_names()`). It is read when a backend first
+needs its transport, once per backend, so a change reaches backends built
+afterwards. `with_transport()` and `with_session()` do not read it.
 
 ### Proxy variables (URI layer)
 

@@ -5,7 +5,7 @@
 `URIPath` imports the first time its scheme is used; the names below are
 exported from here and resolved lazily (PEP 562), so importing this package,
 or building a `file:` path, imports no other scheme and a `file:` path never
-pays for `http.client`.
+pays for the HTTP client.
 """
 
 from __future__ import annotations
@@ -38,9 +38,7 @@ if _ty.TYPE_CHECKING:
     from ._gitrepo import BaseRepoBackend as BaseRepoBackend
     from ._gitrepo import RepoBackend as RepoBackend
     from ._http._backend import HTTPBackend as HTTPBackend
-    from ._http._builtin import HTTPTransport as HTTPTransport
     from ._http._path import HTTPURIPath as HTTPURIPath
-    from ._http._response import HTTPResponse as HTTPResponse
     from ._http._streams import HTTPAppendStream as HTTPAppendStream
     from ._http._streams import HTTPWriteStream as HTTPWriteStream
 
@@ -66,8 +64,6 @@ _EXPORTS = {
     "RepoBackend": "_gitrepo",
     "HTTPAppendStream": "_http._streams",
     "HTTPBackend": "_http._backend",
-    "HTTPResponse": "_http._response",
-    "HTTPTransport": "_http._builtin",
     "HTTPURIPath": "_http._path",
     "HTTPWriteStream": "_http._streams",
 }
@@ -91,11 +87,8 @@ __all__ = [
     "GitURIPath",
     "HTTPAppendStream",
     "HTTPBackend",
-    "HTTPResponse",
-    "HTTPTransport",
     "HTTPURIPath",
     "HTTPWriteStream",
-    "MAX_LISTING_BYTES",
     "MEMBER_SPOOL_BYTES",
     "RepoBackend",
     "TarURIPath",
@@ -104,9 +97,9 @@ __all__ = [
 
 
 class _Module(_types.ModuleType):
-    """The module, with the settings that are read where they take effect
-    (`MEMBER_SPOOL_BYTES` in `pathlib_next.archive`, `MAX_LISTING_BYTES` in the
-    HTTP schemes) read from and written to there."""
+    """The module, with the setting that is read where it takes effect
+    (`MEMBER_SPOOL_BYTES` in `pathlib_next.archive`) read from and written to
+    there."""
 
     @property
     def MEMBER_SPOOL_BYTES(self) -> int:
@@ -119,18 +112,6 @@ class _Module(_types.ModuleType):
         from pathlib_next import archive
 
         archive.MEMBER_SPOOL_BYTES = value
-
-    @property
-    def MAX_LISTING_BYTES(self) -> int:
-        from ._http import _settings
-
-        return _settings.MAX_LISTING_BYTES
-
-    @MAX_LISTING_BYTES.setter
-    def MAX_LISTING_BYTES(self, value: int) -> None:
-        from ._http import _settings
-
-        _settings.MAX_LISTING_BYTES = value
 
 
 _sys.modules[__name__].__class__ = _Module

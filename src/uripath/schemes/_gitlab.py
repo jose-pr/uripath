@@ -6,14 +6,8 @@ import urllib.parse as _urlparse
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from ._gitrepo import (
-    _RepoAPIPath,
-    _raise_for_status,
-    _reply_limit,
-    _translate_repo_errors,
-)
-from ._http._errors import _server_size
-from ._http._status import drop_body as _drop_body
+from pathlib_next.http import drop_body, raise_for_status, server_size
+from ._gitrepo import _RepoAPIPath, _translate_repo_errors
 
 
 class GitLabURIPath(_RepoAPIPath):
@@ -104,9 +98,9 @@ class GitLabURIPath(_RepoAPIPath):
         with _translate_repo_errors(self):
             resp = self.backend.request(method, url, stream=True, **kwargs)
             try:
-                _raise_for_status(resp)
+                raise_for_status(resp)
             except BaseException:
-                _drop_body(resp, _reply_limit())
+                drop_body(resp)
                 raise
         return resp
 
@@ -141,8 +135,8 @@ class GitLabURIPath(_RepoAPIPath):
             with _translate_repo_errors(self):
                 resp = self.backend.request("HEAD", url, params=params)
                 if resp.status not in (405, 501):
-                    _raise_for_status(resp)
-            size = _server_size(resp.headers.get("X-Gitlab-Size"))
+                    raise_for_status(resp)
+            size = server_size(resp.headers.get("X-Gitlab-Size"))
             if size is not None and resp.status < 300:
                 return size
             meta = self._decode(self._request("GET", url, params=params), dict)

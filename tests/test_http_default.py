@@ -1,6 +1,7 @@
-"""Which transport a backend sends with when it is not given one: the built-in
-one, the `requests` one only when asked (and then provided elsewhere), and
-nothing imported that is not needed."""
+"""Which transport the backend of a path sends with when it is not given one
+(the choice is `pathlib_next.http`'s): the built-in one, the `requests` one only
+when asked (and then provided elsewhere), and nothing imported that is not
+needed."""
 
 import os
 import pathlib
@@ -13,11 +14,11 @@ import pytest
 import uripath
 from http_fakes import FakeTransport, reply
 from uripath import URIPath
-from uripath.schemes._http import _select
-from uripath.schemes import HTTPBackend, HTTPTransport
+from pathlib_next.http import TRANSPORT_ENV, HTTPTransport
+from uripath.schemes import HTTPBackend
 
 _SRC = pathlib.Path(uripath.__file__).resolve().parent.parent
-VARIABLE = "URIPATH_HTTP_TRANSPORT"
+VARIABLE = "PATHLIB_NEXT_HTTP_TRANSPORT"
 
 
 def test_without_a_setting_the_built_in_transport_is_used(monkeypatch):
@@ -37,13 +38,6 @@ def test_a_backend_builds_its_transport_on_first_use_and_keeps_it(monkeypatch):
 
 def test_the_variable_chooses_the_transport(monkeypatch):
     monkeypatch.setenv(VARIABLE, "builtin")
-    with HTTPBackend() as backend:
-        assert type(backend.transport) is HTTPTransport
-
-
-def test_the_pathlib_next_variable_does_not_choose_the_transport(monkeypatch):
-    monkeypatch.delenv(VARIABLE, raising=False)
-    monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", "requests")
     with HTTPBackend() as backend:
         assert type(backend.transport) is HTTPTransport
 
@@ -73,7 +67,7 @@ def test_the_variable_in_the_header_is_the_one_the_code_reads():
         encoding="utf-8"
     )
     section = header.split("\n## Environment variables\n")[1]
-    assert _select.TRANSPORT_ENV == VARIABLE
+    assert TRANSPORT_ENV == VARIABLE
     assert f"### `{VARIABLE}`" in section
 
 
@@ -180,4 +174,4 @@ def test_http_dav_and_git_work_with_requests_and_urllib3_hidden():
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[:4] == ["True b'hello' 5", "5", "b'from github'", "[]"]
-    assert "uripath-http-requests" in lines[4]
+    assert "pathlib-next-requests" in lines[4]

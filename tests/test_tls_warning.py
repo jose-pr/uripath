@@ -9,10 +9,9 @@ import ssl
 
 import pytest
 
-from uripath.schemes import FTPURIBackend, HTTPTransport
+from uripath.schemes import FTPURIBackend
 
 BUILDERS = {
-    "http": lambda **options: HTTPTransport(**options),
     "ftp": lambda **options: FTPURIBackend(**options),
 }
 

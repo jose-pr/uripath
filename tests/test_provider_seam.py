@@ -39,7 +39,6 @@ NOT_THE_CORES = {
     ("schemes/_dav.py", "_path"): "the path a stream is for",
     ("schemes/_http/_streams.py", "_path"): "the path a stream is for",
     ("schemes/_dav.py", "_replace"): "a stdlib named tuple's method",
-    ("schemes/_http/_headers.py", "_pairs"): "the pairs a headers mapping holds",
     ("schemes/_gitrepo.py", "_replace"): "a `Source` named tuple's method",
     ("schemes/_ftp.py", "_replace"): "a `Source` named tuple's method",
 }
@@ -78,13 +77,14 @@ def _files(directory: pathlib.Path):
 
 def core_sources() -> dict[str, str]:
     """Every module of the core that is not a provider package (`ftp`,
-    `archive`), plus the URI core of this package (`uripath`, `source`,
+    `archive`, `http`), plus the URI core of this package (`uripath`, `source`,
     `query`), whose underscore names the schemes read as well."""
     skipped = (
         CORE / "uri",
         CORE / "tools",
         CORE / "ftp",
         CORE / "archive",
+        CORE / "http",
     )
     found = {
         "pathlib_next/" + p.relative_to(CORE).as_posix(): p.read_text(encoding="utf-8")

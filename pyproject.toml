@@ -81,11 +81,6 @@ git = "uripath.schemes:GitURIPath"
 "git+github" = "uripath.schemes:GitHubGitURIPath"
 "git+gitlab" = "uripath.schemes:GitLabGitURIPath"
 
-# The HTTP transports. `builtin` is this package's; a distribution declares its
-# own entry (`requests` is `uripath-http-requests`), a class built with no arguments.
-[project.entry-points."uripath.http_transports"]
-builtin = "uripath.schemes:HTTPTransport"
-
 [project.urls]
 Homepage = "https://github.com/jose-pr/uripath/"
 Documentation = "https://jose-pr.github.io/uripath/"
@@ -98,39 +93,6 @@ Issues = "https://github.com/jose-pr/uripath/issues"
 # checkout and is not part of the wheel.
 [tool.hatch.build.targets.wheel.force-include]
 "README.md" = "uripath/README.md"
-# The transport suite (`python -m uripath.testing`) runs from the installed package.
-"tests/test_backend_family.py" = "uripath/testing/suite/test_backend_family.py"
-"tests/test_backend_scope.py" = "uripath/testing/suite/test_backend_scope.py"
-"tests/test_contract.py" = "uripath/testing/suite/test_contract.py"
-"tests/test_dav.py" = "uripath/testing/suite/test_dav.py"
-"tests/test_git_backend_sharing.py" = "uripath/testing/suite/test_git_backend_sharing.py"
-"tests/test_git_replies.py" = "uripath/testing/suite/test_git_replies.py"
-"tests/test_github_stat.py" = "uripath/testing/suite/test_github_stat.py"
-"tests/test_gitrepo.py" = "uripath/testing/suite/test_gitrepo.py"
-"tests/test_http.py" = "uripath/testing/suite/test_http.py"
-"tests/test_http_body.py" = "uripath/testing/suite/test_http_body.py"
-"tests/test_http_credentials.py" = "uripath/testing/suite/test_http_credentials.py"
-"tests/test_http_listing.py" = "uripath/testing/suite/test_http_listing.py"
-"tests/test_http_live.py" = "uripath/testing/suite/test_http_live.py"
-"tests/test_http_peer_text.py" = "uripath/testing/suite/test_http_peer_text.py"
-"tests/test_http_redirect_origin.py" = "uripath/testing/suite/test_http_redirect_origin.py"
-"tests/test_http_redirects.py" = "uripath/testing/suite/test_http_redirects.py"
-"tests/test_http_reply_limits.py" = "uripath/testing/suite/test_http_reply_limits.py"
-"tests/test_http_transport.py" = "uripath/testing/suite/test_http_transport.py"
-"tests/test_http_writes.py" = "uripath/testing/suite/test_http_writes.py"
-"tests/test_httpdav_safety.py" = "uripath/testing/suite/test_httpdav_safety.py"
-"tests/test_listing_hints_http.py" = "uripath/testing/suite/test_listing_hints_http.py"
-"tests/test_low_schemes.py" = "uripath/testing/suite/test_low_schemes.py"
-"tests/test_routing.py" = "uripath/testing/suite/test_routing.py"
-"tests/test_transport_security.py" = "uripath/testing/suite/test_transport_security.py"
-"tests/capabilities.py" = "uripath/testing/suite/capabilities.py"
-"tests/census.py" = "uripath/testing/suite/census.py"
-"tests/conftest.py" = "uripath/testing/suite/conftest.py"
-"tests/hermetic.py" = "uripath/testing/suite/hermetic.py"
-"tests/http_fakes.py" = "uripath/testing/suite/http_fakes.py"
-"tests/http_wire.py" = "uripath/testing/suite/http_wire.py"
-"tests/server_loops.py" = "uripath/testing/suite/server_loops.py"
-"tests/waits.py" = "uripath/testing/suite/waits.py"
 
 # `*.local.*` files are per-machine overrides and `CLAUDE*` is agent config:
 # neither is ever packaged (both are also gitignored). `/.*` does not match

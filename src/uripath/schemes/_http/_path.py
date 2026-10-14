@@ -6,18 +6,24 @@ import re as _re
 import typing as _ty
 import urllib.parse as _urlparse
 
+import pathlib_next.http as _http
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
+from pathlib_next.http import (
+    HTTPResponse,
+    drop_body,
+    is_redirect,
+    os_error,
+    raise_for_status,
+    server_size,
+    translate_errors,
+)
 from .. import _httpdate
 from .._path import URIPath
-from . import _follow, _settings
+from . import _settings
 from ._backend import HTTPBackend, _DerivedHTTPBackend
-from ._errors import _path_error, _server_size, _translate_http_errors
 from ._headers import _IDENTITY_ENCODING
 from ._listing import _DirectoryListingParser, _FileEntry
-from ._response import HTTPResponse
-from ._status import drop_body as _drop_body
-from ._status import raise_for_status as _raise_for_status
 from ._streams import (
     HTTPAppendStream,
     HTTPWriteStream,
@@ -84,7 +90,7 @@ class HTTPURIPath(URIPath):
             if mime and mime not in _LISTING_TYPES:
                 # A file: pathlib's iterdir() raises, and its body -- maybe
                 # gigabytes -- is never downloaded to look for links.
-                raise _path_error(NotADirectoryError, self)
+                raise os_error(NotADirectoryError, self)
             text = self._read_listing(req)
         finally:
             req.close()
@@ -99,14 +105,14 @@ class HTTPURIPath(URIPath):
         """The body of the directory index `req` as text, read the way
         `open()` reads a file: a cut-short, stalled or undecodable body
         raises `TimeoutError`/`OSError` naming the path, and one longer than
-        `MAX_LISTING_BYTES` raises `OSError(EFBIG)`."""
-        limit = _settings.MAX_LISTING_BYTES
+        `pathlib_next.http.MAX_REPLY_BYTES` raises `OSError(EFBIG)`."""
+        limit = _http.MAX_REPLY_BYTES
         too_large = OSError(
             _errno.EFBIG,
             f"Directory index of {self} is larger than {limit} bytes "
-            "(MAX_LISTING_BYTES)",
+            "(MAX_REPLY_BYTES)",
         )
-        stated = _server_size(req.headers.get("Content-Length"))
+        stated = server_size(req.headers.get("Content-Length"))
         if stated is not None and stated > limit:
             raise too_large
         reader = _ResponseReader(self, req, _CHUNK)
@@ -127,12 +133,12 @@ class HTTPURIPath(URIPath):
         """A streamed `GET` of `uri` that succeeded, its body unread. A
         failure is translated to the pathlib exception for this path, and the
         connection is released first: `stream=True` leaves it held."""
-        with _translate_http_errors(self):
+        with translate_errors(self):
             req = self.backend.request("GET", uri, stream=True, **kwargs)
             try:
-                _raise_for_status(req)
+                raise_for_status(req)
             except BaseException:
-                _drop_body(req, _settings.MAX_LISTING_BYTES)
+                drop_body(req)
                 raise
         return req
 
@@ -183,7 +189,7 @@ class HTTPURIPath(URIPath):
         """`stat()` without the listing hint, and whether the server stated
         the size: a file whose HEAD reply has no `Content-Length` reports
         `st_size` 0, which is not its length."""
-        with _translate_http_errors(self):
+        with translate_errors(self):
             # The caller's own spelling first: a trailing-slash path the
             # server answers is a directory, even when the slash-less URL
             # answers too (wsgidav serves both `/d` and `/d/` with 200).
@@ -210,7 +216,7 @@ class HTTPURIPath(URIPath):
                 if resp.status < 400:
                     break
 
-            if _follow.is_redirect(resp):
+            if is_redirect(resp):
                 # Where the first answer pointed, not the same request again;
                 # `redirect()` knows the origin that `Authorization` is for.
                 moved = resp
@@ -225,12 +231,12 @@ class HTTPURIPath(URIPath):
                         "GET", uri, moved, stream=True, headers=_IDENTITY_ENCODING
                     )
                     resp.close()
-            _raise_for_status(resp)
+            raise_for_status(resp)
             # From the final URL, once any redirect has been followed.
             is_dir = self._is_dir(resp)
 
         # A missing, non-numeric or negative Content-Length is no size.
-        stated = None if is_dir else _server_size(resp.headers.get("Content-Length"))
+        stated = None if is_dir else server_size(resp.headers.get("Content-Length"))
         st_size = stated or 0
         lm = resp.headers.get("Last-Modified")
         if lm is None and walk_up_last_modified:
@@ -262,7 +268,7 @@ class HTTPURIPath(URIPath):
             self.stat()
         except FileNotFoundError:
             return
-        raise _path_error(FileExistsError, self)
+        raise os_error(FileExistsError, self)
 
     def _open(
         self,
@@ -293,10 +299,10 @@ class HTTPURIPath(URIPath):
     def _delete(self, missing_ok=False):
         # The raw DELETE, with no collection guard: `rmdir()` has already
         # verified an empty directory before calling it.
-        with _translate_http_errors(self):
+        with translate_errors(self):
             resp = self.backend.request("DELETE", self, stream=True)
             if resp.status == 404:
-                _drop_body(resp, _settings.MAX_LISTING_BYTES)
+                drop_body(resp)
                 if missing_ok:
                     return
                 raise FileNotFoundError(self)
@@ -325,7 +331,8 @@ class HTTPURIPath(URIPath):
         append_mode: str = "rewrite",
     ):
         """This path with a backend that sends through `transport` (any object
-        with a `send()` method as `HTTPTransport.send()`; the caller closes
+        with a `send()` method as `pathlib_next.http.HTTPTransport.send()`;
+        the caller closes
         it). `headers` go with every request; `write_method` (`"PUT"`, or
         e.g. `"POST"`) uploads on close, and `append_mode` is `"rewrite"` or
         `"patch"`."""
@@ -349,14 +356,14 @@ class HTTPURIPath(URIPath):
         (`session=None` makes a new one). `headers` and `timeout` in
         `requests_args` are the backend's; the others (`auth`, `verify`,
         `proxies`, `cert`, ...) go to the `requests` transport of
-        `uripath-http-requests`, which must be installed: without it this raises
+        `pathlib-next-requests`, which must be installed: without it this raises
         `ImportError` naming it. The caller closes the transport."""
-        from ... import transports
+        from pathlib_next.http import get_transport
 
         headers = requests_args.pop("headers", None)
         timeout = requests_args.pop("timeout", _settings.DEFAULT_TIMEOUT)
         return self.with_transport(
-            transports.get("requests")(session, **requests_args),
+            get_transport("requests")(session, **requests_args),
             headers=headers,
             timeout=timeout,
             write_method=write_method,

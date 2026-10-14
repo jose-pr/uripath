@@ -5,14 +5,8 @@ import errno as _errno
 
 from pathlib_next import FileStat
 from pathlib_next import providers as _providers
-from ._gitrepo import (
-    _RepoAPIPath,
-    _raise_for_status,
-    _reply_limit,
-    _translate_repo_errors,
-)
-from ._http._errors import _server_size
-from ._http._status import drop_body as _drop_body
+from pathlib_next.http import drop_body, raise_for_status, server_size
+from ._gitrepo import _RepoAPIPath, _translate_repo_errors
 
 
 class GitHubURIPath(_RepoAPIPath):
@@ -71,9 +65,9 @@ class GitHubURIPath(_RepoAPIPath):
             # A rate-limited reply (403/429) becomes EAGAIN in
             # `_translate_repo_errors`.
             try:
-                _raise_for_status(resp)
+                raise_for_status(resp)
             except BaseException:
-                _drop_body(resp, _reply_limit())
+                drop_body(resp)
                 raise
         return resp
 
@@ -110,7 +104,7 @@ class GitHubURIPath(_RepoAPIPath):
             )
             if "X-GitHub-Media-Type" not in resp.headers:
                 return None
-            _raise_for_status(resp)
+            raise_for_status(resp)
         headers = resp.headers
         media_type = headers.get("Content-Type", "").partition(";")[0].strip().lower()
         if (
@@ -120,7 +114,7 @@ class GitHubURIPath(_RepoAPIPath):
             or headers.get("Content-Encoding", "identity").strip().lower() != "identity"
         ):
             return None
-        return _server_size(headers.get("Content-Length"))
+        return server_size(headers.get("Content-Length"))
 
     def stat(self, *, follow_symlinks=True):
         hint = self._pop_stat_hint()

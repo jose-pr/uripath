@@ -5,11 +5,13 @@ import io as _io
 import typing as _ty
 
 from pathlib_next import providers as _providers
-from . import _settings
-from ._errors import _path_error, _translate_http_errors
-from ._response import HTTPResponse
-from ._status import drop_body as _drop_body
-from ._status import raise_for_status as _raise_for_status
+from pathlib_next.http import (
+    HTTPResponse,
+    drop_body,
+    os_error,
+    raise_for_status,
+    translate_errors,
+)
 
 if _ty.TYPE_CHECKING:
     from ._path import HTTPURIPath
@@ -46,7 +48,7 @@ class _ResponseReader(_io.RawIOBase):
 
     def _next_chunk(self) -> bytes:
         path = self._path
-        with _translate_http_errors(path):
+        with translate_errors(path):
             try:
                 return next(self._chunks, b"")
             except OSError as error:
@@ -134,7 +136,7 @@ class HTTPWriteStream(_UploadStream):
     def _upload(self, data):
         backend = self._path.backend
         extra = _EXCLUSIVE_CREATE if self._exclusive else {}
-        with _translate_http_errors(self._path, conflict=FileNotFoundError):
+        with translate_errors(self._path, conflict=FileNotFoundError):
             resp = backend.request(
                 backend.write_method,
                 self._path.as_uri(),
@@ -144,10 +146,10 @@ class HTTPWriteStream(_UploadStream):
             )
             try:
                 if self._exclusive and resp.status == 412:
-                    raise _path_error(FileExistsError, self._path)
-                _raise_for_status(resp)
+                    raise os_error(FileExistsError, self._path)
+                raise_for_status(resp)
             finally:
-                _drop_body(resp, _settings.MAX_LISTING_BYTES)
+                drop_body(resp)
 
 
 class HTTPAppendStream(_UploadStream):
@@ -182,7 +184,7 @@ class HTTPAppendStream(_UploadStream):
 
     def _upload(self, data):
         backend = self._path.backend
-        with _translate_http_errors(self._path, conflict=FileNotFoundError):
+        with translate_errors(self._path, conflict=FileNotFoundError):
             if backend.append_mode == "rewrite":
                 resp = backend.request(
                     backend.write_method, self._path.as_uri(), data=data, stream=True
@@ -219,6 +221,6 @@ def _accept(resp: HTTPResponse) -> None:
     """Raise for an error status of `resp`, a reply whose body is not used:
     the body is dropped (see `drop_body`) whichever way this goes."""
     try:
-        _raise_for_status(resp)
+        raise_for_status(resp)
     finally:
-        _drop_body(resp, _settings.MAX_LISTING_BYTES)
+        drop_body(resp)

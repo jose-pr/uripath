@@ -76,7 +76,7 @@ def pytest_addoption(parser):
         "--http-transports",
         default="builtin",
         help="the HTTP transports the transport suite runs against, by the "
-        "names of uripath.transports.names(), separated by commas "
+        "names of pathlib_next.http.transport_names(), separated by commas "
         "(for example builtin,requests)",
     )
     parser.addoption(
@@ -230,9 +230,9 @@ def pytest_generate_tests(metafunc):
 def http_transport_kind(request, monkeypatch):
     """Runs the test once per HTTP transport (`--http-transports`): the
     default transport of every backend the test builds is that kind
-    (`URIPATH_HTTP_TRANSPORT`), and `http_fakes.make_transport(kind)` builds
+    (`PATHLIB_NEXT_HTTP_TRANSPORT`), and `http_fakes.make_transport(kind)` builds
     one of it."""
-    monkeypatch.setenv("URIPATH_HTTP_TRANSPORT", request.param)
+    monkeypatch.setenv("PATHLIB_NEXT_HTTP_TRANSPORT", request.param)
     return request.param
 
 

@@ -1,4 +1,4 @@
-"""Schemes and an HTTP transport that other distributions provide.
+"""Schemes that other distributions provide.
 
 `uripath` knows their names. A path of one of these schemes builds, joins,
 compares and prints like any other, and the first operation that needs the
@@ -37,18 +37,6 @@ SCHEMES = {
     ),
 }
 
-#: HTTP transport -> (the distribution that provides it, its import name, what
-#: to run to get it). A name listed here is known without the distribution; an
-#: installed distribution declares its own entry in the
-#: `uripath.http_transports` group.
-TRANSPORTS = {
-    "requests": (
-        "uripath-http-requests",
-        "uripath_http_requests",
-        "pip install uripath-http-requests",
-    ),
-}
-
 
 def not_installed(scheme: str) -> ImportError:
     """The `ImportError` for a scheme another distribution provides."""
@@ -56,16 +44,6 @@ def not_installed(scheme: str) -> ImportError:
     return ImportError(
         f"the {scheme!r} scheme is provided by the {distribution} distribution: "
         f"{install}",
-        name=package,
-    )
-
-
-def transport_not_installed(name: str) -> ImportError:
-    """The `ImportError` for an HTTP transport another distribution provides."""
-    distribution, package, install = TRANSPORTS[name]
-    return ImportError(
-        f"the {name!r} HTTP transport is provided by the {distribution} "
-        f"distribution: {install}",
         name=package,
     )
 

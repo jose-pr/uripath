@@ -9,9 +9,9 @@ import gzip
 
 import pytest
 
+import pathlib_next.http as core_http
 from http_wire import Wire, response
 from uripath import URIPath
-from uripath import schemes as http_scheme
 from uripath.schemes import HTTPBackend
 from waits import wait_until
 
@@ -25,7 +25,7 @@ CODED = {"Content-Encoding": "gzip"}
 
 @pytest.fixture(autouse=True)
 def small_cap(monkeypatch):
-    monkeypatch.setattr(http_scheme, "MAX_LISTING_BYTES", CAP)
+    monkeypatch.setattr(core_http, "MAX_REPLY_BYTES", CAP)
 
 
 def long_reply(status=200, extra=None):
@@ -140,7 +140,7 @@ def test_the_limit_is_read_each_time_so_raising_it_lets_a_larger_reply_through(
         path = URIPath("dav" + wire.url[len("http") :] + "/dir/f")
         with pytest.raises(OSError):
             path.stat()
-        monkeypatch.setattr(http_scheme, "MAX_LISTING_BYTES", 4 * CAP)
+        monkeypatch.setattr(core_http, "MAX_REPLY_BYTES", 4 * CAP)
         assert path.stat().st_size == 5
 
 

@@ -2,19 +2,11 @@ from __future__ import annotations
 
 import typing as _ty
 
+from pathlib_next.http import HTTPClient, HTTPResponse, split_userinfo
+
 from ..._version import __version__
 from .._path import DerivedBackend
-from . import _follow, _settings
-from ._follow import FOLLOWED_METHODS as _FOLLOWED_METHODS
-from ._follow import basic_authorization as _basic_authorization
-from ._follow import split_userinfo as _split_userinfo
-from ._headers import check_headers as _check_headers
-from ._headers import check_url as _check_url
-from ._headers import has_header as _has_header
-from ._headers import merge_headers as _merge_headers
-from ._response import HTTPResponse
-from ._select import TransportOwner
-from ._status import too_large as _too_large
+from . import _settings
 
 if _ty.TYPE_CHECKING:
     from ._path import HTTPURIPath
@@ -24,25 +16,24 @@ _UNSET = object()
 """The `timeout` of a call that did not give one: the backend's own."""
 
 
-_BASE_HEADERS = {"User-Agent": f"uripath/{__version__}", "Accept": "*/*"}
-
-
-class HTTPBackend(TransportOwner):
+class HTTPBackend(HTTPClient):
     """The transport and the settings shared by an `HTTPURIPath` tree (see
-    `with_transport()` and `with_session()`).
+    `with_transport()` and `with_session()`): a `pathlib_next.http.HTTPClient`
+    that takes a path or a URL for its address and adds `write_method` and
+    `append_mode`.
 
     `transport` is any object with a `send()` method as
-    `HTTPTransport.send()`; without one the backend builds the built-in
-    `HTTPTransport` on first use and closes it with `close()` or at the
+    `pathlib_next.http.HTTPTransport.send()`; without one the backend builds the
+    built-in `HTTPTransport` on first use and closes it with `close()` or at the
     end of a `with` block. A transport it was given stays the caller's.
     `headers` are sent with every request, request-specific headers merged
-    over them by name; every request gets `timeout=DEFAULT_TIMEOUT`
-    (`(10, 60)` seconds) unless `timeout` here or in the call says otherwise
-    (`None` waits without limit). URL userinfo (`http://user:password@host/`)
-    is never sent inside the request URL: it is stripped and sent as an
-    `Authorization: Basic` header unless `headers` or the call name one.
+    over them by name; every request gets `timeout=(10, 60)` seconds unless
+    `timeout` here or in the call says otherwise (`None` waits without limit).
+    URL userinfo (`http://user:password@host/`) is never sent inside the
+    request URL: it is stripped and sent as an `Authorization: Basic` header
+    unless `headers` or the call name one.
 
-    This backend, not the transport, follows redirects. `GET`, `HEAD` and
+    The backend, through `HTTPClient`, follows redirects. `GET`, `HEAD` and
     `OPTIONS` follow up to 30; a redirect that changes the scheme, host or
     port drops `Authorization` (and nothing else). Any other method
     (`PROPFIND`, `PUT`, `PATCH`, `DELETE`, `MKCOL`, `MOVE`, a `write_method`
@@ -51,7 +42,7 @@ class HTTPBackend(TransportOwner):
     with the same method and body, and any other 3xx, a redirect to another
     origin or a second redirect raises `OSError(EIO)`."""
 
-    __slots__ = ("headers", "timeout", "write_method", "append_mode", "__weakref__")
+    __slots__ = ("write_method", "append_mode")
 
     def __init__(
         self,
@@ -62,66 +53,17 @@ class HTTPBackend(TransportOwner):
         write_method: str = "PUT",
         append_mode: str = "rewrite",
     ):
-        super().__init__(transport)
-        self.headers = dict(headers or {})
-        self.timeout = timeout
+        super().__init__(
+            transport,
+            headers=headers,
+            timeout=timeout,
+            user_agent=f"uripath/{__version__}",
+        )
         self.write_method = write_method
         self.append_mode = append_mode
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(write_method={self.write_method!r})"
-
-    def _prepared(self, uri, headers) -> "tuple[str, dict]":
-        """The URL without userinfo, and the headers every request to `uri`
-        starts from: the base ones, the backend's, the call's, and the
-        `Authorization: Basic` that the userinfo stands for."""
-        url, auth = _split_userinfo(uri if isinstance(uri, str) else uri.as_uri(False))
-        sent = _merge_headers(_BASE_HEADERS, self.headers, headers)
-        if auth is not None and not _has_header(sent, "Authorization"):
-            sent["Authorization"] = _basic_authorization(auth)
-        return url, sent
-
-    def _dispatch(
-        self, method, url, sent, data, allow_redirects, stream, timeout, first=None
-    ) -> HTTPResponse:
-        _check_url(url)
-        _check_headers(sent)
-        if timeout is _UNSET:
-            timeout = self.timeout
-        if isinstance(data, str):
-            data = data.encode("utf-8")
-        transport = self.transport
-        # Always streamed from the transport, so that no reply is read whole
-        # before it is known to be small enough (see `stream` below).
-        if method.upper() in _FOLLOWED_METHODS and data is None:
-            if allow_redirects is False and first is None:
-                resp = transport.send(
-                    method, url, headers=sent, timeout=timeout, stream=True
-                )
-            else:
-                resp = _follow.send_following(
-                    transport,
-                    method,
-                    url,
-                    headers=sent,
-                    timeout=timeout,
-                    stream=True,
-                    first=first,
-                )
-        else:
-            resp = _follow.send_once(
-                transport,
-                method,
-                url,
-                headers=sent,
-                body=data,
-                timeout=timeout,
-                stream=True,
-            )
-        if not stream:
-            limit = _settings.MAX_LISTING_BYTES
-            resp._buffered(limit, _too_large(_follow.shown(url), limit))
-        return resp
 
     def request(
         self,
@@ -142,10 +84,19 @@ class HTTPBackend(TransportOwner):
         character, before anything is sent.
 
         With `stream=False` the body is read before this returns, and a decoded
-        body over `MAX_LISTING_BYTES` is `OSError(EFBIG)`; with `stream=True`
-        the caller reads it, and closes the response."""
-        url, sent = self._prepared(uri, headers)
-        return self._dispatch(method, url, sent, data, allow_redirects, stream, timeout)
+        body over `pathlib_next.http.MAX_REPLY_BYTES` is `OSError(EFBIG)`; with
+        `stream=True` the caller reads it, and closes the response."""
+        url, auth = split_userinfo(uri if isinstance(uri, str) else uri.as_uri(False))
+        return super().request(
+            method,
+            url,
+            data=data,
+            headers=headers,
+            stream=stream,
+            allow_redirects=allow_redirects,
+            timeout=self.timeout if timeout is _UNSET else timeout,
+            auth=auth,
+        )
 
     def redirect(
         self,
@@ -162,14 +113,15 @@ class HTTPBackend(TransportOwner):
         carries what `uri` is sent with, except that `Authorization` is left
         off whenever it goes to another scheme, host or port than `uri`'s.
         A redirect with no usable `Location` is `OSError(EIO)`."""
-        url, sent = self._prepared(uri, headers)
-        location = _follow.redirect_location(url, resp)
-        if location is None:
-            raise _follow.refused_redirect(
-                method, url, resp, None, "no usable Location"
-            )
-        return self._dispatch(
-            method, location, sent, None, None, stream, timeout, first=url
+        url, auth = split_userinfo(uri if isinstance(uri, str) else uri.as_uri(False))
+        return super().redirect(
+            method,
+            url,
+            resp,
+            headers=headers,
+            stream=stream,
+            timeout=self.timeout if timeout is _UNSET else timeout,
+            auth=auth,
         )
 
 

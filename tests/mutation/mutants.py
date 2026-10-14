@@ -137,22 +137,6 @@ mutant(
     "URIPath._same_filesystem always False (self-copy guard off for remote)",
 )
 mutant(
-    "http-404-is-a-generic-oserror",
-    "schemes/_http/_errors.py",
-    "        if status in (404, 410):\n            raise _path_error(FileNotFoundError, path_obj) from None\n",
-    "        if status in (410,):\n            raise _path_error(FileNotFoundError, path_obj) from None\n",
-    "tests/test_destructive_safety.py::test_copy_http_404_source_leaves_local_target_intact",
-    "HTTP 404 maps to generic OSError(EIO)",
-)
-mutant(
-    "http-connection-error-chains-the-request-error",
-    "schemes/_http/_errors.py",
-    '        raise ConnectionError(\n            f"Connection error for {path_obj} ({type(e).__name__})"\n        ) from None\n',
-    '        raise ConnectionError(\n            f"Connection error for {path_obj} ({type(e).__name__})"\n        ) from e\n',
-    "tests/test_transport_security.py::test_http_refused_connection_carries_no_password",
-    "HTTP ConnectionError chains the requests exception (may carry proxy creds)",
-)
-mutant(
     "rename-accepts-another-location",
     "_uri.py",
     "        if not self._same_location(result):\n",
@@ -167,30 +151,6 @@ mutant(
     "        return self.as_uri(sanitize=False)\n",
     "tests/test_transport_security.py::test_http_error_text_and_traceback_carry_no_password",
     "str(URI) shows the password",
-)
-mutant(
-    "http-request-url-keeps-the-password",
-    "schemes/_http/_follow.py",
-    "    return url[:start] + hostport + url[end:], (auth if any(auth) else None)\n",
-    "    return url, (auth if any(auth) else None)\n",
-    "tests/test_transport_security.py::test_http_sends_userinfo_as_authorization_not_in_url",
-    "HTTP requests keep user:password in the request URL",
-)
-mutant(
-    "http-403-is-a-generic-oserror",
-    "schemes/_http/_errors.py",
-    "        elif status in (401, 403):\n",
-    "        elif status in (401,):\n",
-    "tests/test_transport_security.py::test_http_error_text_and_traceback_carry_no_password",
-    "HTTP 403 maps to generic OSError(EIO)",
-)
-mutant(
-    "http-timeout-chains-the-request-error",
-    "schemes/_http/_errors.py",
-    '        raise TimeoutError(f"Timeout for {path_obj} ({type(e).__name__})") from None\n',
-    '        raise TimeoutError(f"Timeout for {path_obj} ({type(e).__name__})") from e\n',
-    "tests/test_transport_security.py::test_http_timeout_carries_no_password",
-    "HTTP TimeoutError chains the requests exception",
 )
 mutant(
     "uri-backend-inherited-by-another-endpoint",
@@ -209,22 +169,6 @@ mutant(
     "a backend held by a join segment crosses to a path on another endpoint",
 )
 mutant(
-    "http-write-redirect-reads-as-success",
-    "schemes/_http/_follow.py",
-    "    if not 300 <= resp.status < 400:\n        return resp\n    location = redirect_location(url, resp)",
-    "    if True:\n        return resp\n    location = redirect_location(url, resp)",
-    "tests/test_http_writes.py",
-    "a write answered by a redirect that is not followed reads as done",
-)
-mutant(
-    "http-write-follows-redirects-to-another-host",
-    "schemes/_http/_follow.py",
-    '    elif origin(location) != origin(url):\n        reason = "it leaves the scheme, host and port of the request"\n',
-    '    elif False:\n        reason = "it leaves the scheme, host and port of the request"\n',
-    "tests/test_http_writes.py",
-    "a write is sent again to the host a 307 names, with its body and credentials",
-)
-mutant(
     "http-write-stream-uploads-before-it-is-ready",
     "schemes/_http/_streams.py",
     "            if self._ready:\n                self._upload(self.getvalue())\n",
@@ -237,8 +181,8 @@ mutant(
 mutant(
     "github-head-believes-a-reply-that-is-not-the-api-s",
     "schemes/_github.py",
-    '            if "X-GitHub-Media-Type" not in resp.headers:\n                return None\n            _raise_for_status(resp)',
-    "            _raise_for_status(resp)",
+    '            if "X-GitHub-Media-Type" not in resp.headers:\n                return None\n            raise_for_status(resp)',
+    "            raise_for_status(resp)",
     "tests/test_github_stat.py::test_a_reply_that_is_not_the_api_s_own_is_not_believed",
     "a proxy's reply to a HEAD is read as the size of the file, or as its absence",
 )
@@ -311,35 +255,19 @@ mutant(
     "scheme_class('sftp') returns the stand-in instead of raising ImportError",
 )
 mutant(
-    "transport-provided-elsewhere-that-is-not-installed-does-not-raise",
-    "transports.py",
-    "    if isinstance(name, str) and name in _elsewhere.TRANSPORTS:\n",
-    "    if False:\n",
-    "tests/test_transports.py::test_a_transport_provided_elsewhere_that_is_not_installed_names_the_distribution",
-    "get('requests') answers with a ValueError instead of naming uripath-http-requests",
-)
-mutant(
-    "transport-entry-point-replaces-the-built-in-transport",
-    "transports.py",
-    "    if name == _BUILTIN:\n",
-    "    if False:\n",
-    "tests/test_transports.py::test_an_entry_point_cannot_replace_the_built_in_transport",
-    "a distribution that declares an entry called builtin replaces the built-in transport",
-)
-mutant(
     "with-session-ignores-the-installed-transport",
     "schemes/_http/_path.py",
-    '            transports.get("requests")(session, **requests_args),\n',
+    '            get_transport("requests")(session, **requests_args),\n',
     "            None,\n",
-    "tests/test_transports.py::test_with_session_sends_through_the_installed_transport",
+    "tests/test_with_session.py::test_with_session_sends_through_the_installed_transport",
     "with_session() sends with the built-in transport and drops the session",
 )
 mutant(
     "repository-backend-ignores-the-session",
     "schemes/_gitrepo.py",
-    '            transport = transports.get("requests")(session, **requests_args)\n',
+    '            transport = get_transport("requests")(session, **requests_args)\n',
     "            transport = None\n",
-    "tests/test_transports.py::test_a_repository_backend_builds_the_installed_transport_from_a_session",
+    "tests/test_with_session.py::test_a_repository_backend_builds_the_installed_transport_from_a_session",
     "RepoBackend(session=...) sends with the built-in transport and drops the session",
 )
 mutant(
@@ -351,259 +279,11 @@ mutant(
     "a class of another module takes a scheme from a class that has the same name",
 )
 
-mutant(
-    "prepare-request-keeps-the-fragment",
-    "transports.py",
-    '    return PreparedRequest(method, url.split("#", 1)[0], sent, body, timeout, decode)\n',
-    "    return PreparedRequest(method, url, sent, body, timeout, decode)\n",
-    "tests/test_prepare_request.py::test_the_method_is_upper_case_and_the_fragment_is_dropped",
-    "a transport built on prepare_request() sends the fragment of a URL",
-)
-mutant(
-    "prepare-request-offers-no-content-coding",
-    "transports.py",
-    '    if not _has_header(sent, "Accept-Encoding"):\n',
-    "    if False:\n",
-    "tests/test_prepare_request.py::test_gzip_and_deflate_are_asked_for_unless_the_caller_names_a_coding",
-    "a transport built on prepare_request() does not ask for gzip or deflate",
-)
-mutant(
-    "prepare-request-sends-bytes-without-a-length",
-    "transports.py",
-    "        if isinstance(body, (bytes, bytearray, memoryview)):\n",
-    "        if False:\n",
-    "tests/test_prepare_request.py::test_a_body_of_known_length_is_sent_under_its_length",
-    "a bytes body is sent without the Content-Length the contract asks for",
-)
-mutant(
-    "prepare-request-does-not-say-a-put-has-no-body",
-    "transports.py",
-    "        elif body is None and method in _EXPECTING_BODY:\n",
-    "        elif False:\n",
-    "tests/test_prepare_request.py::test_a_request_that_expects_a_body_and_has_none_says_so",
-    "a PUT without a body is sent with no Content-Length",
-)
-mutant(
-    "response-buffered-leaves-the-body-unread",
-    "schemes/_http/_response.py",
-    "        return self._buffered()\n",
-    "        return self\n",
-    "tests/test_prepare_request.py::test_buffered_reads_the_body_closes_the_source_and_returns_the_response",
-    "send(stream=False) returns a response whose body is still on the connection",
-)
 
-# --- http transports: the guards every transport keeps --------------------------
+# --- http paths: the guards above the transport ----------------------------------
 
-_HTTP_PKG = "schemes/_http"
-
-mutant(
-    "http-authorization-kept-across-origins",
-    f"{_HTTP_PKG}/_follow.py",
-    '        if origin(current) != home:\n            headers = drop_header(headers, "Authorization")\n',
-    '        if False:\n            headers = drop_header(headers, "Authorization")\n',
-    (
-        "tests/test_http_redirects.py::test_authorization_is_dropped_by_a_redirect_to_another_port",
-        "tests/test_http_redirects.py::test_authorization_follows_only_a_redirect_that_keeps_scheme_host_and_port",
-    ),
-    "a followed redirect to another scheme, host or port carries Authorization along",
-)
-mutant(
-    "http-redirect-limit-off-by-one",
-    f"{_HTTP_PKG}/_follow.py",
-    "        if hops >= MAX_REDIRECTS:",
-    "        if hops > MAX_REDIRECTS:",
-    "tests/test_http_redirects.py::test_a_redirect_loop_stops_after_thirty_redirects",
-    "a GET follows one redirect more than the limit",
-)
-mutant(
-    "http-unrepeatable-request-resent",
-    f"{_HTTP_PKG}/_builtin.py",
-    "                if reused and repeatable:\n                    connection, reused = None, False\n                    continue\n                raise dropped.error from None",
-    "                if reused:\n                    connection, reused = None, False\n                    continue\n                raise dropped.error from None",
-    (
-        "tests/test_http_pool.py::test_a_request_that_cannot_be_repeated_is_not_sent_again",
-        "tests/test_http_pool.py::test_a_body_that_cannot_be_sent_twice_is_not_sent_again",
-    ),
-    "a POST, or a PUT with a file body, is sent again on a new connection when the server dropped the old one",
-)
-mutant(
-    "http-timeout-treated-as-a-dropped-connection",
-    f"{_HTTP_PKG}/_builtin.py",
-    "            BrokenPipeError,\n            _ssl.SSLEOFError,",
-    "            OSError,\n            _ssl.SSLEOFError,",
-    "tests/test_http_pool.py::test_a_timeout_on_a_reused_connection_is_not_sent_again",
-    "a request that timed out on a reused connection is sent again",
-)
-mutant(
-    "http-stale-connection-trusted-by-an-unrepeatable-request",
-    f"{_HTTP_PKG}/_builtin.py",
-    "            and _now() - connection.released_at > REUSE_WINDOW",
-    "            and _now() - connection.released_at > REUSE_WINDOW + 1e9",
-    "tests/test_http_pool.py::test_a_request_that_cannot_be_repeated_does_not_trust_a_stale_connection",
-    "a POST uses an idle connection however long ago it last carried a reply",
-)
-mutant(
-    "http-verification-off-by-default",
-    f"{_HTTP_PKG}/_builtin.py",
-    '        verify: bool = True,\n        proxies: "_ty.Any" = None,',
-    '        verify: bool = False,\n        proxies: "_ty.Any" = None,',
-    "tests/test_http_tls.py::test_a_server_of_an_unknown_authority_is_refused_by_default",
-    "the built-in transport accepts any certificate unless told to verify",
-)
-mutant(
-    "http-verify-false-beats-the-ssl-context",
-    f"{_HTTP_PKG}/_builtin.py",
-    "        if self._ssl_context is not None:\n            return self._ssl_context",
-    "        if self._ssl_context is not None and self._verify:\n            return self._ssl_context",
-    "tests/test_http_tls.py::test_an_ssl_context_wins_over_verify_false",
-    "verify=False replaces an ssl_context the caller gave",
-)
-mutant(
-    "http-proxy-credentials-in-a-repr",
-    f"{_HTTP_PKG}/_proxies.py",
-    '        return f"ProxyAddress({self.host!r}, {self.port})"',
-    '        return f"ProxyAddress({self.host!r}, {self.port}, {self.authorization!r})"',
-    "tests/test_http_proxy.py::test_proxy_credentials_are_in_no_repr",
-    "a proxy's Proxy-Authorization value shows in its repr",
-)
-mutant(
-    "http-proxy-credentials-in-a-message",
-    f"{_HTTP_PKG}/_proxies.py",
-    '            f"the built-in HTTP transport has no {scheme!r} proxy support; "\n            + REQUESTS_HINT,',
-    '            f"the built-in HTTP transport has no {scheme!r} proxy support ({url}); "\n            + REQUESTS_HINT,',
-    "tests/test_http_proxy.py::test_a_proxy_scheme_that_is_not_http_is_refused_naming_the_other_transport",
-    "the error for an unsupported proxy scheme quotes the proxy URL with its credentials",
-)
-mutant(
-    "http-header-line-break-accepted",
-    f"{_HTTP_PKG}/_headers.py",
-    r'_CONTROL = _re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")',
-    r'_CONTROL = _re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")',
-    "tests/test_http_transport.py::test_a_header_with_a_line_break_or_a_bad_name_is_refused_before_sending",
-    "a header value with a bare line feed is sent",
-)
-mutant(
-    "http-url-line-break-accepted",
-    f"{_HTTP_PKG}/_headers.py",
-    r'_URL_CONTROL = _re.compile(r"[\x00-\x1f\x7f]")',
-    r'_URL_CONTROL = _re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")',
-    "tests/test_http_transport.py::test_a_url_with_a_control_character_is_refused_before_sending",
-    "a URL with a line break or a tab reaches the request line",
-)
-mutant(
-    "http-short-body-read-as-complete",
-    f"{_HTTP_PKG}/_builtin.py",
-    "        if self._expected is not None and self._received < self._expected:",
-    "        if False:",
-    "tests/test_http_transport.py::test_a_body_shorter_than_its_length_is_an_io_error_not_a_short_read",
-    "a body that ends before its Content-Length reads as a complete one",
-)
-mutant(
-    "http-inflation-not-bounded",
-    f"{_HTTP_PKG}/_response.py",
-    "_STEP = 256 * 1024",
-    "_STEP = 1 << 40",
-    "tests/test_http_transport.py::test_a_small_body_that_inflates_enormously_is_read_in_bounded_steps",
-    "a gzip body is inflated whole into memory because a header says it is small",
-)
-mutant(
-    "http-closed-stream-still-read",
-    f"{_HTTP_PKG}/_response.py",
-    "        if self._closed and not self._kept:",
-    "        if False:",
-    "tests/test_http_transport.py::test_reading_a_streamed_reply_after_closing_it_is_an_error",
-    "a closed streaming reply keeps handing out bytes",
-)
-mutant(
-    "http-idle-connection-limit",
-    f"{_HTTP_PKG}/_pool.py",
-    "MAX_IDLE_PER_THREAD = 8",
-    "MAX_IDLE_PER_THREAD = 100",
-    "tests/test_http_pool.py::test_a_thread_keeps_at_most_eight_idle_connections",
-    "a thread keeps more than eight idle connections",
-)
-mutant(
-    "http-default-transport-is-requests",
-    f"{_HTTP_PKG}/_select.py",
-    'DEFAULT_TRANSPORT = "builtin"',
-    'DEFAULT_TRANSPORT = "requests"',
-    "tests/test_http_default.py::test_without_a_setting_the_built_in_transport_is_used",
-    "a backend without a transport builds a requests session",
-)
-mutant(
-    "http-idle-connection-used-without-a-check",
-    f"{_HTTP_PKG}/_builtin.py",
-    "        if connection is not None and _unusable(connection.http.sock):\n",
-    "        if False:\n",
-    (
-        "tests/test_http_pool.py::test_bytes_the_server_sends_after_a_reply_are_not_the_next_reply",
-        "tests/test_http_pool.py::test_an_idle_connection_the_server_closed_is_replaced_before_sending",
-    ),
-    "an idle connection the server closed, or sent extra bytes on, carries the next request",
-)
-mutant(
-    "http-closed-connection-reopens-itself",
-    f"{_HTTP_PKG}/_builtin.py",
-    "        http.auto_open = 0\n",
-    "        http.auto_open = 1\n",
-    (
-        "tests/test_http_pool.py::test_a_connection_closed_before_the_request_is_written_is_not_reopened",
-        "tests/test_http_pool.py::test_a_transport_closed_before_the_request_is_written_does_not_send_it",
-        "tests/test_http_pool.py::test_a_body_that_is_being_sent_when_the_transport_is_closed_is_not_finished_in_the_clear",
-    ),
-    "http.client reconnects a closed connection by itself, in plain TCP outside the TLS session and the proxy",
-)
-mutant(
-    "http-interim-reply-taken-as-the-final-one",
-    f"{_HTTP_PKG}/_builtin.py",
-    "            if status == _client.CONTINUE:\n                return version, status, reason  # `begin()` skips its headers\n",
-    "            if True:\n                return version, status, reason  # `begin()` skips its headers\n",
-    (
-        "tests/test_http_transport.py::test_the_built_in_transport_skips_interim_replies_and_returns_the_final_one",
-        "tests/test_http_transport.py::test_an_interim_reply_is_never_the_previous_answer_of_the_next_request",
-    ),
-    "a 103 Early Hints is the reply, and the real one is read as the answer to the next request",
-)
-mutant(
-    "http-interim-replies-not-counted",
-    f"{_HTTP_PKG}/_builtin.py",
-    "            if self._interim > MAX_INTERIM_REPLIES:\n",
-    "            if False:\n",
-    (
-        "tests/test_http_transport.py::test_a_bounded_number_of_interim_replies_is_skipped",
-        "tests/test_http_transport.py::test_an_endless_stream_of_100_continue_is_given_up_not_waited_out",
-    ),
-    "a server that answers with endless interim replies is waited on without limit",
-)
-mutant(
-    "http-no-proxy-cidr-ignored",
-    f"{_HTTP_PKG}/_proxies.py",
-    '        if _in_no_proxy_network(host, chosen.get("no", "")):\n',
-    "        if False:\n",
-    "tests/test_http_proxy.py::test_a_cidr_block_in_no_proxy_sends_an_ip_literal_host_direct",
-    "a request to a host inside a NO_PROXY block goes to the proxy, which sees its Authorization",
-)
 _PEER = "tests/test_http_peer_text.py"
 
-mutant(
-    "http-peer-text-not-escaped",
-    f"{_HTTP_PKG}/_headers.py",
-    '        char if char.isprintable() else char.encode("unicode_escape").decode("ascii")\n',
-    "        char\n",
-    f"{_PEER}::test_peer_text_escapes_what_a_terminal_would_act_on",
-    "text from the peer keeps its control characters in an error message",
-)
-mutant(
-    "http-reason-phrase-unescaped",
-    "schemes/_http/_errors.py",
-    '        reason = peer_text(response.reason or "")\n',
-    '        reason = response.reason or ""\n',
-    (
-        f"{_PEER}::test_a_reason_phrase_is_shown_escaped",
-        f"{_PEER}::test_a_long_reason_phrase_is_cut",
-    ),
-    "an HTTP error's reason phrase reaches the message as the server sent it",
-)
 mutant(
     "git-reason-phrase-unescaped",
     "schemes/_gitrepo.py",
@@ -612,144 +292,15 @@ mutant(
     f"{_PEER}::test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped",
     "a git API error's reason phrase reaches the message as the server sent it",
 )
-mutant(
-    "http-refused-redirect-location-unbounded",
-    f"{_HTTP_PKG}/_follow.py",
-    '    where = peer_text(shown(location), 200) if location else "(none)"\n',
-    '    where = shown(location) if location else "(none)"\n',
-    f"{_PEER}::test_a_redirect_that_is_refused_is_shown_cut_and_with_an_escaped_reason",
-    "a refused redirect's message holds the whole Location",
-)
-mutant(
-    "http-redirect-reask-forgets-the-origin",
-    "schemes/_http/_backend.py",
-    "            method, location, sent, None, None, stream, timeout, first=url\n",
-    "            method, location, sent, None, None, stream, timeout, first=None\n",
-    (
-        "tests/test_http_redirect_origin.py::test_a_redirect_to_another_origin_does_not_carry_authorization",
-        "tests/test_http_redirect_origin.py::test_a_patch_mode_append_asks_the_other_origin_without_authorization",
-    ),
-    "stat() and what is built on it re-ask the redirect target as if it were the first origin, with Authorization",
-)
-mutant(
-    "http-redirect-reask-sends-the-backend-headers-again",
-    "schemes/_http/_follow.py",
-    "        if origin(current) != home:\n",
-    "        if origin(current) != origin(url):\n",
-    "tests/test_http_redirect_origin.py::test_a_redirect_to_another_origin_does_not_carry_authorization",
-    "a re-request compares the redirect target with itself instead of with the origin it was asked for",
-)
-mutant(
-    "http-unusable-location-reaches-the-transport",
-    f"{_HTTP_PKG}/_follow.py",
-    "        check_url(absolute)\n        return absolute\n",
-    "        return absolute\n",
-    "tests/test_http_redirects.py::test_a_location_the_url_check_refuses_is_oserror_never_valueerror",
-    "a Location the URL check refuses is sent on, and its ValueError reaches the caller",
-)
-mutant(
-    "http-redirect-without-a-usable-location-is-the-reply",
-    f"{_HTTP_PKG}/_follow.py",
-    '        if location is None:\n            _discard(resp)\n            raise refused_redirect(method, current, resp, None, "no usable Location")\n        if hops >= MAX_REDIRECTS:',
-    "        if location is None:\n            return resp\n        if hops >= MAX_REDIRECTS:",
-    "tests/test_http_redirects.py::test_a_location_that_is_not_an_http_url_is_a_refused_redirect",
-    "a redirect with an unusable Location reads as the answer itself",
-)
 _LIMITS = "tests/test_http_reply_limits.py"
 
 mutant(
-    "http-reply-limit-not-applied",
-    f"{_HTTP_PKG}/_response.py",
-    "            if limit is not None and len(data) > limit:\n",
-    "            if False:\n",
-    (
-        f"{_LIMITS}::test_a_propfind_reply_over_the_limit_is_efbig_counted_in_decoded_bytes",
-        f"{_LIMITS}::test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited",
-        f"{_LIMITS}::test_the_backend_reads_a_reply_whole_only_up_to_the_limit",
-    ),
-    "a reply read whole is held in memory however long it decodes to",
-)
-mutant(
-    "http-dropped-reply-read-without-a-bound",
-    f"{_HTTP_PKG}/_status.py",
-    "            remaining -= len(chunk)\n",
-    "            pass\n",
-    f"{_LIMITS}::test_the_reply_to_a_write_is_dropped_and_its_connection_is_not_kept",
-    "the body of a reply nobody looks at is read to its end, however long",
-)
-mutant(
     "dav-propfind-reply-read-unbounded",
     "schemes/_dav.py",
-    "        body = _read_limited(resp, _settings.MAX_LISTING_BYTES, self)\n",
+    "        body = read_limited(resp, self)\n",
     "        body = resp.read()\n",
     f"{_LIMITS}::test_a_propfind_reply_over_the_limit_is_efbig_counted_in_decoded_bytes",
     "a PROPFIND reply is read whole whatever its size",
-)
-mutant(
-    "git-json-reply-read-unbounded",
-    f"{_HTTP_PKG}/_status.py",
-    "    return _json.loads(read_limited(resp, limit, what))",
-    "    return _json.loads(resp.read())",
-    f"{_LIMITS}::test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited",
-    "a git API's JSON reply is read whole whatever its size",
-)
-mutant(
-    "http-backend-buffers-without-a-cap",
-    "schemes/_http/_backend.py",
-    "            resp._buffered(limit, _too_large(_follow.shown(url), limit))\n",
-    "            resp._buffered()\n",
-    f"{_LIMITS}::test_the_backend_reads_a_reply_whole_only_up_to_the_limit",
-    "request(stream=False) reads a reply to its end whatever its size",
-)
-mutant(
-    "http-exchange-runs-under-the-connect-timeout",
-    f"{_HTTP_PKG}/_builtin.py",
-    "                sock.settimeout(read_timeout)\n",
-    "                sock.settimeout(connect_timeout)\n",
-    "tests/test_http_transport.py::test_a_server_that_never_answers_is_a_timeout_after_the_read_timeout",
-    "the wait for a reply is bounded by the connect half of the timeout",
-)
-_BODY = "tests/test_http_body.py"
-mutant(
-    "http-body-length-ignores-the-position",
-    f"{_HTTP_PKG}/_body.py",
-    "        return max(0, end - here)\n",
-    "        return max(0, end)\n",
-    (
-        f"{_BODY}::test_a_bytes_io_part_way_sends_what_is_left_under_that_length",
-        f"{_BODY}::test_an_open_file_part_way_sends_what_is_left_under_that_length",
-    ),
-    "a file read from the middle is sent under the length of the whole file",
-)
-mutant(
-    "http-body-sent-past-its-length",
-    f"{_HTTP_PKG}/_body.py",
-    "        want = self._left if amount is None or amount < 0 else min(amount, self._left)\n",
-    "        want = self._left if amount is None or amount < 0 else amount\n",
-    (
-        f"{_BODY}::test_a_file_that_grew_after_it_was_measured_sends_only_the_length_it_stated",
-        f"{_BODY}::test_a_length_the_caller_set_cuts_a_longer_body_at_that_length",
-    ),
-    "a body longer than its Content-Length sends the rest into the next request",
-)
-mutant(
-    "http-body-short-of-its-length-is-not-an-error",
-    f"{_HTTP_PKG}/_body.py",
-    "        if not chunk:\n            raise OSError(\n",
-    "        if False:\n            raise OSError(\n",
-    (
-        f"{_BODY}::test_a_file_that_ends_before_the_length_it_stated_is_an_error",
-        f"{_BODY}::test_a_generator_that_ends_before_the_length_the_caller_set_is_an_error",
-    ),
-    "a body that ends before its Content-Length leaves the server waiting for the rest",
-)
-mutant(
-    "http-length-larger-than-the-body-is-sent",
-    f"{_HTTP_PKG}/_body.py",
-    "        if known is not None and declared > known:\n",
-    "        if False:\n",
-    f"{_BODY}::test_a_length_larger_than_a_body_whose_size_is_known_is_refused",
-    "a Content-Length larger than a file or list is sent and the upload stalls",
 )
 
 # --- query and fragment through a derivation ----------------------------------

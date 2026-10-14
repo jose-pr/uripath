@@ -346,15 +346,14 @@ def test_the_header_links_only_to_absolute_urls():
 
 def test_the_sections_come_in_the_order_a_user_meets_them():
     titles = _headings(HEADER.read_text(encoding="utf-8"), 2)
-    assert [t.split(" (")[0] for t in titles[:6]] == [
+    assert [t.split(" (")[0] for t in titles[:5]] == [
         "URIs",
         "Sources",
         "Queries",
         "Built-in schemes",
         "For scheme implementers",
-        "For transport implementers",
     ]
-    assert titles[6:] == [
+    assert titles[5:] == [
         "Provided by other distributions",
         "Exceptions",
         "Command line",

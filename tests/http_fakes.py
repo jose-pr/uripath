@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 import typing
 
-from uripath.schemes import HTTPResponse
+from pathlib_next.http import HTTPResponse, get_transport
 
 _REASONS = {
     200: "OK",
@@ -25,7 +25,7 @@ _REASONS = {
 
 def current_kind():
     """The transport kind the test runs with: what `http_transport_kind` set."""
-    return os.environ.get("URIPATH_HTTP_TRANSPORT", "builtin")
+    return os.environ.get("PATHLIB_NEXT_HTTP_TRANSPORT", "builtin")
 
 
 def on_current_transport(path, **backend_args):
@@ -41,19 +41,15 @@ def is_client_error(error):
 
 
 def make_transport(kind, **arguments):
-    """A real transport of the kind `uripath.transports.get()` names."""
-    from uripath import transports
-
-    return transports.get(kind)(**arguments)
+    """A real transport of the kind `get_transport()` names."""
+    return get_transport(kind)(**arguments)
 
 
 def spy_on_sends(monkeypatch, project=lambda method, url, **kwargs: (method, url)):
     """A list that gains `project(method, url, **keywords)` for every request
     the real transport of the kind under test sends; the requests still go to
     the server."""
-    from uripath import transports
-
-    transport_class = transports.get(current_kind())
+    transport_class = get_transport(current_kind())
     log = []
 
     def spy(self, method, url, *args, _original=transport_class.send, **kwargs):
