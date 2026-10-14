@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-14
+
 The first release of `uripath`: the URI layer of `pathlib-next` 0.9.14
 (`pathlib_next.uri` and the `uripath` command) as a distribution of its own. It
 needs Python 3.9 or newer, `pathlib-next>=0.10.0,<0.11` and
@@ -321,4 +323,5 @@ do about it.
     took what followed as positional arguments, so `uripath rm -- -name`
     removed `-name`; write `uripath rm ./-name`.
 
-[Unreleased]: https://github.com/jose-pr/uripath/commits/main
+[Unreleased]: https://github.com/jose-pr/uripath/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jose-pr/uripath/releases/tag/v0.1.0
