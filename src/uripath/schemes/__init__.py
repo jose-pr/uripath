@@ -15,6 +15,7 @@ import sys as _sys
 import types as _types
 import typing as _ty
 
+from ._delegate import DelegatingURIPath as DelegatingURIPath
 from ._path import DerivedBackend
 from ._path import URIPath as URIPath
 
@@ -76,6 +77,7 @@ __all__ = [
     "BaseRepoBackend",
     "DAVURIPath",
     "DataURIPath",
+    "DelegatingURIPath",
     "DerivedBackend",
     "FTPURIBackend",
     "FTPURIPath",

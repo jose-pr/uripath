@@ -63,6 +63,7 @@ DOCUMENTED = {
         "BaseRepoBackend",
         "DAVURIPath",
         "DataURIPath",
+        "DelegatingURIPath",
         "DerivedBackend",
         "FTPURIBackend",
         "FTPURIPath",

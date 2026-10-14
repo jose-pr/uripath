@@ -6,10 +6,10 @@ from pathlib_next import FsPathLike
 from pathlib_next import LocalPath as _Local
 from ..source import Source
 from ..source import is_drive
-from ._delegate import DelegatingPath
+from ._delegate import DelegatingURIPath
 
 
-class FileURIPath(DelegatingPath):
+class FileURIPath(DelegatingURIPath):
     """`file:` scheme: a `URIPath` wrapping a `LocalPath` (`filepath`),
     delegating all I/O to it."""
 

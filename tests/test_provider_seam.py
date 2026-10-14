@@ -30,7 +30,7 @@ HEADER = PACKAGE / "AGENTS.md"
 
 # The modules of `uripath.schemes` that hold the contract (`URIPath`) and the
 # registry; the others are schemes.
-CONTRACT_MODULES = ("__init__.py", "_path.py", "_registry.py")
+CONTRACT_MODULES = ("__init__.py", "_delegate.py", "_path.py", "_registry.py")
 
 # Names a scheme module reads that are its own: an attribute of one of its
 # helper classes, or of a stdlib named tuple. Each is a name the scan finds

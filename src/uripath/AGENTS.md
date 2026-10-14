@@ -881,6 +881,13 @@ class URIPath(URI, Path):
     _schemes_in_use
     _stat_hint
 
+class DelegatingURIPath(URIPath):
+    _DELEGATED: Sequence[str]
+    _RELABEL: bool
+    def _make_core(self) -> Path: ...
+    def _delegated(self, *extra) -> ContextManager[None]: ...
+    _core_path
+
 def same_authority(a, b) -> bool: ...
 class DerivedBackend: ...
 ```
@@ -983,6 +990,28 @@ backend, as the archives and `git:` do):
 - `DerivedBackend` — a base class for a backend that only `_initbackend()`
   creates and that cannot be weakly referenced (a tuple): without it, or
   `"__weakref__"` in `__slots__`, `_same_filesystem()` reads it as supplied.
+
+Delegating to a path that needs no URI (`uripath.schemes.DelegatingURIPath`,
+the base of `file:`, `ftp:` and the archive schemes, and of `sftp:` in the
+distribution that provides it):
+
+- `_make_core()` — the `pathlib_next.Path` this URI names, built from `source`
+  and `path` and performing no I/O; it is made once per instance and is the
+  `_core_path`. A scheme names the hooks it hands to it in `_DELEGATED`: any of
+  `_scandir`, `_listdir`, `_open`, `_mkdir`, `unlink`, `rmdir`, `chmod`,
+  `_chown`, `_utime`, `_symlink_to`, `readlink`, `_write_batch`,
+  `_same_filesystem` and `_node_key`; each calls the core path's method of the
+  same name, and a hook not named stays what `URIPath` defines. `stat()` takes
+  the listing's hint (see `_pop_stat_hint()`) before it asks the core path.
+- `_delegated(*extra)` — a context manager for the call of a core path that a
+  scheme writes by hand (`rename()`, `copy()`): an `OSError` that names the core
+  path, or a pair of `extra` `(core text, this text)`, names this path instead.
+  `_RELABEL = False` turns that off for a core path that is itself the user's
+  file (`file:`).
+- The URI layer keeps everything about URIs: parsing, joining, the backend and
+  how paths of one endpoint share it, the text of the path and the keywords of
+  the constructor (`_OPTIONS`). The protocol, its errors and its caches belong to
+  the core path.
 
 Composing text:
 

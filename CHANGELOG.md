@@ -44,6 +44,12 @@ do about it.
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).
   `InsecureTransportWarning` is there too.
+- `uripath.schemes.DelegatingURIPath` is the base of a scheme whose I/O is
+  done by a `pathlib_next.Path` that needs no URI, and the one `file:`, `ftp:`
+  and the archive schemes use. A distribution that provides a scheme this way
+  (the `sftp:` of `sftppath`) lists the hooks it hands over in `_DELEGATED` and
+  builds the path in `_make_core()`; the header documents both under "For
+  scheme implementers".
 - `uripath.source.fold_host(host)` returns the form of a host that comparisons
   and caches key on.
 - `DataURIPath.charset` is the charset a `data:` URI declares.

@@ -12,7 +12,7 @@ from pathlib_next.ftp import BaseFTPBackend, FTPBackend, FTPPath
 from pathlib_next.providers import notimplemented as _notimplemented
 from .._uri import URI
 from ..source import Source, fold_host
-from ._delegate import DelegatingPath
+from ._delegate import DelegatingURIPath
 
 if _ty.TYPE_CHECKING:
     import ssl as _ssl
@@ -153,7 +153,7 @@ def _endpoints_of(owner: BaseFTPURIBackend) -> "list[_EndpointBackend]":
         return [found for key, found in list(_ENDPOINTS.items()) if key[0] == id(owner)]
 
 
-class FTPURIPath(DelegatingPath):
+class FTPURIPath(DelegatingURIPath):
     """`ftp:`/`ftps:` scheme: full read/write access via the stdlib FTP client,
     done by a `pathlib_next.ftp.FTPPath` on the connections of `backend`
     (a thread-keyed LRU cache; a thread's connections close when it ends). A

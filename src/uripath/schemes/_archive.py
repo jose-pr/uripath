@@ -9,7 +9,7 @@ from .._uri import URI
 from ..exceptions import URISyntaxError
 from ..source import SAFE_PATH, Source, percent_encode
 from ._path import URIPath
-from ._delegate import DelegatingPath
+from ._delegate import DelegatingURIPath
 
 _SEP = "!/"
 _SCHEME_RE = _re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
@@ -78,7 +78,7 @@ def _open_outer(archive_uri: str, schemesmap=None) -> "URIPath":
     return URIPath(archive_uri, schemesmap=schemesmap)
 
 
-class ArchiveURIPath(DelegatingPath):
+class ArchiveURIPath(DelegatingURIPath):
     """Common base for `zip:`/`tar:`/`archive:` archive paths:
     `<scheme>:<archive-uri>!/<inner-path>` (Java-style separator; the
     `<archive-uri>` half is itself any absolute URI with an explicit scheme

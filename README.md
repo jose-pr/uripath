@@ -164,7 +164,7 @@ be served to an agent as a set of tools.
 | `uripath.source` | `Source` (scheme, userinfo, host, port), `same_authority` and the helpers that read and compose a URI's text |
 | `uripath.query` | `Query`, an immutable query value, and `QueryLike` |
 | `uripath.exceptions` | The errors above and `InsecureTransportWarning` |
-| `uripath.schemes` | The contract and registry of schemes, `DerivedBackend`, and every built-in scheme's classes: `FileURIPath`, `DataURIPath`, `ZipURIPath`, `TarURIPath`, `ArchiveURIPath`, `FTPURIPath`, `HTTPURIPath`, `DAVURIPath`, `GitHubURIPath`, `GitLabURIPath`, `GitURIPath` and their backends |
+| `uripath.schemes` | The contract and registry of schemes, `DerivedBackend`, `DelegatingURIPath`, and every built-in scheme's classes: `FileURIPath`, `DataURIPath`, `ZipURIPath`, `TarURIPath`, `ArchiveURIPath`, `FTPURIPath`, `HTTPURIPath`, `DAVURIPath`, `GitHubURIPath`, `GitLabURIPath`, `GitURIPath` and their backends |
 
 The full reference is on the [documentation site](https://jose-pr.github.io/uripath/);
 an agent-oriented API summary ships inside the package as `uripath/AGENTS.md`.

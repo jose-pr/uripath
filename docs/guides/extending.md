@@ -168,6 +168,34 @@ helpers of `URIPath` with their signatures, under "For scheme implementers";
 the one inside `pathlib_next` lists those of `Path`, under "For path
 implementers". The built-in schemes use no other underscore name of either.
 
+### Delegate to a path that needs no URI
+
+A protocol that is useful without a URI (a path to an FTP server, to an SFTP
+server) is best written once, as a `pathlib_next.Path` that takes its endpoint
+as keywords, and offered as a scheme by a thin class on top of it. Subclass
+`uripath.schemes.DelegatingURIPath`, list the hooks to hand over in
+`_DELEGATED` and build the path they run on in `_make_core()`:
+
+```python
+from pathlib_next import MemPath
+from uripath.schemes import DelegatingURIPath
+
+
+class MemURIPath(DelegatingURIPath):
+    __SCHEMES = ("mem",)
+    _DELEGATED = ("_scandir", "_listdir", "_open", "_mkdir", "unlink", "rmdir")
+
+    def _make_core(self):
+        return MemPath(self.path or "/", backend=SHARED_BACKEND)
+```
+
+Everything about URIs (parsing, joining, how paths of one endpoint share a
+backend, the keywords of the constructor) stays in the URI class; the protocol,
+its errors and its connections stay in the core path, and an `OSError` the core
+path raises names the URI path instead of its own. A hook the scheme must
+change before it delegates (`rename()`, `copy()`) is written by hand and runs
+the core path inside `with self._delegated():`.
+
 The built-in schemes are worked examples of increasing size:
 [`FileURIPath`](../api/schemes/local.md) delegates to `LocalPath`,
 [`FTPURIPath`](../api/schemes/ftp.md) adapts the `pathlib_next` FTP path to a

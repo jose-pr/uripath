@@ -10,6 +10,8 @@
 
 ::: uripath.schemes.DerivedBackend
 
+::: uripath.schemes.DelegatingURIPath
+
 ::: uripath.source
     options:
       show_if_no_docstring: true

@@ -51,7 +51,7 @@ _FORWARDERS["_scandir"] = _scandir
 _FORWARDERS["_listdir"] = _listdir
 
 
-class DelegatingPath(URIPath):
+class DelegatingURIPath(URIPath):
     """A `URIPath` whose I/O is done by a core path that needs no URI.
 
     A scheme names the hooks it hands over in `_DELEGATED` and builds the core
