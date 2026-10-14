@@ -27,7 +27,7 @@ distributions:
 | Provides | Install |
 | --- | --- |
 | `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
-| `s3:`, `gs:`, `az:` | `pip install "uripath-objstore[s3]"` (or `[gs]`, `[az]`) |
+| `s3:`, `gs:`, `az:` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
 | the `requests` HTTP transport | `pip install pathlib-next-requests` |
 
 ## Tour

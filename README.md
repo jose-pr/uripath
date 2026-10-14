@@ -28,9 +28,9 @@ server, a web directory or a GitHub or GitLab repository. It builds on
 | `dav:` / `davs:` (`DAVURIPath`, WebDAV) | nothing | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
 | `github:` / `gitlab:` / `git:` (also `git+github:`, `git+gitlab:`) | nothing | Yes | No | Yes | Yes | No | No | No |
 | `sftp:` | `sftppath[paramiko]` or `[asyncssh]` | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `s3:` | `uripath-objstore[s3]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
-| `gs:` | `uripath-objstore[gs]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
-| `az:` | `uripath-objstore[az]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker blob) | Yes | Yes (same container) |
+| `s3:` | `objpath[s3]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
+| `gs:` | `objpath[gs]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
+| `az:` | `objpath[az]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker blob) | Yes | Yes (same container) |
 
 The last four rows are other distributions: a path of one of those schemes
 builds, joins and prints without it, and its first use of the server raises an
@@ -66,7 +66,7 @@ Requires `pathlib-next` and `netimps`, which pip installs with it.
 | `pip install uripath` | every scheme whose Needs is nothing in the table above |
 | `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
 | `pip install "sftppath[paramiko]"` or `[asyncssh]` | `sftp:` |
-| `pip install "uripath-objstore[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
+| `pip install "objpath[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
 | `pip install pathlib-next-requests` | the `requests` HTTP transport |
 
 ## Quick start

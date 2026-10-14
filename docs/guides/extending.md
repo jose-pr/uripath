@@ -259,7 +259,7 @@ A backend that genuinely cannot meet a rule sets the matching class attribute to
 | `supports_rename` | `PathContract` | `rename()` | none here (`MemPath` of `pathlib_next` sets it: `move()` copies instead) |
 | `supports_append` | `PathContract` | `open("a")` | `ZipURIPath`, `DAVURIPath` |
 | `supports_exclusive_create` | `PathContract` | `open("x")` | none |
-| `enforces_directory_hierarchy` | `PathContract` | `mkdir()`/writes below a missing parent raise `FileNotFoundError`; writing a file over a directory raises; `rename()` onto a non-empty directory raises | none (the object stores of `uripath-objstore` set it) |
+| `enforces_directory_hierarchy` | `PathContract` | `mkdir()`/writes below a missing parent raise `FileNotFoundError`; writing a file over a directory raises; `rename()` onto a non-empty directory raises | none (the object stores of `objpath` set it) |
 | `supports_mkdir` | `PathContract` | `mkdir()`, and every test that creates a directory | none (a transport with no directories, such as TFTP, sets it) |
 | `supports_delete` | `PathContract` | `unlink()`, `rmdir()`, `rm()`, and replacing a file in `copy(overwrite=True)` | none (TFTP sets it) |
 | `supports_move` | `PathContract` | `move()`, by `rename()` or by copying and deleting | none (TFTP sets it) |

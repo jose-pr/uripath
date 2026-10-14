@@ -203,9 +203,9 @@ without it; the first operation that needs the server (`stat()`, `exists()`,
 | Provides | Install |
 | --- | --- |
 | `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
-| `s3:` | `pip install "uripath-objstore[s3]"` |
-| `gs:` | `pip install "uripath-objstore[gs]"` |
-| `az:` | `pip install "uripath-objstore[az]"` |
+| `s3:` | `pip install "objpath[s3]"` |
+| `gs:` | `pip install "objpath[gs]"` |
+| `az:` | `pip install "objpath[az]"` |
 | the `requests` HTTP transport | `pip install pathlib-next-requests` |
 
 ## Archives
