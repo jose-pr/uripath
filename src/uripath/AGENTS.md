@@ -347,7 +347,7 @@ to ask whether they name one endpoint.
 for an empty host and `file:` for none; an invalid scheme or port is a
 `ValueError`), without the
 password; `repr()` redacts it too, and both drop the whole userinfo for
-`github:`/`gitlab:`/`git:` (the fields keep it). `reveal()` is the text with
+`repo:`/`github:`/`gitlab:` (the fields keep it). `reveal()` is the text with
 the password, as `URI.as_uri(sanitize=False)` is for a URI; it is named as an
 action because its result carries the secret. `Source.parse(text, *,
 strict=True)` reads the authority as `URI` does (`URISyntaxError` for a
@@ -413,8 +413,8 @@ is not a `str` and has no length, items or iteration (`len(query)` and
 ## Built-in schemes (`uripath.schemes`)
 
 Every class is dispatched by `URIPath(...)`; `uripath.schemes`
-re-exports `FileURIPath`, `DataURIPath`, `HTTPURIPath`, `DAVURIPath`, `FTPURIPath`, `GitHubURIPath`,
-`GitLabURIPath`, `GitURIPath`, `ZipURIPath` and `TarURIPath` lazily. Backends are passed
+re-exports `FileURIPath`, `DataURIPath`, `HTTPURIPath`, `DAVURIPath`, `FTPURIPath`,
+`ZipURIPath` and `TarURIPath` lazily. Backends are passed
 as `URIPath(uri, backend=...)` or `path.with_backend(...)`.
 
 ### `FileURIPath` — `file:` (`uripath.schemes`)
@@ -680,106 +680,6 @@ class BaseFTPURIBackend:
   sent in every command that takes a path, never an empty argument (which a
   server reads as its working directory).
 
-### `GitHubURIPath` — `github://[TOKEN@]host/owner/repo/path?ref=REF` (`uripath.schemes`)
-
-```python
-class GitHubURIPath(URIPath):
-    owner: str
-    repo: str
-    repo_path: str
-    ref: str | None
-
-class RepoBackend(BaseRepoBackend):
-    def __init__(
-        self, token=None, session=None, api_base=None, *, transport=None,
-        headers=None, timeout=(10, 60), **requests_args,
-    ): ...
-    def close(self): ...
-
-class BaseRepoBackend:
-    def request(self, method, url, headers=None, params=None, **kwargs): ...
-```
-
-Read-only; `open()` other than `"r"` and every
-write method raise `NotImplementedError`.
-
-- Properties: `owner`, `repo`, `repo_path`, `ref` (`None` = default
-  branch); `?ref=` is carried to every child.
-- `RepoBackend` (`BaseRepoBackend` is its base): `Authorization: Bearer <token>`, timeout default
-  `(10, 60)`, `cache` dict; `api_base` overrides the API root;
-  `BaseRepoBackend.request(method, url, headers=None, params=None, **kwargs)`
-  is the override point and returns a `pathlib_next.http.HTTPResponse`.
-  A request that carries `Authorization` (the token, or one given in
-  `headers=`) to a plain `http://` URL on a host other than loopback is
-  still sent, with an `InsecureTransportWarning` (a `UserWarning`).
-  Without `backend=`, the token is the userinfo password
-  (`x-access-token:TOKEN@`) or else the bare user (`TOKEN@`).
-- `str()`, `repr()`, `as_posix()` and `as_uri(sanitize=True)` drop the whole
-  userinfo. Owner, repository and every path segment are percent-encoded
-  into the API URL, so none can add a query or a segment, and a `.` or `..`
-  segment in the path or the ref (made with `with_name("..")` or
-  `with_path()`; a URI's own dot segments are already resolved) raises
-  `ValueError` instead of leaving the repository's API root.
-- API root `https://api.github.com` for `github.com`, else
-  `https://host[:port]/api/v3`. Contents API listings (a directory at the
-  1,000-entry cap is re-read through the Git Trees API); file bodies use
-  the raw media type; symlink/submodule entries read as files;
-  `st_mtime` is `0`.
-- `stat()`, `exists()` and `is_file()` of a file are one `HEAD` of the
-  contents URL asked for the raw media type and unencoded: the size is its
-  `Content-Length`, and a `404` there is `FileNotFoundError`. A directory
-  answers with a JSON type and is then listed with a `GET` (two requests;
-  the root of the repository is listed directly). A `HEAD` reply without
-  `X-GitHub-Media-Type` (a proxy's, a server that refuses `HEAD`), with an
-  encoding, or without a plain `Content-Length` is not used: the `GET` of
-  the contents object answers, as it did.
-- Rate limits (403/429 with limit headers, any 429) → `OSError(EAGAIN)`.
-- A JSON reply that is not the documented shape (HTML from a proxy, `null`,
-  a truncated body, an array where an object is expected, an entry without
-  a name and a type, a size that is not a non-negative integer) is
-  `OSError(EIO)` naming the path, so `exists()` is `False` and `stat()`
-  raises. A raw file body has no shape to check and is returned as sent,
-  except a `200` whose `Content-Type` is `text/html` and that carries no
-  `X-GitHub-Media-Type` header: the API names its media type in every
-  reply, so that is a proxy's or a captive portal's page, and `open()` of
-  it is `OSError(EIO)` naming the path (a file of the repository that is
-  HTML still reads, with the header). A server that sends HTML for a file
-  without that header is read as a proxy's page.
-
-### `GitLabURIPath` — `gitlab://[TOKEN@]host[:port]/owner/repo/path` (`uripath.schemes`)
-
-```python
-class GitLabURIPath(URIPath):
-    owner: str
-    repo: str
-    repo_path: str
-    ref: str | None
-```
-
-Same backend, properties and read-only
-contract; API root `https://host[:port]/api/v4` (`gitlab.com` by
-default). Without `?ref=` the default branch is fetched once
-(`GET /projects/:id`) and cached in `backend.cache`. Tree listings are
-paginated (100 per page); a blob entry is a type-only hint
-(`size_known=False`), so `walk()`, `glob()` and `rm(recursive=True)` cost one
-request per directory; the `stat()` of a file is a `HEAD` of the files
-endpoint reading `X-Gitlab-Size` (a reply without it, or a refused `HEAD`, is
-followed by a `GET` of the file's metadata); `st_mtime` is `0`. Replies of the wrong shape are
-`OSError(EIO)` as for `GitHubURIPath`.
-
-### `GitURIPath` — `git:` (`uripath.schemes`)
-
-```python
-class GitURIPath(URIPath): ...
-class GitHubGitURIPath(GitHubURIPath): ...
-class GitLabGitURIPath(GitLabURIPath): ...
-```
-
-`git://github.com/...` constructs a
-`GitHubURIPath`, `git://gitlab.com/...` a `GitLabURIPath`; any other host →
-`URISyntaxError`. `git+github:` (`GitHubGitURIPath`) and `git+gitlab:`
-(`GitLabGitURIPath`) pin the provider for any host.
-
 ### Archives — `zip:`, `tar:`, `archive:` (`uripath.schemes`)
 
 ```python
@@ -931,7 +831,7 @@ Building and deriving a path:
 - `_make_child_relpath(name, stat_hint=None, **kwargs)` — the child called
   exactly `name` (one segment, never re-parsed), with the query and fragment
   of this path; `iterdir()`, `_scandir()` and the `str` join build children
-  with it, so a scheme that gives a name a meaning (`gitlab:`'s `-`) overrides
+  with it, so a scheme that gives a name a meaning (a `-`, say) overrides
   it. `stat_hint` is the listing's stat for that child; `http:` and `dav:`
   build a listed child without the query and fragment (see "Query and
   fragment").
@@ -957,7 +857,7 @@ Building and deriving a path:
   whose listing knows a file's type and not its size yields
   `FileStat(is_dir=False, size_known=False)` rather than `None`: `walk()`,
   `glob()` and `rm(recursive=True)` then cost one request per directory.
-  `gitlab:` (blobs) and `http:` (an index without exact sizes) do.
+  `http:` (an index without exact sizes) does.
 - `_listdir()` — the names `_scandir()` lists by default; a stub.
 - `_schemes()` — the scheme names this class registers.
 
@@ -969,7 +869,7 @@ contract is in the `pathlib-next` header, "For path implementers"). The
 a stream that writes through as it goes needs none.
 
 Backend state (read it only in an override that changes how a path carries a
-backend, as the archives and `git:` do):
+backend, as the archives do):
 
 - `_backend` is the backend object or `None`; `_backend_derived` says the path
   built it or inherited one that was built, not supplied;
@@ -1038,6 +938,7 @@ them:
 | --- | --- | --- |
 | `sftp:` | `sftppath` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
 | `s3:`, `gs:`, `az:` | `objpath` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
+| `repo:`, `github:`, `gitlab:` | `repopath` | `pip install repopath` |
 | the `requests` HTTP transport | `pathlib-next-requests` | `pip install pathlib-next-requests` |
 
 A path of one of the schemes builds, joins, compares and prints without its
@@ -1053,8 +954,7 @@ the other names `URIPath.schemes()` lists as built in keep their classes, and
 a class that names one without `replace=True` is a `ValueError` where it is
 defined.
 
-For the `requests` transport, `HTTPURIPath.with_session()`, a
-`RepoBackend(session=...)` or `RepoBackend(**requests_args)` and
+For the `requests` transport, `HTTPURIPath.with_session()` and
 `PATHLIB_NEXT_HTTP_TRANSPORT=requests` use the class that the installed
 `pathlib-next-requests` declares in the group `pathlib_next.http_transports`,
 and raise `ImportError` naming it when it is not installed.
@@ -1068,7 +968,6 @@ class URIPathError(Exception): ...
 class URISyntaxError(URIPathError, ValueError): ...
 class UnsupportedSchemeError(URIPathError, ValueError): ...
 class OutputClosedError(URIPathError, BrokenPipeError): ...
-class InsecureTransportWarning(UserWarning): ...
 ```
 
 `URIPathError` is the base of what goes wrong at run time; the root `uripath`
@@ -1076,16 +975,13 @@ exports it and the two below.
 
 - `URISyntaxError` — text that is not a URI, or not the part of one that was
   asked for: a port that is not 0-65535, a malformed host or IPv6 address, a
-  `git:` URI on a host with no provider, a `zip:` URI without the scheme of its
-  archive, `Source.parse()` of text with a path. The message names the
+  `zip:` URI without the scheme of its archive, `Source.parse()` of text with a
+  path. The message names the
   fault and never the text, which can carry a password.
 - `UnsupportedSchemeError` — `URIPath.scheme_class(name)` for a scheme nobody
   registered; the message lists the registered ones.
 - `OutputClosedError` — `copy_stream()` found that the reader of its target
   stream went away; only `uripath.exceptions` exports it.
-- `InsecureTransportWarning` — a `RepoBackend` is about to send an
-  `Authorization` header over plain `http://` to a host that is not this
-  machine (see `GitHubURIPath`).
 
 A caller's bad argument stays a plain `ValueError` or `TypeError`: a name
 another class holds (`ValueError` at the class statement), a path outside its
@@ -1155,8 +1051,8 @@ option is off unless it is passed.
 
 `builtin` (the default when unset), or the name of a transport an installed
 distribution declares in the group `pathlib_next.http_transports` (`requests`,
-from `pathlib-next-requests`): the transport that `http(s):`, `dav(s):`,
-`github:` and `gitlab:` build for a backend that was not given one. `requests`
+from `pathlib-next-requests`): the transport that `http(s):` and `dav(s):`
+build for a backend that was not given one. `requests`
 without that distribution raises `ImportError` naming it. The value is
 case-sensitive, and an empty or unrecognised one raises `ValueError` naming the
 choices (`pathlib_next.http.transport_names()`). It is read when a backend first

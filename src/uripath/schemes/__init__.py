@@ -31,13 +31,6 @@ if _ty.TYPE_CHECKING:
     from ._ftp import BaseFTPURIBackend as BaseFTPURIBackend
     from ._ftp import FTPURIBackend as FTPURIBackend
     from ._ftp import FTPURIPath as FTPURIPath
-    from ._git import GitHubGitURIPath as GitHubGitURIPath
-    from ._git import GitLabGitURIPath as GitLabGitURIPath
-    from ._git import GitURIPath as GitURIPath
-    from ._github import GitHubURIPath as GitHubURIPath
-    from ._gitlab import GitLabURIPath as GitLabURIPath
-    from ._gitrepo import BaseRepoBackend as BaseRepoBackend
-    from ._gitrepo import RepoBackend as RepoBackend
     from ._http._backend import HTTPBackend as HTTPBackend
     from ._http._path import HTTPURIPath as HTTPURIPath
     from ._http._streams import HTTPAppendStream as HTTPAppendStream
@@ -56,13 +49,6 @@ _EXPORTS = {
     "BaseFTPURIBackend": "_ftp",
     "FTPURIBackend": "_ftp",
     "FTPURIPath": "_ftp",
-    "GitHubGitURIPath": "_git",
-    "GitLabGitURIPath": "_git",
-    "GitURIPath": "_git",
-    "GitHubURIPath": "_github",
-    "GitLabURIPath": "_gitlab",
-    "BaseRepoBackend": "_gitrepo",
-    "RepoBackend": "_gitrepo",
     "HTTPAppendStream": "_http._streams",
     "HTTPBackend": "_http._backend",
     "HTTPURIPath": "_http._path",
@@ -74,7 +60,6 @@ __all__ = [
     "ArchiveURIPath",
     "ArchiveZipURIPath",
     "BaseFTPURIBackend",
-    "BaseRepoBackend",
     "DAVURIPath",
     "DataURIPath",
     "DelegatingURIPath",
@@ -82,17 +67,11 @@ __all__ = [
     "FTPURIBackend",
     "FTPURIPath",
     "FileURIPath",
-    "GitHubGitURIPath",
-    "GitHubURIPath",
-    "GitLabGitURIPath",
-    "GitLabURIPath",
-    "GitURIPath",
     "HTTPAppendStream",
     "HTTPBackend",
     "HTTPURIPath",
     "HTTPWriteStream",
     "MEMBER_SPOOL_BYTES",
-    "RepoBackend",
     "TarURIPath",
     "ZipURIPath",
 ]

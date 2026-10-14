@@ -35,7 +35,16 @@ SCHEMES = {
         "objpath",
         'pip install "objpath[az]"',
     ),
+    "repo": ("repopath", "repopath", "pip install repopath"),
+    "github": ("repopath", "repopath", "pip install repopath"),
+    "gitlab": ("repopath", "repopath", "pip install repopath"),
 }
+
+#: The schemes of that table whose userinfo is an access token and not a user
+#: name: `str()` and `repr()` of a `Source` show none of it. Known here, and
+#: not only to the distribution that provides them, so that no display form of a
+#: `Source` shows a token before that distribution is loaded.
+TOKEN_SCHEMES = frozenset({"repo", "github", "gitlab"})
 
 
 def not_installed(scheme: str) -> ImportError:

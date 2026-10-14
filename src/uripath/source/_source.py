@@ -21,16 +21,13 @@ if _ty.TYPE_CHECKING:
     from ..schemes._path import URIPath
 
 
-#: Schemes whose userinfo is an access token, not a user name: `str()` and
-#: `repr()` show none of it (the classes drop it from their own text too).
-_TOKEN_SCHEMES = frozenset({"github", "gitlab", "git", "git+github", "git+gitlab"})
-
-
 def _redact_userinfo(userinfo: str, scheme: "str | None") -> "_Userinfo | None":
     """`userinfo` without its password; nothing at all for a token scheme,
     where the user name is the secret. An empty user name leaves no
     userinfo."""
-    if scheme in _TOKEN_SCHEMES:
+    from ..schemes._elsewhere import TOKEN_SCHEMES
+
+    if scheme in TOKEN_SCHEMES:
         return None
     user = _split_userinfo_text(userinfo)[0]
     return _Userinfo(user) if user else None

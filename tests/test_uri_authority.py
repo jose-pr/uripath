@@ -240,8 +240,8 @@ def test_repr_and_str_of_a_source_hide_the_password(scheme):
     assert "user" in repr(source)
 
 
-@pytest.mark.parametrize("scheme", ["github", "gitlab", "git", "git+github"])
-def test_repr_and_str_of_a_source_hide_the_token_of_a_git_scheme(scheme):
+@pytest.mark.parametrize("scheme", ["repo", "github", "gitlab"])
+def test_repr_and_str_of_a_source_hide_the_token_of_a_repository_scheme(scheme):
     source = URI(f"{scheme}://TOKEN123@github.com/o/r").source
     for text in (repr(source), str(source), repr((source,)), f"{source}"):
         assert "TOKEN123" not in text

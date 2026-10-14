@@ -36,11 +36,6 @@ _BUILTIN_SCHEMES = {
     "https": "uripath.schemes._http._path",
     "dav": "uripath.schemes._dav",
     "davs": "uripath.schemes._dav",
-    "github": "uripath.schemes._github",
-    "gitlab": "uripath.schemes._gitlab",
-    "git": "uripath.schemes._git",
-    "git+github": "uripath.schemes._git",
-    "git+gitlab": "uripath.schemes._git",
 }
 
 

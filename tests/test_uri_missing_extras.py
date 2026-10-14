@@ -55,10 +55,6 @@ _HTTP_URLS = [
     "https://h/x",
     "dav://h/x",
     "davs://h/x",
-    "github://github.com/o/r/dir/f.txt",
-    "gitlab://gitlab.com/o/r/dir/f.txt",
-    "git://github.com/o/r/dir/f.txt",
-    "git+gitlab://gitlab.com/o/r/dir/f.txt",
 ]
 
 
@@ -88,8 +84,8 @@ def test_schemes_that_need_no_extra_work_with_every_client_blocked():
         import uripath.schemes as schemes
         from uripath import URIPath
 
-        for name in ("HTTPURIPath", "DAVURIPath", "GitHubURIPath", "GitLabURIPath", "GitURIPath",
-                     "FTPURIPath", "ZipURIPath", "TarURIPath", "FileURIPath", "DataURIPath"):
+        for name in ("HTTPURIPath", "DAVURIPath", "FTPURIPath", "ZipURIPath",
+                     "TarURIPath", "FileURIPath", "DataURIPath"):
             assert hasattr(schemes, name), name
         assert URIPath("data:,abc").read_bytes() == b"abc"
         print("ok")

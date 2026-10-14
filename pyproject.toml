@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 name = "uripath"
 version = "0.10.0"
 authors = [{ name = "Jose A" }]
-description = "pathlib-style paths for URIs: file:, data:, ftp:, zip:, tar:, http:, dav:, github:, gitlab: and git:"
+description = "pathlib-style paths for URIs: file:, data:, ftp:, zip:, tar:, http:, dav:"
 readme = "README.md"
 requires-python = ">=3.9"
 # PEP 639: SPDX license expression plus the file it refers to. This replaces
@@ -75,11 +75,6 @@ http = "uripath.schemes:HTTPURIPath"
 https = "uripath.schemes:HTTPURIPath"
 dav = "uripath.schemes:DAVURIPath"
 davs = "uripath.schemes:DAVURIPath"
-github = "uripath.schemes:GitHubURIPath"
-gitlab = "uripath.schemes:GitLabURIPath"
-git = "uripath.schemes:GitURIPath"
-"git+github" = "uripath.schemes:GitHubGitURIPath"
-"git+gitlab" = "uripath.schemes:GitLabGitURIPath"
 
 [project.urls]
 Homepage = "https://github.com/jose-pr/uripath/"

@@ -18,7 +18,7 @@ import textwrap
 import pytest
 
 import uripath
-from uripath import URIPath
+from uripath import URIPath, UnsupportedSchemeError
 from uripath.schemes import DataURIPath
 from uripath.schemes import FileURIPath
 
@@ -335,7 +335,7 @@ def test_schemes_lists_every_built_in_name_without_importing_its_module():
         print(" ".join(sorted(set(names) & {
             "file", "data", "zip", "tar", "archive", "archive+zip", "archive+tar",
             "ftp", "ftps", "http", "https", "dav", "davs", "sftp", "s3", "gs",
-            "az", "github", "gitlab", "git", "git+github", "git+gitlab",
+            "az", "repo", "github", "gitlab", "git", "git+github", "git+gitlab",
         })))
         print([m for m in sys.modules if m.startswith("uripath.schemes.")
                and m.split(".")[2] in {"sftp", "s3", "gs", "az", "ftp", "http"}])
@@ -344,9 +344,29 @@ def test_schemes_lists_every_built_in_name_without_importing_its_module():
     assert shape == "True True"
     assert names.split() == sorted(
         "file data zip tar archive archive+zip archive+tar ftp ftps http https "
-        "dav davs sftp s3 gs az github gitlab git git+github git+gitlab".split()
+        "dav davs sftp s3 gs az repo github gitlab".split()
     )
     assert imported == "[]"
+
+
+@pytest.mark.parametrize("scheme", ["git", "git+github", "git+gitlab"])
+def test_a_git_scheme_is_registered_by_nobody(scheme):
+    assert scheme not in URIPath.schemes()
+    with pytest.raises(UnsupportedSchemeError, match="no URI scheme"):
+        URIPath.scheme_class(scheme)
+
+
+def test_a_git_uri_is_a_plain_path_that_does_no_io():
+    path = URIPath("git://github.com/o/r/dir/f.txt?ref=main")
+    assert type(path) is URIPath
+    assert (path.name, path.parent.name, str(path)) == (
+        "f.txt",
+        "dir",
+        "git://github.com/o/r/dir/f.txt?ref=main",
+    )
+    for call in (path.stat, path.read_bytes, path.exists, lambda: list(path.iterdir())):
+        with pytest.raises(NotImplementedError):
+            call()
 
 
 def test_schemes_lists_an_entry_point_whose_module_is_not_imported(plugins):

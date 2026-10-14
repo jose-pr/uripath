@@ -30,7 +30,6 @@ def test_the_root_and_the_exceptions_module_export_the_same_objects():
         assert getattr(uripath, name) is getattr(exceptions, name)
         assert name in exceptions.__all__
         assert name in uripath.__all__
-    assert issubclass(exceptions.InsecureTransportWarning, UserWarning)
 
 
 @pytest.mark.parametrize(
@@ -60,11 +59,6 @@ def test_a_syntax_error_names_the_fault_and_not_the_text():
 def test_a_source_that_is_not_only_a_scheme_and_an_authority_is_a_syntax_error():
     with pytest.raises(URISyntaxError, match="path"):
         Source.parse("http://h/some/path")
-
-
-def test_a_git_uri_on_a_host_with_no_provider_is_a_syntax_error():
-    with pytest.raises(URISyntaxError, match="git:"):
-        URIPath("git://example.org/owner/repo")
 
 
 def test_an_archive_uri_without_the_scheme_of_its_archive_is_a_syntax_error():

@@ -11,7 +11,7 @@ from http_fakes import FakeTransport, reply
 from pathlib_next.providers import contains
 from uripath import URI, Source, URIPath
 from uripath.schemes import FileURIPath, FTPURIBackend, FTPURIPath
-from uripath.schemes import GitHubURIPath, GitLabURIPath, HTTPURIPath
+from uripath.schemes import HTTPURIPath
 from uripath.schemes import _ftp
 from uripath.source import compose_host, compose_uri, fold_host, same_authority
 
@@ -236,25 +236,3 @@ def test_ftp_paths_to_one_server_share_a_connection_key_whatever_the_case():
     other = FTPURIPath("ftp://nas2:2121/pub/b", backend=backend)
     assert other._core_path.backend is not first._core_path.backend
     assert _ftp._endpoint(first.source).port == 2121
-
-
-# --- tables keyed on a host -----------------------------------------------------------
-
-
-@pytest.mark.parametrize("host", ["github.com", "GitHub.com", "WWW.GITHUB.COM"])
-def test_github_com_is_github_com_in_any_case(host):
-    path = GitHubURIPath(f"github://{host}/o/r/x")
-    assert path._default_api_base() == "https://api.github.com"
-    assert isinstance(URIPath(f"git://{host}/o/r/x"), GitHubURIPath)
-
-
-def test_gitlab_com_is_gitlab_com_in_any_case():
-    assert isinstance(URIPath("git://GitLab.COM/o/r/x"), GitLabURIPath)
-    assert isinstance(URIPath("git://WWW.gitlab.com/o/r/x"), GitLabURIPath)
-
-
-def test_a_self_hosted_api_root_is_the_same_whatever_the_case():
-    upper = GitHubURIPath("github://GHE.Example:8443/o/r/x")
-    lower = GitHubURIPath("github://ghe.example:8443/o/r/x")
-    assert upper._default_api_base() == lower._default_api_base()
-    assert upper._default_api_base() == "https://ghe.example:8443/api/v3"

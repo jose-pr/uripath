@@ -15,8 +15,6 @@ from uripath.schemes import (
     DataURIPath,
     FileURIPath,
     FTPURIPath,
-    GitHubURIPath,
-    GitURIPath,
     HTTPURIPath,
     ZipURIPath,
 )
@@ -35,8 +33,6 @@ URIS = {
     "ftp": lambda **kw: FTPURIPath("ftp://h/x", **kw),
     "zip": lambda **kw: ZipURIPath("zip:file:///a.zip!/x", **kw),
     "archive": lambda **kw: ArchiveURIPath("archive:file:///a.zip!/x", **kw),
-    "github": lambda **kw: GitHubURIPath("github://o/r/x", **kw),
-    "git": lambda **kw: GitURIPath("git://github.com/o/r/x", **kw),
 }
 
 

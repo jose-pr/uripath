@@ -309,11 +309,18 @@ def test_a_data_payload_is_never_normalized(base, joined):
 
 def test_join_uses_the_same_child_builder_as_a_listing():
     """`/` walks segments through `_make_child_relpath()`, so a scheme that
-    gives a name special meaning sees it. `gitlab:` reserves "-": built by
-    hand, the child addresses the same path as the one a listing yields."""
-    gitlab = pytest.importorskip("uripath.schemes._gitlab")
-    repo = gitlab.GitLabURIPath("gitlab://gitlab.com/owner/repo")
-    assert (repo / "-").path == repo._make_child_relpath("-").path
+    gives a name special meaning sees it: built by hand, the child addresses
+    the same path as the one a listing yields."""
+
+    class ShoutURIPath(URIPath, replace=True):
+        __SCHEMES = ("shouttest",)
+        __slots__ = ()
+
+        def _make_child_relpath(self, name, **kwargs):
+            return super()._make_child_relpath(name.upper(), **kwargs)
+
+    root = ShoutURIPath("shouttest://h/d")
+    assert (root / "a").path == root._make_child_relpath("a").path == "/d/A"
 
 
 def test_join_reads_bytes_as_a_decoded_path_too():

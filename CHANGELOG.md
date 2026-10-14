@@ -19,31 +19,33 @@ do about it.
 ### Added
 
 - `URI`, `URIPath`, `Source` and `Query`, the schemes `file:`, `data:`, `ftp:`,
-  `ftps:`, `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:`, `davs:`,
-  `github:`, `gitlab:` and `git:`, and the `uripath` command, with
-  `uripath.__version__` (read from the installed metadata).
-- `sftp:`, `s3:`, `gs:` and `az:` are known scheme names that this distribution
-  does not implement. A path of one joins, compares and prints without the
-  distribution that provides it; the first operation that needs the server
-  (`stat()`, `open()`, `iterdir()`, `exists()`, ...) raises an `ImportError`
-  naming what to install: `sftppath[paramiko]` (or `[asyncssh]`) for
-  `sftp:`, and `objpath[s3]`, `[gs]` or `[az]`. `URIPath.schemes()`
-  lists the four, and `URIPath.scheme_class()` raises the same error for them.
+  `ftps:`, `zip:`, `tar:`, `archive:`, `http:`, `https:`, `dav:` and `davs:`,
+  and the `uripath` command, with `uripath.__version__` (read from the
+  installed metadata).
+- `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and `gitlab:` are known
+  scheme names that this distribution does not implement. A path of one joins,
+  compares and prints without the distribution that provides it; the first
+  operation that needs the server (`stat()`, `open()`, `iterdir()`,
+  `exists()`, ...) raises an `ImportError` naming what to install:
+  `sftppath[paramiko]` (or `[asyncssh]`) for `sftp:`, `objpath[s3]`, `[gs]` or
+  `[az]`, and `repopath` for the other three. `URIPath.schemes()` lists the
+  seven, and `URIPath.scheme_class()` raises the same error for them. The user
+  slot of `repo:`, `github:` and `gitlab:` is an access token, so `str()` and
+  `repr()` of a `Source` of those schemes show no userinfo.
   A distribution that registers one of these names in the `uripath.schemes`
   entry-point group takes it.
-- `http:`, `https:`, `dav:`, `davs:`, `github:` and `gitlab:` send through the
+- `http:`, `https:`, `dav:` and `davs:` send through the
   HTTP client and transport of `pathlib_next.http`, which `uripath` does not
   copy: `HTTPTransport`, `HTTPResponse`, the transport contract, the rules for
   redirects and credentials, the cap on a reply read whole
   (`pathlib_next.http.MAX_REPLY_BYTES`), `PATHLIB_NEXT_HTTP_TRANSPORT` and the
   entry-point group `pathlib_next.http_transports` all live there, and so does
   `python -m pathlib_next.http.testing --http-transports NAME`, the suite that a
-  distribution providing a transport runs over it. `HTTPBackend` and
-  `RepoBackend` are `pathlib_next.http.HTTPClient`s that add what a path needs.
+  distribution providing a transport runs over it. `HTTPBackend` is a
+  `pathlib_next.http.HTTPClient` that adds what a path needs.
 - `uripath.exceptions`: `URIPathError`, the base of what this package raises
   on its own, with `URISyntaxError` and `UnsupportedSchemeError` (both also
   `ValueError`) and `OutputClosedError` (also `BrokenPipeError`).
-  `InsecureTransportWarning` is there too.
 - `uripath.schemes.DelegatingURIPath` is the base of a scheme whose I/O is
   done by a `pathlib_next.Path` that needs no URI, and the one `file:`, `ftp:`
   and the archive schemes use. A distribution that provides a scheme this way
@@ -97,7 +99,7 @@ do about it.
   | `Source.from_str(text, strict)` | `Source.parse(text, *, strict=True)`, and `Source.try_parse(text, default=None, *, strict=True)` |
   | `Source.as_str(sanitize=True)` | `str(source)` |
   | `Source.as_str(sanitize=False)` | `Source.reveal()` |
-  | the modules `schemes.file`, `data`, `dav`, `ftp`, `http`, `github`, `gitlab`, `archive`, `git` | private; each public name is `uripath.schemes.<Name>` |
+  | the modules `schemes.file`, `data`, `dav`, `ftp`, `http`, `archive` | private; each public name is `uripath.schemes.<Name>` |
   | `schemes.file.FileUri`, `schemes.data.DataUri` | `uripath.schemes.FileURIPath`, `DataURIPath` |
   | `schemes.archive.ZipUri`, `TarUri`, `ArchiveUri` | `uripath.schemes.ZipURIPath`, `TarURIPath`, `ArchiveURIPath` |
   | `schemes.archive.ArchiveZipUri`, `ArchiveTarUri` | `uripath.schemes.ArchiveZipURIPath`, `ArchiveTarURIPath` |
@@ -111,10 +113,9 @@ do about it.
   | `schemes.http.DEFAULT_TIMEOUT` | none: the default is the `timeout=` of the backend, `(10, 60)` |
   | `schemes.archive._base.MEMBER_SPOOL_BYTES` | `uripath.schemes.MEMBER_SPOOL_BYTES` |
   | `schemes.dav.DavPath` | `uripath.schemes.DAVURIPath` |
-  | `schemes.github.GitHubPath`, `RepoBackend`; `schemes._gitrepo.BaseRepoBackend` | `uripath.schemes.GitHubURIPath`, `RepoBackend`, `BaseRepoBackend` |
-  | `schemes.gitlab.GitLabPath` | `uripath.schemes.GitLabURIPath` |
-  | `schemes.git.GitPath`, `GitHubGitPath`, `GitLabGitPath` | `uripath.schemes.GitURIPath`, `GitHubGitURIPath`, `GitLabGitURIPath` |
-  | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `uripath.exceptions.InsecureTransportWarning` |
+  | `schemes.github.GitHubPath`, `schemes.gitlab.GitLabPath`, `schemes.git.GitPath`, `GitHubGitPath`, `GitLabGitPath` | the distribution `repopath`: `repopath.uri.GitHubURIPath`, `GitLabURIPath` and `RepoURIPath` (the `repo:` scheme); `repopath.GitHubPath` and `GitLabPath` need no URI |
+  | `schemes.github.RepoBackend`; `schemes._gitrepo.BaseRepoBackend` | `repopath.RepoBackend`, `BaseRepoBackend` |
+  | `schemes.github.InsecureTransportWarning` (also in `schemes.gitlab`) | `repopath.InsecureTransportWarning` |
   | `schemes.sftp`, `schemes.s3`, `schemes.gs`, `schemes.az` and the classes in them | the distributions `sftppath` and `objpath`, which name their own classes |
   | `schemes.http.RequestsTransport` | the distribution `pathlib-next-requests` |
   | `pathlib_next.tools.uripath`: `main(argv, *, stdin, stdout, stderr)`, `build_parser()` | `uripath.cli.main(argv=None)`; no parser to build |
@@ -137,6 +138,20 @@ do about it.
   | `pathlib-next[sftp-async]` | `sftppath[asyncssh]` |
   | `pathlib-next[s3]`, `[gs]`, `[az]` | `objpath[s3]`, `[gs]`, `[az]` |
   | the `uripath` command (part of `pathlib-next[uri]`) | `uripath[cli]` |
+
+  The `github:` and `gitlab:` schemes of `pathlib-next[uri]` are in the
+  distribution `repopath` (`pip install "repopath[uri]"`), together with
+  `repo:`, which takes the place of `git:`. `git:`, `git+github:` and
+  `git+gitlab:` do not exist any more: a URI of one of them is a path of an
+  unknown scheme, which joins and prints and raises `NotImplementedError` for
+  a request. Rewrite the URIs:
+
+  | Was | Is now |
+  | --- | --- |
+  | `git://github.com/o/r/f`, `git://gitlab.com/o/r/f` | `repo://github.com/o/r/f`, `repo://gitlab.com/o/r/f` (the kind is detected from the host) |
+  | `git+github://host/o/r/f` | `github://host/o/r/f` |
+  | `git+gitlab://host/o/r/f` | `gitlab://host/o/r/f` |
+  | `github://host/o/r/f`, `gitlab://host/o/r/f` | the same text, with `repopath[uri]` installed |
 
   `uritools` is no longer installed with the URI layer; `netimps` is a required
   dependency.
@@ -235,8 +250,7 @@ do about it.
   `hash()` and ordering of URIs, `same_authority()`, `is_relative_to()`,
   backend sharing, `rename()`, the same-file decisions of `copy()` and
   `move()`, the redirect origin that keeps `Authorization`, the proxy rules,
-  `Source.is_local()`, the connection cache of `ftp:` and the host tables of
-  `github:`, `gitlab:` and `git:`. `http://NASA/x` and `http://nasa/x` are one
+  `Source.is_local()` and the connection cache of `ftp:`. `http://NASA/x` and `http://nasa/x` are one
   server and equal URIs; their text differs. Two `Source` values compare as
   tuples, exactly; `compose_host()` and `compose_uri()` keep the case of a
   name; an internationalized name is still written in IDNA form. What to do:
@@ -255,21 +269,20 @@ do about it.
   that reads keywords lists them (`_OPTIONS = URIPath._OPTIONS | {"flavor"}`).
 - Text that is not a URI raises `URISyntaxError` where it raised a bare
   `ValueError`: a port outside 0-65535, a malformed host or IPv6 address,
-  `Source.parse()` of text with a path, a `git:` URI on a host with no
-  provider, a `zip:` URI without the scheme of its archive. It is a subclass of
+  `Source.parse()` of text with a path, a `zip:` URI without the scheme of
+  its archive. It is a subclass of
   `ValueError`, so `except ValueError` still catches it. `URIPath.scheme_class()`
   of a scheme nobody registered raises `UnsupportedSchemeError`, also a
   `ValueError`. Both derive from `URIPathError`; a caller's bad argument stays a
   plain `ValueError` or `TypeError`. What to do: nothing; catch `URIPathError`
   to catch what the package raises on its own.
-- Requests of `http:`, `dav:`, `github:` and `gitlab:` send
+- Requests of `http:` and `dav:` send
   `User-Agent: uripath/<version>` instead of `User-Agent: pathlib-next`; the
   version is `uripath.__version__`. A backend's `headers=` still replaces it.
 - A plugin registered in the `pathlib_next.schemes` entry-point group is not
   found. What to do: register it in `uripath.schemes`.
 - The `requests` HTTP transport is provided by `pathlib-next-requests`.
-  `HTTPURIPath.with_session()`, `RepoBackend(session=...)`, `RepoBackend(**requests_args)`
-  and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
+  `HTTPURIPath.with_session()` and `PATHLIB_NEXT_HTTP_TRANSPORT=requests` raise an `ImportError` naming that
   distribution without it, and a proxy URL the built-in transport cannot use
   (`socks5:`, `https:`) names it in its error too. What to do: install
   `pathlib-next-requests` where one of them is used; with it installed they

@@ -7,8 +7,6 @@ host.
 - HTTP/WebDAV: URL userinfo goes out as `auth=`, never inside the request
   URL or the MOVE `Destination` header; translated errors do not chain a
   requests exception; every request has a default timeout.
-- git hosting: the token comes from the password slot (or a bare
-  `TOKEN@`), and the whole userinfo is redacted from str/repr/errors.
 - FTP/FTPS: a 30 s default timeout; certificate + host name verification
   by default with an explicit opt-out; TLS session reuse on data
   connections; `ftps://` dispatches in a fresh process.
@@ -33,13 +31,10 @@ import pytest
 from http_fakes import FakeTransport, reply
 import uripath
 from uripath import Source, URIPath
-from uripath.schemes import _gitrepo
 from uripath.schemes._http import _settings as http_scheme
 from uripath.schemes import DAVURIPath
 from pathlib_next.ftp import FTPBackend
 from uripath.schemes import FTPURIBackend, FTPURIPath
-from uripath.schemes import GitHubURIPath
-from uripath.schemes import GitLabURIPath
 from uripath.schemes import HTTPBackend, HTTPURIPath
 
 SRC = str(pathlib.Path(uripath.__file__).resolve().parent.parent)
@@ -330,71 +325,6 @@ def test_http_stalled_server_times_out_by_default(
     # The default path (no caller timeout), shortened for the test.
     monkeypatch.setattr(http_scheme, "DEFAULT_TIMEOUT", (2, 0.5))
     p = URIPath(f"http://127.0.0.1:{stalled_server}/x")
-    started = time.monotonic()
-    with pytest.raises(TimeoutError):
-        p.stat()
-    assert time.monotonic() - started < 10
-
-
-# --- git hosting: token slot, redaction, timeout ----------------------------
-
-
-@pytest.mark.parametrize(
-    "userinfo, token",
-    [
-        ("ghp_BARE123", "ghp_BARE123"),
-        ("x-access-token:ghp_REAL456", "ghp_REAL456"),
-        ("oauth2:glpat-REAL789", "glpat-REAL789"),
-    ],
-)
-@pytest.mark.parametrize("cls", [GitHubURIPath, GitLabURIPath])
-def test_git_token_slot_and_redaction(recording_http_server, cls, userinfo, token):
-    host, seen = recording_http_server
-    scheme = "github" if cls is GitHubURIPath else "gitlab"
-    p = cls(f"{scheme}://{userinfo}@example.test/acme/widgets/a.txt")
-    assert p.backend.token == token
-    user = userinfo.partition(":")[0]
-
-    child = p.parent / "b.txt"
-    shown = [str(p), repr(p), p.as_uri(sanitize=True), str(child), repr(child)]
-    for text in shown:
-        assert token not in text and user not in text
-        assert "@" not in text
-    # the full round trip is still available explicitly
-    assert p.as_uri() == f"{scheme}://{userinfo}@example.test/acme/widgets/a.txt"
-
-    p.backend.api_base = f"http://{host}"
-    with pytest.raises(FileNotFoundError) as excinfo:
-        p.read_bytes()
-    assert seen[-1][2]["Authorization"] == f"Bearer {token}"
-    text = _formatted(excinfo.value)
-    assert token not in text and user not in text
-    assert excinfo.value.__cause__ is None
-
-
-def test_git_dispatch_error_redacts_token():
-    # Built outside the raising line: a traceback prints that source line.
-    url = "git://" + "ghp_SECRET123" + "@ghe.internal/acme/widgets/README.md"
-    with pytest.raises(ValueError) as excinfo:
-        URIPath(url)
-    assert "ghp_SECRET123" not in _formatted(excinfo.value)
-    assert "ghe.internal/acme/widgets/README.md" in str(excinfo.value)
-
-
-def test_git_default_timeout_applied():
-    transport = _FakeTransport()
-    _gitrepo.RepoBackend(transport=transport).request("GET", "http://h/x")
-    assert transport.sent[-1].timeout == (10, 60)
-    _gitrepo.RepoBackend(transport=transport, timeout=None).request("GET", "http://h/x")
-    assert transport.sent[-1].timeout is None
-
-
-def test_git_stalled_server_times_out_by_default(
-    stalled_server, monkeypatch, http_transport_kind
-):
-    monkeypatch.setattr(_gitrepo, "DEFAULT_TIMEOUT", (2, 0.5))
-    p = GitHubURIPath("github://github.com/acme/widgets/a.txt")
-    p.backend.api_base = f"http://127.0.0.1:{stalled_server}"
     started = time.monotonic()
     with pytest.raises(TimeoutError):
         p.stat()

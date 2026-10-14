@@ -660,14 +660,13 @@ def refused(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", connect)
 
 
-@pytest.mark.parametrize("scheme", ["ftp", "http", "dav", "github"])
+@pytest.mark.parametrize("scheme", ["ftp", "http", "dav"])
 @pytest.mark.parametrize("command", ["read", "rm", "cp-from", "cp-to", "sync"])
-def test_no_message_carries_the_password_or_token_of_a_uri(
+def test_no_message_carries_the_password_of_a_uri(
     scheme, command, run, refused, tmp_path
 ):
     secret = "S3CRETVALUE"
-    userinfo = secret if scheme == "github" else f"user:{secret}"
-    uri = f"{scheme}://{userinfo}@127.0.0.1:9/o/r/x"
+    uri = f"{scheme}://user:{secret}@127.0.0.1:9/o/r/x"
     local = tmp_path / "local"
     local.mkdir()
     (local / "f").write_text("x", encoding="utf-8")

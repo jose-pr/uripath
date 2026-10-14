@@ -10,7 +10,8 @@
 and `URIPath("ftp://...")` return the class registered for the scheme, and each
 has the method names, signatures and exception types of `pathlib.Path`: write
 code once and run it against a local file, an archive member, an FTP or WebDAV
-server, a web directory or a GitHub or GitLab repository. It builds on
+server, a web directory or, through the `repopath` distribution, a GitHub or GitLab
+repository. It builds on
 [`pathlib-next`](https://github.com/jose-pr/pathlib-next) and is documented at
 <https://jose-pr.github.io/uripath/>.
 
@@ -26,13 +27,15 @@ server, a web directory or a GitHub or GitLab repository. It builds on
 | `ftp:` / `ftps:` (`FTPURIPath`) | nothing | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
 | `http:` / `https:` (`HTTPURIPath`) | nothing | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
 | `dav:` / `davs:` (`DAVURIPath`, WebDAV) | nothing | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
-| `github:` / `gitlab:` / `git:` (also `git+github:`, `git+gitlab:`) | nothing | Yes | No | Yes | Yes | No | No | No |
 | `sftp:` | `sftppath[paramiko]` or `[asyncssh]` | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | `s3:` | `objpath[s3]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
 | `gs:` | `objpath[gs]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
 | `az:` | `objpath[az]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker blob) | Yes | Yes (same container) |
+| `repo:` | `repopath` | Yes | No | Yes | Yes | No | No | No |
+| `github:` | `repopath` | Yes | No | Yes | Yes | No | No | No |
+| `gitlab:` | `repopath` | Yes | No | Yes | Yes | No | No | No |
 
-The last four rows are other distributions: a path of one of those schemes
+The last seven rows are other distributions: a path of one of those schemes
 builds, joins and prints without it, and its first use of the server raises an
 `ImportError` that names what to install. The `requests` HTTP transport
 (`with_session()`, `~/.netrc`, SOCKS proxies) is the distribution
@@ -46,8 +49,8 @@ certificate verification, authentication, limits) are in
 
 - **Pure URI algebra**: `URI` parses, joins and compares URIs with no I/O and
   no scheme class needed; `Source` and `Query` are its authority and query.
-- **HTTP on the standard library**: `http:`, `dav:`, `github:`, `gitlab:` and
-  `git:` send through a replaceable transport built on `http.client`.
+- **HTTP on the standard library**: `http:` and `dav:` send through a
+  replaceable transport built on `http.client`.
 - **Extensible**: subclass `URIPath` and declare `__SCHEMES` for a new scheme,
   or register it through a `uripath.schemes` entry point.
 - **`uripath` command**: `read`, `write`, `cp`, `rm` and `sync` across local
@@ -108,7 +111,6 @@ for child in URIPath("https://example.com/data/").iterdir():
     print(child.name, child.stat().st_size)
 
 print(URIPath("ftp://user@host/pub/README").read_text())
-print(URIPath("github://github.com/owner/repo/README.md?ref=main").read_text())
 ```
 
 **Copy and sync across schemes**, with the `pathlib-next` syncer:
@@ -163,8 +165,8 @@ be served to an agent as a set of tools.
 | `uripath` | `URI`, `URIPath`, `URILike`, `Source`, `Query`, `QueryLike`, the functions `as_path` and `copy_stream`, the errors `URIPathError`, `URISyntaxError` and `UnsupportedSchemeError`, and `__version__` |
 | `uripath.source` | `Source` (scheme, userinfo, host, port), `same_authority` and the helpers that read and compose a URI's text |
 | `uripath.query` | `Query`, an immutable query value, and `QueryLike` |
-| `uripath.exceptions` | The errors above and `InsecureTransportWarning` |
-| `uripath.schemes` | The contract and registry of schemes, `DerivedBackend`, `DelegatingURIPath`, and every built-in scheme's classes: `FileURIPath`, `DataURIPath`, `ZipURIPath`, `TarURIPath`, `ArchiveURIPath`, `FTPURIPath`, `HTTPURIPath`, `DAVURIPath`, `GitHubURIPath`, `GitLabURIPath`, `GitURIPath` and their backends |
+| `uripath.exceptions` | The errors above |
+| `uripath.schemes` | The contract and registry of schemes, `DerivedBackend`, `DelegatingURIPath`, and every built-in scheme's classes: `FileURIPath`, `DataURIPath`, `ZipURIPath`, `TarURIPath`, `ArchiveURIPath`, `FTPURIPath`, `HTTPURIPath`, `DAVURIPath` and their backends |
 
 The full reference is on the [documentation site](https://jose-pr.github.io/uripath/);
 an agent-oriented API summary ships inside the package as `uripath/AGENTS.md`.

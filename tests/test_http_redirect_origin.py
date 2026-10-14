@@ -1,6 +1,6 @@
 """`Authorization` belongs to the origin a request was made for. Every way a
 path asks again after a redirect (`stat()` and what is built on it, a
-patch-mode append, the git APIs) leaves it off a request to another scheme,
+patch-mode append) leaves it off a request to another scheme,
 host or port, whichever transport sends, and keeps it within the origin."""
 
 import pytest
@@ -149,24 +149,3 @@ def test_a_redirect_from_https_to_plain_http_does_not_carry_authorization(tmp_pa
                 transport.close()
     assert secure.requests[0].header("Authorization") == TOKEN
     assert plain.requests and sees_no_credential(plain)
-
-
-def test_the_git_apis_send_their_token_to_their_own_origin_only():
-    from uripath.schemes import GitHubURIPath, RepoBackend
-
-    raw = {
-        "X-GitHub-Media-Type": "github.v3; param=raw",
-        "Content-Type": "application/vnd.github.raw+json",
-    }
-    with Wire(lambda r: response(200, raw, b"abc")) as away:
-
-        def home_script(request):
-            return response(302, {"Location": away.url + "/elsewhere"}, reason="Found")
-
-        with Wire(home_script) as home:
-            backend = RepoBackend(token="T0KEN", api_base=home.url)
-            path = GitHubURIPath("github://github.com/o/r/f.txt", backend=backend)
-            assert path.exists()
-            assert path.read_bytes() == b"abc"
-    assert home.requests[0].header("Authorization") == "Bearer T0KEN"
-    assert away.requests and sees_no_credential(away)

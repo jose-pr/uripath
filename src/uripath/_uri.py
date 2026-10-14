@@ -435,7 +435,7 @@ class URI(Pathname):
         Each name goes through `_make_child_relpath()` -- what `iterdir()`
         uses -- so a hand-typed name and a listed one are built by the same
         code, including in schemes that give a name special meaning
-        (`gitlab:`'s "-"). An absolute key restarts from the root of this
+        (a `-` segment, say). An absolute key restarts from the root of this
         same source. A key with `.` or `..` segments is joined as a whole
         and has them removed as RFC 3986 5.2.4 says (`_join_dotted`). An empty
         segment inside the key is a segment (`x//y` is `x//y`, RFC 3986 3.3):

@@ -35,39 +35,6 @@ def test_a_long_reason_phrase_is_cut():
     assert len(str(excinfo.value)) < 400
 
 
-def test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped():
-    from uripath.schemes import GitHubURIPath, RepoBackend
-
-    with Wire(reply_with_reason(f"Oops {ESC}", 500)) as wire:
-        path = GitHubURIPath(
-            "github://github.com/o/r/f.txt", backend=RepoBackend(api_base=wire.url)
-        )
-        with pytest.raises(OSError) as excinfo:
-            path.read_bytes()
-    assert "\x1b" not in str(excinfo.value)
-    assert "Oops \\x1b[31m" in str(excinfo.value)
-
-
-def test_a_rate_limit_header_is_shown_escaped_and_cut():
-    from uripath.schemes import GitHubURIPath, RepoBackend
-
-    def script(request):
-        return response(
-            403,
-            {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": ESC + "9" * 500},
-            reason="Forbidden",
-        )
-
-    with Wire(script) as wire:
-        path = GitHubURIPath(
-            "github://github.com/o/r/f.txt", backend=RepoBackend(api_base=wire.url)
-        )
-        with pytest.raises(OSError) as excinfo:
-            path.read_bytes()
-    message = str(excinfo.value)
-    assert "\x1b" not in message and len(message) < 300
-
-
 def test_the_href_of_a_failed_member_is_shown_escaped_and_few_are_listed():
     members = "".join(
         f"<D:response><D:href>/d/%1B%5B31m{i}</D:href>"

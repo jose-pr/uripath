@@ -93,7 +93,7 @@ def _assert_nothing_escaped(tmp_path, mirror):
 
 
 class _NoStatMemPath(MemPath):
-    """Lists like GitLab: every entry's stat is unknown (None)."""
+    """Lists with every entry's stat unknown (None)."""
 
     def _scandir(self):
         for name, _ in super()._scandir():

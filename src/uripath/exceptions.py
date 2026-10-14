@@ -1,4 +1,4 @@
-"""The exceptions and the warning of uripath.
+"""The exceptions of uripath.
 
 `URIPathError` is the base of what goes wrong at run time. A caller's bad
 argument is a plain `ValueError` or `TypeError`, and a failed read or write
@@ -8,7 +8,6 @@ is the `OSError` of the kind `pathlib` raises.
 from __future__ import annotations
 
 __all__ = [
-    "InsecureTransportWarning",
     "OutputClosedError",
     "URIPathError",
     "URISyntaxError",
@@ -37,9 +36,3 @@ class OutputClosedError(URIPathError, BrokenPipeError):
     pipe whose other end closed (`uripath read big | head`). It is raised for
     a stream passed as the target, never for a failure on a path's own
     connection."""
-
-
-class InsecureTransportWarning(UserWarning):
-    """A `RepoBackend` is about to send an `Authorization` header (its token,
-    or one given in `headers=`) over plain `http://` to a host that is not
-    this machine, where anyone on the route can read it."""

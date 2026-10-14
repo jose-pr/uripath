@@ -1,7 +1,7 @@
-"""The `requests` transport as a path asks for it: `with_session()` and a
-`RepoBackend` given a session build the transport that an installed
-distribution declares in the entry-point group `pathlib_next.http_transports`,
-and raise `ImportError` naming the distribution when there is none."""
+"""The `requests` transport as a path asks for it: `with_session()` builds the
+transport that an installed distribution declares in the entry-point group
+`pathlib_next.http_transports`, and raises `ImportError` naming the
+distribution when there is none."""
 
 from __future__ import annotations
 
@@ -9,21 +9,12 @@ import pytest
 
 from fake_distribution import install, run
 from pathlib_next.http import _transports
-from uripath.schemes import HTTPURIPath, RepoBackend
+from uripath.schemes import HTTPURIPath
 
 REQUESTS_MESSAGE = (
     "the 'requests' HTTP transport is provided by the pathlib-next-requests "
     "distribution: pip install pathlib-next-requests"
 )
-
-
-class _Entry:
-    def __init__(self, name, target):
-        self.name = name
-        self._target = target
-
-    def load(self):
-        return self._target
 
 
 @pytest.fixture
@@ -36,23 +27,6 @@ def test_with_session_without_the_distribution_names_it(nothing_declared):
     with pytest.raises(ImportError) as raised:
         HTTPURIPath("http://h/x").with_session(object(), write_method="POST")
     assert str(raised.value) == REQUESTS_MESSAGE
-
-
-@pytest.mark.parametrize("arguments", [{"session": object()}, {"verify": False}])
-def test_a_repository_backend_given_a_session_names_the_distribution(
-    nothing_declared, arguments
-):
-    with pytest.raises(ImportError) as raised:
-        RepoBackend(**arguments)
-    assert str(raised.value) == REQUESTS_MESSAGE
-
-
-def test_a_session_and_a_transport_together_are_refused(monkeypatch):
-    monkeypatch.setattr(
-        _transports, "_declared", lambda: {"requests": _Entry("requests", object)}
-    )
-    with pytest.raises(TypeError):
-        RepoBackend(transport=object(), session=object())
 
 
 # --- a distribution that is installed ---------------------------------------
@@ -114,24 +88,6 @@ def test_with_session_sends_through_the_installed_transport(provider):
         "POST",
         "patch",
     ]
-
-
-def test_a_repository_backend_builds_the_installed_transport_from_a_session(provider):
-    found = run(
-        """
-        import json
-        from uripath.schemes import RepoBackend
-        session = object()
-        backend = RepoBackend(session=session, verify=False)
-        print(json.dumps([
-            type(backend.transport).__name__,
-            backend.transport.session is session,
-            backend.transport.arguments,
-        ]))
-        """,
-        provider,
-    )
-    assert found == ["Fake", True, {"verify": False}]
 
 
 def test_the_variable_names_the_installed_transport_a_path_sends_through(provider):

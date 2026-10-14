@@ -124,10 +124,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def do_GET(self):
-        if self.path.startswith("/repos/"):
-            self.reply(200, b"from github")
-        else:
-            self.reply(200, b"hello")
+        self.reply(200, b"hello")
 
     do_HEAD = do_GET
 
@@ -145,9 +142,6 @@ from uripath import URIPath
 page = URIPath("http://" + host + "/f.txt")
 print(page.exists(), page.read_bytes(), page.stat().st_size)
 print(URIPath("dav://" + host + "/f.txt").stat().st_size)
-github = URIPath("github://github.com/o/r/f.txt")
-github.backend.api_base = "http://" + host
-print(github.read_bytes())
 print(sorted(m for m in ("requests", "urllib3") if sys.modules.get(m) is not None))
 try:
     page.with_session(None)
@@ -158,7 +152,7 @@ server.server_close()
 """
 
 
-def test_http_dav_and_git_work_with_requests_and_urllib3_hidden():
+def test_http_and_dav_work_with_requests_and_urllib3_hidden():
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, [str(_SRC), env.get("PYTHONPATH")])
@@ -173,5 +167,5 @@ def test_http_dav_and_git_work_with_requests_and_urllib3_hidden():
     )
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines[:4] == ["True b'hello' 5", "5", "b'from github'", "[]"]
-    assert "pathlib-next-requests" in lines[4]
+    assert lines[:3] == ["True b'hello' 5", "5", "[]"]
+    assert "pathlib-next-requests" in lines[3]

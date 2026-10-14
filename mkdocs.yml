@@ -42,7 +42,6 @@ nav:
           - "http: and dav:": api/schemes/http.md
           - "ftp:": api/schemes/ftp.md
           - Archives: api/schemes/archive.md
-          - "github:, gitlab: and git:": api/schemes/git.md
       - CLI: api/cli.md
   - Changelog: changelog.md
 

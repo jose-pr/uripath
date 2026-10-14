@@ -262,7 +262,7 @@ def test_the_stubs_of_each_block_match_the_code(modules, source):
 
 def test_the_header_has_blocks_for_the_package():
     found = blocks(HEADER.read_text(encoding="utf-8"))
-    assert len(found) > 15
+    assert len(found) > 12
     assert {m for _t, mods, _l, _s in found for m in mods} >= {
         "uripath",
         "uripath.source",

@@ -1,5 +1,5 @@
 """How much of a reply the library reads. A reply read whole for its status or
-for a small document (a write's, a DELETE's, a PROPFIND's, a git API's) is
+for a small document (a write's, a DELETE's, a PROPFIND's) is
 held to the limit a directory listing has, counted in DECODED bytes, whichever
 transport sent it; one nobody looks at is read up to that limit and dropped;
 and a connection whose reply was longer is not kept."""
@@ -149,43 +149,6 @@ def test_a_dav_delete_with_a_207_reply_over_the_limit_is_efbig():
         path = URIPath("dav" + wire.url[len("http") :] + "/dir/")
         with pytest.raises(OSError) as excinfo:
             path.rm(recursive=True)
-    assert excinfo.value.errno == errno.EFBIG
-
-
-def test_a_git_api_reply_over_the_limit_is_efbig_and_a_file_is_not_limited():
-    from uripath.schemes import GitHubURIPath, RepoBackend
-
-    raw = {
-        "Content-Type": "application/vnd.github.raw+json",
-        "X-GitHub-Media-Type": "github.v3; param=raw",
-    }
-    content = b"c" * (3 * CAP)
-
-    def script(request):
-        if request.target.startswith("/repos/o/r/contents/dir"):
-            return bomb(200, {"Content-Type": "application/json"})
-        return response(200, raw, content)
-
-    with Wire(script) as wire:
-        backend = RepoBackend(api_base=wire.url)
-        directory = GitHubURIPath("github://github.com/o/r/dir", backend=backend)
-        with pytest.raises(OSError) as excinfo:
-            directory.stat()
-        assert excinfo.value.errno == errno.EFBIG
-        assert directory.exists() is False
-        # The content of a file is what was asked for, not a document.
-        file = GitHubURIPath("github://github.com/o/r/file.bin", backend=backend)
-        assert file.read_bytes() == content
-
-
-def test_a_gitlab_api_reply_over_the_limit_is_efbig():
-    from uripath.schemes import GitLabURIPath, RepoBackend
-
-    with Wire(lambda r: bomb(200, {"Content-Type": "application/json"})) as wire:
-        backend = RepoBackend(api_base=wire.url + "/api/v4")
-        path = GitLabURIPath("gitlab://gitlab.com/o/r", backend=backend)
-        with pytest.raises(OSError) as excinfo:
-            path.stat()
     assert excinfo.value.errno == errno.EFBIG
 
 

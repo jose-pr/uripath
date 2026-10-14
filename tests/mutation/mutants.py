@@ -176,16 +176,6 @@ mutant(
     "tests/test_http_writes.py",
     "a write stream whose constructor raised uploads its half-built buffer when collected",
 )
-# --- github: a HEAD reply that is not the API's own -----------------------------
-
-mutant(
-    "github-head-believes-a-reply-that-is-not-the-api-s",
-    "schemes/_github.py",
-    '            if "X-GitHub-Media-Type" not in resp.headers:\n                return None\n            raise_for_status(resp)',
-    "            raise_for_status(resp)",
-    "tests/test_github_stat.py::test_a_reply_that_is_not_the_api_s_own_is_not_believed",
-    "a proxy's reply to a HEAD is read as the size of the file, or as its absence",
-)
 # --- the scheme registry: a name is held by one class -----------------------------
 
 _SCHEME_TESTS = "tests/test_scheme_registry.py"
@@ -263,14 +253,6 @@ mutant(
     "with_session() sends with the built-in transport and drops the session",
 )
 mutant(
-    "repository-backend-ignores-the-session",
-    "schemes/_gitrepo.py",
-    '            transport = get_transport("requests")(session, **requests_args)\n',
-    "            transport = None\n",
-    "tests/test_with_session.py::test_a_repository_backend_builds_the_installed_transport_from_a_session",
-    "RepoBackend(session=...) sends with the built-in transport and drops the session",
-)
-mutant(
     "scheme-registry-same-qualified-name-in-another-module-is-the-same-class",
     "schemes/_registry.py",
     "    return a.__module__ == b.__module__ and a.__qualname__ == b.__qualname__\n",
@@ -284,14 +266,6 @@ mutant(
 
 _PEER = "tests/test_http_peer_text.py"
 
-mutant(
-    "git-reason-phrase-unescaped",
-    "schemes/_gitrepo.py",
-    '        reason = peer_text(response.reason or "")\n',
-    '        reason = response.reason or ""\n',
-    f"{_PEER}::test_the_reason_phrase_of_a_git_api_reply_is_shown_escaped",
-    "a git API error's reason phrase reaches the message as the server sent it",
-)
 _LIMITS = "tests/test_http_reply_limits.py"
 
 mutant(

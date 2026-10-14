@@ -1,6 +1,7 @@
 """Schemes that other distributions provide.
 
-`sftp:`, `s3:`, `gs:` and `az:` are not part of this package. Their names are
+`sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and `gitlab:` are not part of
+this package. Their names are
 known: a path of such a scheme builds, joins, compares and prints, and the
 first operation that needs the server raises an `ImportError` naming the
 distribution to install. An installed distribution registers its own class and
@@ -45,6 +46,21 @@ CASES = {
         "az://account/container/file.txt",
         "the 'az' scheme is provided by the objpath distribution: "
         'pip install "objpath[az]"',
+    ),
+    "repo": (
+        "repo://s3cr3t@github.com/o/r/dir/file.txt",
+        "the 'repo' scheme is provided by the repopath distribution: "
+        "pip install repopath",
+    ),
+    "github": (
+        "github://s3cr3t@github.com/o/r/dir/file.txt",
+        "the 'github' scheme is provided by the repopath distribution: "
+        "pip install repopath",
+    ),
+    "gitlab": (
+        "gitlab://s3cr3t@gitlab.com/o/r/dir/file.txt",
+        "the 'gitlab' scheme is provided by the repopath distribution: "
+        "pip install repopath",
     ),
 }
 

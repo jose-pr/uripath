@@ -64,30 +64,6 @@ def test_with_source_keeps_backend_only_for_the_same_authority():
     assert other.backend is not base.backend
 
 
-def test_github_token_backend_does_not_follow_join_to_another_host():
-    from uripath.schemes import GitHubURIPath
-
-    root = GitHubURIPath("github://ghp_SECRET@github.com/acme/widgets")
-
-    # A str join stays on the original host, so the token goes nowhere new.
-    literal = root / "github://evil.invalid/x/y"
-    assert literal.source.host == "github.com"
-    assert literal.backend.token == "ghp_SECRET"
-    # Identity is only promised when the parent already HAS a backend: a
-    # join must not build one (it is a pure-path operation), so a child of a
-    # connectionless parent makes its own on first use.
-    assert root._backend is None
-    root.backend  # after this use it exists, and the next child shares it
-    assert (root / "docs").backend is root.backend
-
-    # Crossing hosts needs a URI argument, and that drops the token.
-    evil = root / GitHubURIPath("github://evil.invalid/x/y")
-    assert evil.source.host == "evil.invalid"
-    assert evil.backend is not root.backend
-    assert evil.backend.token != "ghp_SECRET"
-    assert (root / "README.md").backend is root.backend
-
-
 # --- rename() refuses other locations ------------------------------------
 
 
