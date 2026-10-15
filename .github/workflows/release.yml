@@ -223,7 +223,11 @@ jobs:
           else:
               schemes = list(found.get("uripath.schemes", []))
           names = {ep.name for ep in schemes}  # a repeated sys.path entry repeats a distribution
-          assert len(names) == 18, "expected 18 scheme entry points, found %s" % sorted(names)
+          expected = {
+              "file", "data", "zip", "tar", "archive", "archive+zip", "archive+tar",
+              "ftp", "ftps", "http", "https", "dav", "davs",
+          }
+          assert names == expected, "scheme entry points differ: %s" % sorted(names ^ expected)
           loaded = {"duho", "uritools", "requests", "paramiko", "asyncssh", "boto3"} & set(sys.modules)
           assert not loaded, "importing uripath loaded %s" % sorted(loaded)
           print("ok:", uripath.__name__, uripath.__version__, len(names), "schemes")
