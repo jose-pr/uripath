@@ -26,7 +26,7 @@ class Uripath(Cli):
 
     _parsername_ = "uripath"
     _version_ = AUTO
-    _distribution_ = "uripath"
+    _distribution_ = "pathapi-uri"
     _help_formatter_ = DefaultsFormatter
     _exit_codes_ = {
         1: "the operation failed",

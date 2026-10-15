@@ -93,7 +93,7 @@ jobs:
         # -rs lists every skip with its reason, so a missing extra shows up.
         run: python -m pytest -q -rs
 
-  # The package as a user gets it from `pip install uripath`: no `cli` extra and
+  # The package as a user gets it from `pip install pathapi-uri`: no `cli` extra and
   # none of `dev` but pytest. The import loads no optional library, the command
   # names the extra it needs, and the tests that need nothing else run (the
   # rest skip, and -rs says which).

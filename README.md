@@ -1,10 +1,12 @@
 # uripath
 
-[![Version](https://img.shields.io/pypi/v/uripath.svg)](https://pypi.org/project/uripath/)
-[![Python versions](https://img.shields.io/pypi/pyversions/uripath.svg)](https://pypi.org/project/uripath/)
+[![Version](https://img.shields.io/pypi/v/pathapi-uri.svg)](https://pypi.org/project/pathapi-uri/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pathapi-uri.svg)](https://pypi.org/project/pathapi-uri/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jose-pr/uripath/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://jose-pr.github.io/uripath/)
 [![CI](https://img.shields.io/github/actions/workflow/status/jose-pr/uripath/test.yml)](https://github.com/jose-pr/uripath/actions/workflows/test.yml)
+
+Installed as `pathapi-uri` from PyPI; imported, and run as a command, as `uripath`.
 
 **One `pathlib`-style API for URIs.** `URIPath("https://...")`, `URIPath("zip:...")`
 and `URIPath("ftp://...")` return the class registered for the scheme, and each
@@ -54,20 +56,20 @@ certificate verification, authentication, limits) are in
 - **Extensible**: subclass `URIPath` and declare `__SCHEMES` for a new scheme,
   or register it through a `uripath.schemes` entry point.
 - **`uripath` command**: `read`, `write`, `cp`, `rm` and `sync` across local
-  paths and URIs, with `-` for stdin/stdout (`pip install "uripath[cli]"`).
+  paths and URIs, with `-` for stdin/stdout (`pip install "pathapi-uri[cli]"`).
 
 ## Installation
 
 ```bash
-pip install uripath
+pip install pathapi-uri
 ```
 
 Requires `pathapi` and `netimps`, which pip installs with it.
 
 | Install | Adds |
 | --- | --- |
-| `pip install uripath` | every scheme whose Needs is nothing in the table above |
-| `pip install "uripath[cli]"` | the `uripath` command (its only extra) |
+| `pip install pathapi-uri` | every scheme whose Needs is nothing in the table above |
+| `pip install "pathapi-uri[cli]"` | the `uripath` command (its only extra) |
 | `pip install "sftppath[paramiko]"` or `[asyncssh]` | `sftp:` |
 | `pip install "objpath[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
 | `pip install pathapi-requests` | the `requests` HTTP transport |
@@ -131,7 +133,7 @@ print(sorted(p.name for p in URIPath("file:site-copy").iterdir()))
 
 `uripath` reads, writes, copies, removes and syncs local paths and URIs, with
 `-` for stdin or stdout. It is built on `duho` and needs the `cli` extra,
-`pip install "uripath[cli]"`; without it the command says so and exits with
+`pip install "pathapi-uri[cli]"`; without it the command says so and exits with
 status 1. These commands run as written in an empty directory:
 
 ```bash

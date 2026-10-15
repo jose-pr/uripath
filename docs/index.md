@@ -16,12 +16,12 @@ reasons, in [Divergences from pathlib](divergences.md).
 ## Installation
 
 ```bash
-pip install uripath
+pip install pathapi-uri
 ```
 
 It requires `pathapi` and `netimps`, which pip installs with it; its one
 extra, `cli`, adds the `uripath` command
-(`pip install "uripath[cli]"`). The schemes of this package run on the standard
+(`pip install "pathapi-uri[cli]"`). The schemes of this package run on the standard
 library, including HTTP. `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and
 `gitlab:` are provided by other distributions:
 

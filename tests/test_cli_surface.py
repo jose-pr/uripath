@@ -61,7 +61,7 @@ def test_the_script_without_the_extra_names_it_and_exits_non_zero():
         "raise SystemExit(main(['read', 'x']))\n"
     )
     assert result.returncode == 1
-    assert 'pip install "uripath[cli]"' in result.stderr
+    assert 'pip install "pathapi-uri[cli]"' in result.stderr
     assert (
         "Traceback" not in result.stderr and "ModuleNotFoundError" not in result.stderr
     )
@@ -74,7 +74,7 @@ def test_python_dash_m_without_the_extra_names_it_and_exits_non_zero():
         "runpy.run_module('uripath', run_name='__main__')\n"
     )
     assert result.returncode == 1
-    assert 'pip install "uripath[cli]"' in result.stderr
+    assert 'pip install "pathapi-uri[cli]"' in result.stderr
     assert "Traceback" not in result.stderr
 
 

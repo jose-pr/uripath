@@ -6,7 +6,7 @@ installs:
 
 <!-- example: skip: installs the package -->
 ```bash
-pip install "uripath[cli]"
+pip install "pathapi-uri[cli]"
 ```
 
 Without the extra the `uripath` script (and `python -m uripath`) prints that

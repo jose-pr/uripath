@@ -9,7 +9,7 @@ import uripath
 
 
 def test_the_version_is_the_installed_distributions():
-    assert uripath.__version__ == importlib.metadata.version("uripath")
+    assert uripath.__version__ == importlib.metadata.version("pathapi-uri")
     assert re.fullmatch(r"\d+(\.\d+)*([a-z]+\d+)?", uripath.__version__)
     assert "__version__" in uripath.__all__
 

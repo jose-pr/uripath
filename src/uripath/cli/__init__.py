@@ -1,7 +1,7 @@
 """The `uripath` command line, built on `duho`.
 
 `main` is the entry point of the `uripath` console script and of `python -m
-uripath`. It needs the `cli` extra (`pip install "uripath[cli]"`); importing
+uripath`. It needs the `cli` extra (`pip install "pathapi-uri[cli]"`); importing
 this package does not, so a bare install gets one line naming the extra in
 place of an `ImportError`. The root command, `Uripath`, is built on first use
 because its base class comes from `duho`.
@@ -19,7 +19,7 @@ __all__ = ["main"]
 
 _NEEDS_EXTRA = (
     'uripath: error: the command line needs the "cli" extra: '
-    'pip install "uripath[cli]"'
+    'pip install "pathapi-uri[cli]"'
 )
 
 

@@ -172,7 +172,7 @@ jobs:
           path: dist/
 
   # What a user installs is the wheel, not the checkout: install it into two
-  # clean environments, one as `pip install uripath` and one with the `cli`
+  # clean environments, one as `pip install pathapi-uri` and one with the `cli`
   # extra, and check that each imports, carries the files it must ship and
   # behaves as that install should.
   wheel-smoke:
@@ -243,7 +243,7 @@ jobs:
           "$RUNNER_TEMP/bare/bin/uripath" read local.txt 2> stderr.txt || status=$?
           cat stderr.txt
           test "$status" = 1
-          grep -q 'uripath\[cli\]' stderr.txt
+          grep -q 'pathapi-uri\[cli\]' stderr.txt
       - name: With the extra the console script and python -m uripath read a local file
         working-directory: ${{ runner.temp }}
         run: |
@@ -341,7 +341,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/uripath/
+      url: https://pypi.org/project/pathapi-uri/
     permissions:
       id-token: write # required for PyPI Trusted Publishing (OIDC)
     steps:

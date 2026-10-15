@@ -69,4 +69,4 @@ def test_the_console_script_is_the_command_line_and_its_extra_is_declared(projec
     assert [
         packaging_requirements.Requirement(spec).name for spec in extras["cli"]
     ] == ["duho"]
-    assert "uripath[cli]" in extras["dev"]
+    assert "pathapi-uri[cli]" in extras["dev"]

@@ -4,7 +4,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "uripath"
+name = "pathapi-uri"
 version = "0.1.0"
 authors = [{ name = "Jose A" }]
 description = "pathlib-style paths for URIs: file:, data:, ftp:, zip:, tar:, http:, dav:"
@@ -39,7 +39,7 @@ uripath = "uripath.cli:main"
 # The command line. 0.7.3 added duho.running_mode(), which the commands use.
 cli = ['duho>=0.7.3,<0.8']
 dev = [
-    'uripath[cli]',
+    'pathapi-uri[cli]',
     # The oracle of the property tests, not a run-time dependency: parsing and
     # composing are the standard library's. uritools 6 needs Python 3.10; 5.0 is
     # the newest release for 3.9.

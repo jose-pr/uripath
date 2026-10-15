@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.1.0] - 2026-10-14
 
+Published on PyPI as `pathapi-uri` (`pip install pathapi-uri`); the import
+package and the command are `uripath`.
+
 The first release of `uripath`: the URI layer of `pathlib-next` 0.9.14
 (`pathlib_next.uri` and the `uripath` command) as a distribution of its own. It
 needs Python 3.9 or newer, `pathapi>=0.1.0,<0.2` and

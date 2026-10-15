@@ -18,7 +18,7 @@ exports). The HTTP transport that `http:` and `dav:` send through is
 that starts with an underscore is private and nothing there is contract: every
 scheme lives in a private module.
 
-`pip install uripath`. Required dependencies: `pathapi>=0.1.0,<0.2` and
+`pip install pathapi-uri`. Required dependencies: `pathapi>=0.1.0,<0.2` and
 `netimps>=0.4.0,<0.5`; parsing and percent-coding use only the standard library
 (`urllib.parse`), and `netimps` is imported where it is used. The one extra, `cli`
 (`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
@@ -1005,7 +1005,7 @@ chained (their text can carry credentials).
 
 ## Command line
 
-### `uripath.cli` (`pip install "uripath[cli]"`)
+### `uripath.cli` (`pip install "pathapi-uri[cli]"`)
 
 ```python
 def main(argv: Sequence[str] | None = None) -> int: ...
@@ -1015,7 +1015,7 @@ The `uripath` console script is `uripath.cli:main`, and `python -m uripath` runs
 the same function. It is built on `duho` and needs the `cli` extra; `import
 uripath` never imports `uripath.cli` or `duho`, and `uripath.cli` is not library
 API (it is absent from the root `__all__`): its one public name is `main`. Without `duho`, `main()`
-prints `pip install "uripath[cli]"` to stderr and returns 1. `main()` returns
+prints `pip install "pathapi-uri[cli]"` to stderr and returns 1. `main()` returns
 the exit status and never raises `SystemExit`; it reads and writes the
 process's standard streams (binary through `sys.stdin.buffer` and
 `sys.stdout.buffer`).
