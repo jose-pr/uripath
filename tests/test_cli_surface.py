@@ -226,4 +226,4 @@ def test_agent_help_describes_the_whole_tree(capsys, monkeypatch):
     text = json.dumps(document)
     for name in _COMMANDS:
         assert f'"{name}"' in text
-    assert "141" in text
+    assert "130" in text and "141" not in text

@@ -474,28 +474,28 @@ class _ClosedPipe(io.BytesIO):
         raise BrokenPipeError(32, "Broken pipe")
 
 
-def test_read_into_a_closed_pipe_exits_quietly_with_the_sigpipe_status(run, tmp_path):
+def test_read_into_a_closed_pipe_exits_quietly_with_status_1(run, tmp_path):
     source = tmp_path / "big.bin"
     source.write_bytes(b"x" * (3 * _MEBIBYTE))
     status, _, err = run("read", str(source), stdout=_ClosedPipe())
-    assert (status, err) == (141, "")
+    assert (status, err) == (1, "")
 
 
 def test_write_argument_to_a_closed_pipe_exits_quietly(run):
-    assert run("write", "-", "data", stdout=_ClosedPipe()) == (141, b"", "")
+    assert run("write", "-", "data", stdout=_ClosedPipe()) == (1, b"", "")
 
 
-def test_a_broken_pipe_from_a_source_is_still_reported(run, monkeypatch, tmp_path):
-    # Only stdout going away is quiet: a connection that breaks mid-copy is
-    # an error.
+def test_a_connection_reset_from_a_source_is_still_reported(run, monkeypatch, tmp_path):
+    # Only a broken pipe is quiet (duho ends it with status 1): a connection
+    # that resets mid-copy is an error with its line.
     class Broken(io.BytesIO):
         def read(self, size=-1):
-            raise BrokenPipeError(32, "Broken pipe")
+            raise ConnectionResetError(104, "Connection reset by peer")
 
     monkeypatch.setattr(LocalPath, "open", lambda self, *a, **k: Broken())
     status, _, err = run("read", str(tmp_path / "x"))
     assert status == 1
-    assert "BrokenPipeError" in err
+    assert "ConnectionResetError" in err
 
 
 def test_keyboard_interrupt_exits_130_without_a_traceback(run, monkeypatch):
@@ -519,7 +519,7 @@ class _InvalidArgumentPipe(io.BytesIO):
 
 def test_einval_from_stdout_is_a_closed_pipe_on_windows(run, monkeypatch):
     monkeypatch.setattr(sys.modules["uripath._transfer"], "_WINDOWS", True)
-    assert run("write", "-", "data", stdout=_InvalidArgumentPipe()) == (141, b"", "")
+    assert run("write", "-", "data", stdout=_InvalidArgumentPipe()) == (1, b"", "")
 
 
 def test_einval_from_stdout_is_an_error_elsewhere(run, monkeypatch):
@@ -554,7 +554,7 @@ def test_a_real_pipe_closed_by_the_reader_exits_quietly(tmp_path):
     proc.stdout.close()
     err = proc.stderr.read()
     proc.stderr.close()
-    assert proc.wait(timeout=60) == 141
+    assert proc.wait(timeout=60) == 1
     assert b"Traceback" not in err
     assert b"BrokenPipeError" not in err
 
@@ -593,19 +593,19 @@ def _run_with_the_reader_gone(argv, stdin=b""):
 
 
 @pytest.mark.parametrize("size", [1, 64 * 1024, 3 * _MEBIBYTE])
-def test_read_exits_141_when_stdout_closed_before_the_first_byte(size):
+def test_read_exits_1_when_stdout_closed_before_the_first_byte(size):
     status, err = _run_with_the_reader_gone(["read", "-"], stdin=b"z" * size)
     assert err == b""
-    assert status == 141
+    assert status == 1
 
 
-def test_write_argument_exits_141_when_stdout_closed_before_the_first_byte():
+def test_write_argument_exits_1_when_stdout_closed_before_the_first_byte():
     status, err = _run_with_the_reader_gone(["write", "-", "hello"])
     assert err == b""
-    assert status == 141
+    assert status == 1
 
 
-def test_sync_dry_run_exits_141_when_stdout_closed_before_the_first_byte(tmp_path):
+def test_sync_dry_run_exits_1_when_stdout_closed_before_the_first_byte(tmp_path):
     source, target = tmp_path / "source", tmp_path / "target"
     source.mkdir()
     target.mkdir()
@@ -614,7 +614,7 @@ def test_sync_dry_run_exits_141_when_stdout_closed_before_the_first_byte(tmp_pat
         ["sync", "--dry-run", str(source), str(target)]
     )
     assert err == b""
-    assert status == 141
+    assert status == 1
     assert not (target / "a.txt").exists()
 
 

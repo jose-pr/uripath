@@ -91,10 +91,9 @@ what `uripath.as_path()` does. A path that starts with `-` is written
 | Status | Meaning |
 | --- | --- |
 | 0 | success (also `--help` and `--version`) |
-| 1 | the operation failed: one line `uripath: <ExceptionType>: <message>` on stderr; also the `cli` extra not being installed |
+| 1 | the operation failed: one line `uripath: <ExceptionType>: <message>` on stderr; also the `cli` extra not being installed; also the reader of stdout going away (`uripath read big.bin \| head`), which prints nothing |
 | 2 | a wrong invocation: the usage or the problem on stderr (a missing or unknown argument, `cp -r` with `-`, an unknown `--encoding`) |
 | 130 | interrupted with Ctrl-C |
-| 141 | the reader of stdout went away (`uripath read big.bin \| head`), quietly, on Windows too |
 
 Results go to stdout and diagnostics to stderr. No message carries a password
 or a token.

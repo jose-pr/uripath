@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The `uripath` command ends with status 1, and prints nothing, when the reader
+  of standard output goes away (`uripath read big.bin | head`); it was 141. The
+  `cli` extra now needs `duho>=0.7.6`, which gives every `BrokenPipeError` that
+  status before the command could map it. A script that tested for 141 should
+  treat 1 with an empty stderr as the reader going away; a failure still prints
+  its `uripath: <Type>: <message>` line. A `BrokenPipeError` raised by a source
+  or a remote connection is quiet with status 1 too.
 - A scheme that no class registers no longer gets a message that names a
   package. The `ImportError` of the first operation that needs a server (`stat()`,
   `open()`, `iterdir()`, ...) says that no class is registered for the scheme,

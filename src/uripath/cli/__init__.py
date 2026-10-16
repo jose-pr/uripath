@@ -28,8 +28,8 @@ def main(argv: "_ty.Optional[_ty.Sequence[str]]" = None) -> int:
 
     `argv` is the arguments after the program name (default `sys.argv[1:]`).
     Returns 0 on success, 1 when the operation failed, 2 for a wrong
-    invocation, 130 on Ctrl-C and 141 when the reader of standard output went
-    away. Results go to stdout and one `uripath: <Type>: <message>` line per
+    invocation and 130 on Ctrl-C. When the reader of standard output went away
+    it returns 1 and prints nothing. Results go to stdout and one `uripath: <Type>: <message>` line per
     failure to stderr. Without `duho` it prints which extra to install and
     returns 1.
     """

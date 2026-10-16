@@ -36,8 +36,9 @@ dependencies = [
 uripath = "uripath.cli:main"
 
 [project.optional-dependencies]
-# The command line. 0.7.3 added duho.running_mode(), which the commands use.
-cli = ['duho>=0.7.3,<0.8']
+# The command line. 0.7.3 added duho.running_mode(), which the commands use;
+# 0.7.6 ends a BrokenPipeError with status 1 and no output, which the command relies on.
+cli = ['duho>=0.7.6,<0.8']
 dev = [
     'pathapi-uri[cli]',
     # The oracle of the property tests, not a run-time dependency: parsing and

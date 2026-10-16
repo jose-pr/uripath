@@ -21,7 +21,7 @@ scheme lives in a private module.
 `pip install pathapi-uri`. Required dependencies: `pathapi>=0.1.0,<0.2` and
 `netimps>=0.4.0,<0.5`; parsing and percent-coding use only the standard library
 (`urllib.parse`), and `netimps` is imported where it is used. The one extra, `cli`
-(`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
+(`duho>=0.7.6,<0.8`), adds the `uripath` command ("Command line"); every scheme
 in this package runs on the standard library and on `pathapi`. Any other
 scheme is a class that a distribution registers ("Schemes without a class").
 
@@ -1055,8 +1055,10 @@ Exit status: 0 success (also `--help` and `--version`); 1 the operation failed,
 with one line `uripath: <Type>: <message>` on stderr, or the `cli` extra is
 missing; 2 a wrong invocation, with the usage or the problem on stderr (a
 missing or unknown argument, `cp -r` with `-`, an unknown `--encoding`); 130
-Ctrl-C; 141 the reader of stdout went away, quietly (on Windows too, where a
-closed pipe reports `EINVAL`).
+Ctrl-C. The reader of stdout going away is 1 with nothing on stderr (on Windows
+too, where a closed pipe reports `EINVAL`): it is `duho`'s status for any
+`BrokenPipeError`, so a script that must tell it from a failure checks that
+stderr is empty.
 
 Served as tools (`URIPATH_MCP=stdio uripath`) the five commands are the tools
 `uripath.read`, `uripath.write`, `uripath.rm`, `uripath.cp` and `uripath.sync`,

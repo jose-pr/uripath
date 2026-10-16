@@ -144,7 +144,7 @@ uripath sync --dry-run --remove-missing site/ ftp://host/site/
 ```
 
 The exit status is 0 on success, 1 when the operation failed, 2 for a wrong
-invocation, 130 on Ctrl-C and 141 when the reader of stdout went away. Every
+invocation and 130 on Ctrl-C; a reader of stdout that went away is 1, quietly. Every
 flag is described in the
 [CLI guide](https://jose-pr.github.io/uripath/guides/cli/), and `uripath` can
 be served to an agent as a set of tools.
