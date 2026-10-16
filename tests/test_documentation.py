@@ -51,6 +51,29 @@ def test_the_readme_feature_table_has_a_row_for_every_scheme_the_package_contain
     assert named <= set(URIPath.schemes())
 
 
+#: Distributions that build on this one are not named in what it ships or says.
+OTHER_DISTRIBUTIONS = re.compile(
+    r"sftppath|objpath|repopath|pathapi-requests|pathapi_requests|gitpath"
+)
+
+
+def test_no_document_or_source_names_another_distribution():
+    root = pathlib.Path(uripath.__file__).resolve().parent
+    files = [
+        *root.rglob("*.py"),
+        *root.rglob("*.md"),
+        README,
+        *(REPO / "docs").rglob("*.md"),
+    ]
+    named = [
+        f"{path}: {match.group(0)}"
+        for path in files
+        for match in [OTHER_DISTRIBUTIONS.search(path.read_text(encoding="utf-8"))]
+        if match
+    ]
+    assert named == []
+
+
 @pytest.mark.parametrize("module", PUBLIC_MODULES)
 def test_every_public_name_is_in_the_shipped_header(module):
     text = HEADER.read_text(encoding="utf-8")

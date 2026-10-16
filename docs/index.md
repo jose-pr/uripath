@@ -4,8 +4,8 @@
 and `URIPath("ftp://...")` return the class registered for the scheme, and each
 has the method names, signatures and exception types of `pathlib.Path`: write
 code once and it works against a local file, an archive member, an FTP or
-WebDAV server, a web directory or, through `repopath`, a GitHub or GitLab
-repository. `uripath`
+WebDAV server or a web directory, and any scheme another distribution registers.
+`uripath`
 builds on [`pathapi`](https://jose-pr.github.io/pathapi/), which holds
 the `Path` base classes, the local, in-memory, FTP and archive paths, `glob` and
 `PathSyncer`.
@@ -22,15 +22,9 @@ pip install pathapi-uri
 It requires `pathapi` and `netimps`, which pip installs with it; its one
 extra, `cli`, adds the `uripath` command
 (`pip install "pathapi-uri[cli]"`). The schemes of this package run on the standard
-library, including HTTP. `sftp:`, `s3:`, `gs:`, `az:`, `repo:`, `github:` and
-`gitlab:` are provided by other distributions:
-
-| Provides | Install |
-| --- | --- |
-| `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
-| `s3:`, `gs:`, `az:` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
-| `repo:`, `github:`, `gitlab:` | `pip install repopath` |
-| the `requests` HTTP transport | `pip install pathapi-requests` |
+library, including HTTP. Another scheme is a class that a distribution registers
+in the `uripath.schemes` entry-point group (see "Other schemes" in
+[Schemes](guides/schemes.md)).
 
 ## Tour
 

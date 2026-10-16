@@ -82,8 +82,8 @@ holder, and the class registers none of its names. The built-in names (`file`,
 `http`, `ftp`, ...) are held by the built-in classes even before their
 modules are imported, and a distribution's entry point never takes one: the
 built-in module is consulted before the entry points. The names of the
-schemes that other distributions provide (`sftp`, `s3`, `gs`, `az`) are open: a
-distribution that registers one through this entry-point group takes it. To replace a class on
+scheme names no built-in class holds are open: a distribution that registers
+one through this entry-point group takes it. To replace a class on
 purpose, say so in the class statement:
 
 ```python
@@ -106,11 +106,10 @@ without `replace=True`. A class of another module, or of another qualified
 name, is still refused.
 
 `URIPath.schemes()` lists the registered names, sorted, including built-in
-and entry-point schemes whose module is not imported yet and the schemes
-that other distributions provide (those fail where they are used, naming the
-distribution to install). `URIPath.scheme_class(name)` returns the class registered for a
+and entry-point schemes whose module is not imported yet.
+`URIPath.scheme_class(name)` returns the class registered for a
 name, importing or loading it first, or raises `UnsupportedSchemeError` naming the
-registered schemes:
+registered schemes and suggesting names to look for:
 
 ```python
 from uripath import URIPath
@@ -215,7 +214,7 @@ in the `pathapi` documentation. `PATHAPI_HTTP_TRANSPORT=mytransport`
 then makes every backend that was given no transport build `MyTransport()`, and
 `path.with_transport(MyTransport(...))` installs one by hand. The name `requests`
 is the one `path.with_session()` builds, with the session as the first
-argument; the distribution `pathapi-requests` provides it.
+argument.
 
 ## Testing your implementation
 
@@ -252,13 +251,13 @@ A backend that genuinely cannot meet a rule sets the matching class attribute to
 | Attribute | Contract | Covers | Built-in schemes that set it `False` |
 | --- | --- | --- | --- |
 | `supports_listing` | `ReadPathContract` | `iterdir()`, `glob()`, `walk()` | `DataURIPath` (a single resource) |
-| `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | none here (the repository trees of `repopath` set it: git trees cannot hold an empty directory) |
+| `supports_empty_directories` | `ReadPathContract` | `empty_dir/` lists as empty | none here (a backend that cannot hold an empty directory, as a git tree cannot, sets it) |
 | `distinguishes_file_types` | `ReadPathContract` | listing a file raises `NotADirectoryError`; reading a directory raises | `HTTPURIPath` (one URL serves an index page or a file) |
 | `supports_pickle` | `ReadPathContract` | `pickle.loads(pickle.dumps(path))` is equal to the path and hashes alike | none |
 | `supports_rename` | `PathContract` | `rename()` | none here (`MemPath` of `pathapi` sets it: `move()` copies instead) |
 | `supports_append` | `PathContract` | `open("a")` | `ZipURIPath`, `DAVURIPath` |
 | `supports_exclusive_create` | `PathContract` | `open("x")` | none |
-| `enforces_directory_hierarchy` | `PathContract` | `mkdir()`/writes below a missing parent raise `FileNotFoundError`; writing a file over a directory raises; `rename()` onto a non-empty directory raises | none (the object stores of `objpath` set it) |
+| `enforces_directory_hierarchy` | `PathContract` | `mkdir()`/writes below a missing parent raise `FileNotFoundError`; writing a file over a directory raises; `rename()` onto a non-empty directory raises | none (a backend with no directory hierarchy sets it) |
 | `supports_mkdir` | `PathContract` | `mkdir()`, and every test that creates a directory | none (a transport with no directories, such as TFTP, sets it) |
 | `supports_delete` | `PathContract` | `unlink()`, `rmdir()`, `rm()`, and replacing a file in `copy(overwrite=True)` | none (TFTP sets it) |
 | `supports_move` | `PathContract` | `move()`, by `rename()` or by copying and deleting | none (TFTP sets it) |

@@ -12,8 +12,7 @@ Installed as `pathapi-uri` from PyPI; imported, and run as a command, as `uripat
 and `URIPath("ftp://...")` return the class registered for the scheme, and each
 has the method names, signatures and exception types of `pathlib.Path`: write
 code once and run it against a local file, an archive member, an FTP or WebDAV
-server, a web directory or, through the `repopath` distribution, a GitHub or GitLab
-repository. It builds on
+server or a web directory, and any scheme another distribution registers. It builds on
 [`pathapi`](https://github.com/jose-pr/pathapi) and is documented at
 <https://jose-pr.github.io/uripath/>.
 
@@ -29,20 +28,13 @@ repository. It builds on
 | `ftp:` / `ftps:` (`FTPURIPath`) | nothing | Yes | Yes | Yes (MLSD, NLST fallback) | Yes | Yes | Yes | Yes |
 | `http:` / `https:` (`HTTPURIPath`) | nothing | Yes | Yes (PUT, configurable) | Yes (HTML index) | Yes | No | Yes (DELETE) | No |
 | `dav:` / `davs:` (`DAVURIPath`, WebDAV) | nothing | Yes | Yes (no append) | Yes (PROPFIND) | Yes | Yes | Yes | Yes |
-| `sftp:` | `sftppath[paramiko]` or `[asyncssh]` | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `s3:` | `objpath[s3]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
-| `gs:` | `objpath[gs]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker object) | Yes | Yes (same bucket) |
-| `az:` | `objpath[az]` | Yes | Yes (no append) | Yes (prefixes) | Yes | Yes (marker blob) | Yes | Yes (same container) |
-| `repo:` | `repopath` | Yes | No | Yes | Yes | No | No | No |
-| `github:` | `repopath` | Yes | No | Yes | Yes | No | No | No |
-| `gitlab:` | `repopath` | Yes | No | Yes | Yes | No | No | No |
 
-The last seven rows are other distributions: a path of one of those schemes
-builds, joins and prints without it, and its first use of the server raises an
-`ImportError` that names what to install. The `requests` HTTP transport
-(`with_session()`, `~/.netrc`, SOCKS proxies) is the distribution
-`pathapi-requests`: once it is installed, `with_session()` and
-`PATHAPI_HTTP_TRANSPORT=requests` use it, with nothing to configure.
+A scheme is a class registered in the `uripath.schemes` entry-point group, by
+this package or by another distribution. A path of a scheme with no class builds,
+joins, compares and prints, and its first use of the server raises an `ImportError`
+that suggests names to look for. HTTP requests go through a transport of
+`pathapi`, which another distribution adds in the `pathapi.http_transports`
+group and `PATHAPI_HTTP_TRANSPORT` selects.
 
 Every scheme gets `glob()`, `walk()`, `copy()`/`move()`, `rm()` and `PathSyncer`
 from the `pathapi` base classes. The per-scheme notes (timeouts,
@@ -70,9 +62,6 @@ Requires `pathapi` and `netimps`, which pip installs with it.
 | --- | --- |
 | `pip install pathapi-uri` | every scheme whose Needs is nothing in the table above |
 | `pip install "pathapi-uri[cli]"` | the `uripath` command (its only extra) |
-| `pip install "sftppath[paramiko]"` or `[asyncssh]` | `sftp:` |
-| `pip install "objpath[s3]"`, `[gs]` or `[az]` | `s3:`, `gs:`, `az:` |
-| `pip install pathapi-requests` | the `requests` HTTP transport |
 
 ## Quick start
 

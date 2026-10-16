@@ -9,9 +9,8 @@ Where a backend lacks a primitive, the operation raises
 unavailable or the target is elsewhere.
 
 `URIPath("scheme://...")` returns the class registered for the scheme. None of
-the schemes below needs a third-party client library. `sftp:`, `s3:`, `gs:`,
-`az:`, `repo:`, `github:` and `gitlab:` are provided by other distributions (see
-"Other distributions").
+the schemes below needs a third-party client library. A scheme with no class here
+can be registered by another distribution (see "Other schemes").
 
 ## Capability matrix
 
@@ -38,7 +37,7 @@ by the archive schemes; no scheme in this package implements `symlink_to()`.
   `TimeoutError`. Transport exceptions are not chained, because their text
   can carry credentials.
 - **Credentials** in a URI are redacted from `str()`/`repr()` (the password;
-  for `repo:`/`github:`/`gitlab:` the whole userinfo). A backend (session,
+  for a scheme with no class, or whose class says so, the whole userinfo). A backend (session,
   connection, token) is reused only for the same scheme, userinfo, host and
   port, so joining a path onto another host never sends it there.
 - **`rename()`** stays on one endpoint: a target on another host
@@ -153,15 +152,11 @@ status to an exception, so every transport behaves alike.
   when one cannot be reached; `KeyError` means direct. A proxy is a URL or an
   object with a `url`, so a proxy resolver of that shape works as it is. Only `http://`
   proxies are supported (`CONNECT` for `https:`); for SOCKS or an `https://`
-  proxy use the `requests` transport of `pathapi-requests`.
-- **The `requests` transport** is provided by the `pathapi-requests`
-  distribution (`~/.netrc`, `REQUESTS_CA_BUNDLE` and certifi, SOCKS proxies,
-  digest and NTLM authentication, cookies, mounted adapters). Once it is
-  installed, `path.with_session(...)` and `PATHAPI_HTTP_TRANSPORT=requests`
-  use it; without it they raise an `ImportError` that names it.
-  `pathapi.http.transport_names()` lists the transports, and a distribution
-  adds its own by declaring an entry point in the `pathapi.http_transports`
-  group.
+  proxy use another transport.
+- **Other transports** are distributions that declare an entry point in the
+  `pathapi.http_transports` group; `pathapi.http.transport_names()` lists them
+  and `PATHAPI_HTTP_TRANSPORT=NAME` selects one. `path.with_session(...)` uses the
+  transport named `requests`; without one installed it raises an `ImportError`.
 
 ## FTP
 
@@ -191,21 +186,21 @@ host="h", user="u", tls=True)` is the same tree without a `ftp://` string.
   and uploaded on close. `chmod()` uses `SITE CHMOD` and raises
   `NotImplementedError` when the server lacks it.
 
-## Other distributions
+## Other schemes
 
-These schemes and this transport are known to `uripath` and provided by other
-distributions. A path of one of the schemes builds, joins, compares and prints
-without it; the first operation that needs the server (`stat()`, `exists()`,
-`open()`, `iterdir()`, ...) raises an `ImportError` that names what to install.
+A distribution adds a scheme by defining a `URIPath` subclass that lists it in
+`__SCHEMES` and declaring the class in the `uripath.schemes` entry-point group;
+installing it is enough. A path of a scheme with no class builds, joins,
+compares and prints, and the first operation that needs the server (`stat()`,
+`exists()`, `open()`, `iterdir()`, ...) raises an `ImportError` that suggests
+names to look for. For a scheme `NAME` they are `pip install "NAMEpath[uri]"`,
+`uripath-NAME` and `NAMEuripath`, built from the part of the scheme before its
+first `+`: patterns, not a list of known packages. `URIPath.scheme_class()`
+gives the same suggestions in its `UnsupportedSchemeError`.
 
-| Provides | Install |
-| --- | --- |
-| `sftp:` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
-| `s3:` | `pip install "objpath[s3]"` |
-| `gs:` | `pip install "objpath[gs]"` |
-| `az:` | `pip install "objpath[az]"` |
-| `repo:`, `github:`, `gitlab:` | `pip install repopath` (read-only paths for GitHub and GitLab repositories) |
-| the `requests` HTTP transport | `pip install pathapi-requests` |
+`str()` and `repr()` of the `Source` of such a path show no userinfo at all,
+since the user name may be a token. A class whose user name is a secret sets
+`_SECRET_USERINFO = True`; the others show the user name and never the password.
 
 ## Archives
 

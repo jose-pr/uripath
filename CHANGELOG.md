@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- A scheme that no class registers no longer gets a message that names a
+  package. The `ImportError` of the first operation that needs a server (`stat()`,
+  `open()`, `iterdir()`, ...) says that no class is registered for the scheme,
+  names the entry-point group `uripath.schemes` and lists three names to look
+  for, which are patterns and not known packages: `pip install "NAMEpath[uri]"`,
+  `uripath-NAME` and `NAMEuripath`, where `NAME` is the part of the scheme before
+  its first `+`. `URIPath.scheme_class()` adds the same names to its
+  `UnsupportedSchemeError`. Nothing to do unless code matches the old text.
+- Every scheme without a class now behaves that way, not only `sftp:`, `s3:`,
+  `gs:`, `az:`, `repo:`, `github:` and `gitlab:`: a path of `svn+https:` or of
+  an invented scheme builds, joins, compares and prints as before, and its I/O
+  raises that `ImportError` instead of `NotImplementedError`. `URIPath.schemes()`
+  lists only the schemes a class registers; the seven names are gone from it
+  until a distribution registers them.
+- `str()` and `repr()` of a `Source`, and so of a `URI` or `URIPath`, show no
+  userinfo at all when no class registers its scheme, since the user name may be
+  a token (`zz://tok@h` shows `zz://h`); the fields and `reveal()` keep it. A
+  registered scheme still shows the user name and never the password. A class
+  whose user name is a secret sets the new class attribute
+  `_SECRET_USERINFO = True`; a distribution whose tokens were hidden by the old
+  list sets it on its classes.
+
 ## [0.1.0] - 2026-10-14
 
 Published on PyPI as `pathapi-uri` (`pip install pathapi-uri`); the import
