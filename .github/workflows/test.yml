@@ -141,7 +141,7 @@ jobs:
           uripath read local.txt 2> stderr.txt || status=$?
           cat stderr.txt
           test "$status" = 1
-          grep -q 'uripath\[cli\]' stderr.txt
+          grep -q 'pathapi-uri\[cli\]' stderr.txt
       - name: Run the tests that need nothing else
         run: python -m pytest -q -rs
 
