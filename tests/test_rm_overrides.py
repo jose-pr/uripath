@@ -24,7 +24,10 @@ IDS = [cls.__name__ for cls, _ in CASES]
 @pytest.mark.parametrize("cls, url", CASES, ids=IDS)
 def test_rm_override_has_the_signature_of_path_rm(cls, url):
     expected = inspect.signature(Path.rm).parameters
-    actual = inspect.signature(cls.rm).parameters
+    actual = dict(inspect.signature(cls.rm).parameters)
+    if "max_workers" not in expected:
+        # A core older than the keyword; the override still accepts it.
+        assert actual.pop("max_workers").default is None
     assert list(actual) == list(expected)
     for name, parameter in expected.items():
         assert actual[name].kind == parameter.kind, name

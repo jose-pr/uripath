@@ -234,7 +234,9 @@ class ArchiveURIPath(DelegatingURIPath):
         *,
         follow_symlinks=False,
         follow_binds=False,
+        max_workers: "int | None" = None,
     ):
+        """`Path.rm()`; `max_workers` is the core's and is passed on only when set."""
         # An archive holds no bindings, and a link member is an entry like
         # any other for a removal that does not follow it.
         check_follow("follow_symlinks", follow_symlinks)
@@ -251,6 +253,7 @@ class ArchiveURIPath(DelegatingURIPath):
                 ignore_error=ignore_error,
                 follow_symlinks=follow_symlinks,
                 follow_binds=follow_binds,
+                **({} if max_workers is None else {"max_workers": max_workers}),
             )
 
     def _rm_tree(self, on_error, follows: bool = False) -> bool:

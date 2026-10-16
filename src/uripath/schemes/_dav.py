@@ -405,7 +405,9 @@ class DAVURIPath(HTTPURIPath):
         *,
         follow_symlinks=False,
         follow_binds=False,
+        max_workers: "int | None" = None,
     ):
+        """`Path.rm()`; `max_workers` is the core's and is passed on only when set."""
         # A collection holds no symlinks or bindings: the policies are
         # checked and have nothing to decide.
         check_follow("follow_symlinks", follow_symlinks)
@@ -417,6 +419,7 @@ class DAVURIPath(HTTPURIPath):
                 ignore_error=ignore_error,
                 follow_symlinks=follow_symlinks,
                 follow_binds=follow_binds,
+                **({} if max_workers is None else {"max_workers": max_workers}),
             )
         # WebDAV DELETE is recursive by spec (RFC 4918): one request here
         # replaces the base implementation's client-side stat+walk+unlink.
