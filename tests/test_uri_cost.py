@@ -9,6 +9,7 @@ from unittest import mock
 
 from uripath.schemes import _registry as uri_module
 from uripath import URI, URIPath
+from uripath.schemes._unregistered import UnregisteredURIPath
 
 # --- the entry points are read once -----------------------------------------------------
 
@@ -22,7 +23,7 @@ def test_many_unknown_schemes_scan_the_plugins_once_and_remember_nothing_per_sch
 
     with mock.patch("importlib.metadata.entry_points", side_effect=entry_points):
         for index in range(300):
-            assert type(URIPath(f"nosuch{index}-g5:x")) is URIPath
+            assert type(URIPath(f"nosuch{index}-g5:x")) is UnregisteredURIPath
         declared = uri_module._ENTRY_POINTS[1]
     assert len(calls) == 1
     assert declared == {}
@@ -34,7 +35,7 @@ def test_an_entry_point_that_registers_nothing_is_loaded_once():
     ep.load.return_value = object
     with mock.patch("importlib.metadata.entry_points", return_value=[ep]) as lookup:
         for _ in range(5):
-            assert type(URIPath("declaredg5://h/x")) is URIPath
+            assert type(URIPath("declaredg5://h/x")) is UnregisteredURIPath
     assert ep.load.call_count == 1
     assert lookup.call_count == 1
 

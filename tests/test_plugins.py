@@ -3,6 +3,7 @@ import pytest
 import importlib.metadata
 
 from uripath import URIPath
+from uripath.schemes._unregistered import UnregisteredURIPath
 
 
 def test_plugin_dynamic_loading():
@@ -49,7 +50,7 @@ def test_plugin_non_matching_scheme():
     with mock.patch("importlib.metadata.entry_points", side_effect=mock_entry_points):
         # Accessing otherdummy:// should not load mock_ep since names don't match
         p = URIPath("otherdummy://host/path")
-        assert type(p) is URIPath
+        assert type(p) is UnregisteredURIPath
         mock_ep.load.assert_not_called()
 
 
@@ -132,8 +133,7 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
     """Every `__SCHEMES` value a builtin scheme class declares must resolve
     through the entry points AND `_load_builtin_scheme` -- `ftps` was
     declared by `FTPURIPath` but missing from both, so `URIPath("ftps://...")`
-    returned a do-nothing `URIPath` in a fresh process. The schemes another
-    distribution provides are not built in and are left out."""
+    returned a do-nothing `URIPath` in a fresh process."""
     try:
         eps = importlib.metadata.entry_points(group="uripath.schemes")
     except TypeError:  # Python 3.9
@@ -143,13 +143,10 @@ def test_every_builtin_scheme_is_in_both_fallback_registries():
     for ep in eps:
         URIPath._load_builtin_scheme(ep.name)
 
-    from uripath.schemes import _elsewhere
-
     declared = {
         scheme
         for scheme in URIPath.schemes()
-        if scheme not in _elsewhere.SCHEMES
-        and URIPath.scheme_class(scheme).__module__.startswith("uripath.schemes")
+        if URIPath.scheme_class(scheme).__module__.startswith("uripath.schemes")
     }
     assert "ftps" in declared
     assert sorted(declared - {ep.name for ep in eps}) == []

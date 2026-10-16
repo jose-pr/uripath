@@ -168,4 +168,4 @@ def test_http_and_dav_work_with_requests_and_urllib3_hidden():
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[:3] == ["True b'hello' 5", "5", "[]"]
-    assert "pathapi-requests" in lines[3]
+    assert "requests" in lines[3]

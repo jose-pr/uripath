@@ -45,21 +45,16 @@ def test_a_uri_path_is_the_class_its_scheme_registers():
 
 
 @pytest.mark.parametrize(
-    ("text", "distribution"),
+    ("text", "name"),
     [
-        ("sftp://h/x", "sftppath"),
-        ("sftp:x", "sftppath"),
-        ("s3://bucket/key", "objpath"),
-        ("gs://bucket/key", "objpath"),
-        ("az://container/blob", "objpath"),
+        ("zzinvented://h/x", "zzinvented"),
+        ("svn+https://h/x", "svn"),
     ],
 )
-def test_a_scheme_another_distribution_provides_names_it_on_first_use(
-    text, distribution
-):
+def test_a_scheme_without_a_class_suggests_names_to_look_for_on_first_use(text, name):
     path = as_path(text)
     assert isinstance(path, URIPath)
-    with pytest.raises(ImportError, match=distribution):
+    with pytest.raises(ImportError, match=rf"{name}path\[uri\]"):
         path.stat()
 
 

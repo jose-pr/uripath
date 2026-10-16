@@ -11,11 +11,6 @@ from fake_distribution import install, run
 from pathapi.http import _transports
 from uripath.schemes import HTTPURIPath
 
-REQUESTS_MESSAGE = (
-    "the 'requests' HTTP transport is provided by the pathapi-requests "
-    "distribution: pip install pathapi-requests"
-)
-
 
 @pytest.fixture
 def nothing_declared(monkeypatch):
@@ -23,10 +18,12 @@ def nothing_declared(monkeypatch):
     monkeypatch.setattr(_transports, "_declared", lambda: {})
 
 
-def test_with_session_without_the_distribution_names_it(nothing_declared):
+def test_with_session_without_a_requests_transport_is_an_import_error(
+    nothing_declared,
+):
     with pytest.raises(ImportError) as raised:
         HTTPURIPath("http://h/x").with_session(object(), write_method="POST")
-    assert str(raised.value) == REQUESTS_MESSAGE
+    assert "'requests'" in str(raised.value)
 
 
 # --- a distribution that is installed ---------------------------------------

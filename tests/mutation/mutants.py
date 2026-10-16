@@ -220,7 +220,7 @@ mutant(
 mutant(
     "scheme-listing-leaves-out-schemes-not-imported-yet",
     "schemes/_path.py",
-    "                    *_BUILTIN_SCHEMES,\n                    *_elsewhere.SCHEMES,\n                    *_declared_entry_points(),\n",
+    "                    *_BUILTIN_SCHEMES,\n                    *_declared_entry_points(),\n",
     "",
     (
         f"{_SCHEME_TESTS}::test_schemes_lists_every_built_in_name_without_importing_its_module",
@@ -228,21 +228,54 @@ mutant(
     ),
     "schemes() lists only the classes already imported",
 )
+_UNREGISTERED = "tests/test_unregistered_scheme.py"
 mutant(
-    "scheme-listing-leaves-out-the-schemes-provided-elsewhere",
+    "scheme-class-of-an-unregistered-scheme-suggests-nothing",
     "schemes/_path.py",
-    "                    *_elsewhere.SCHEMES,\n",
+    '                + "; "\n                + suggestions(name)\n',
     "",
-    "tests/test_elsewhere.py::test_a_scheme_provided_elsewhere_is_listed",
-    "schemes() does not list sftp, s3, gs and az",
+    f"{_UNREGISTERED}::test_the_scheme_class_of_an_unregistered_scheme_suggests_names_to_look_for",
+    "the UnsupportedSchemeError of scheme_class() has no names to look for",
 )
 mutant(
-    "scheme-class-of-a-scheme-provided-elsewhere-does-not-raise",
+    "a-scheme-without-a-class-is-a-plain-path",
     "schemes/_path.py",
-    "            if strict:\n                raise _elsewhere.not_installed(scheme)\n",
-    "            if False:\n                raise _elsewhere.not_installed(scheme)\n",
-    "tests/test_elsewhere.py::test_the_scheme_class_of_a_scheme_provided_elsewhere_names_what_to_install",
-    "scheme_class('sftp') returns the stand-in instead of raising ImportError",
+    "            if cls is URIPath and uri.source.scheme and schemesmap is None:\n",
+    "            if False:\n",
+    f"{_UNREGISTERED}::test_an_operation_that_needs_the_server_names_what_to_look_for",
+    "I/O on a path of a scheme without a class raises NotImplementedError again",
+)
+mutant(
+    "suggestions-keep-the-whole-scheme",
+    "schemes/_unregistered.py",
+    '    name = scheme.lower().split("+", 1)[0]\n',
+    "    name = scheme.lower()\n",
+    f"{_UNREGISTERED}::test_the_name_is_the_part_of_the_scheme_before_the_first_plus",
+    "svn+https suggests svn+httppath",
+)
+mutant(
+    "an-unregistered-scheme-shows-its-user-name",
+    "schemes/_path.py",
+    "    return found is None or bool(found._SECRET_USERINFO)\n",
+    "    return found is not None and bool(found._SECRET_USERINFO)\n",
+    f"{_UNREGISTERED}::test_the_source_of_an_unregistered_scheme_shows_no_userinfo",
+    "str() of the Source of an unregistered scheme shows a token",
+)
+mutant(
+    "a-class-that-says-its-user-name-is-a-secret-is-not-believed",
+    "schemes/_path.py",
+    "    return found is None or bool(found._SECRET_USERINFO)\n",
+    "    return found is None\n",
+    f"{_UNREGISTERED}::test_a_class_says_that_its_user_name_is_a_secret",
+    "a registered class cannot hide its user name",
+)
+mutant(
+    "a-class-that-fails-to-load-shows-its-user-name",
+    "schemes/_path.py",
+    "    except Exception:\n        return True\n",
+    "    except Exception:\n        return False\n",
+    f"{_UNREGISTERED}::test_a_class_that_fails_to_load_hides_the_userinfo",
+    "a lookup that fails fails open",
 )
 mutant(
     "with-session-ignores-the-installed-transport",

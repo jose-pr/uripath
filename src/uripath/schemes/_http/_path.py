@@ -355,9 +355,9 @@ class HTTPURIPath(URIPath):
         """This path with a backend that sends through a `requests.Session`
         (`session=None` makes a new one). `headers` and `timeout` in
         `requests_args` are the backend's; the others (`auth`, `verify`,
-        `proxies`, `cert`, ...) go to the `requests` transport of
-        `pathapi-requests`, which must be installed: without it this raises
-        `ImportError` naming it. The caller closes the transport."""
+        `proxies`, `cert`, ...) go to the transport named `requests`,
+        which must be installed: without it this raises `ImportError`. The
+        caller closes the transport."""
         from pathapi.http import get_transport
 
         headers = requests_args.pop("headers", None)

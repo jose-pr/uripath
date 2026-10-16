@@ -9,6 +9,7 @@ from __future__ import annotations
 import ipaddress
 import pathlib
 import sys
+from unittest import mock
 
 import pytest
 
@@ -523,24 +524,27 @@ def test_uri_format_parsed_parts_matches_uricompose(
     scheme, userinfo, host, port, path, query, fragment, sanitize
 ):
     source = Source(scheme, userinfo, host, port)
-    try:
-        # uricompose folds a host name and the composer keeps its spelling: the
-        # two texts differ in the case of the host and nowhere else.
-        spelled = URI._format_parsed_parts(
-            source, path, query, fragment, sanitize=sanitize
-        )
-        fast = URI._format_parsed_parts(
-            source._replace(host=fold_host(host)),
-            path,
-            query,
-            fragment,
-            sanitize=sanitize,
-        )
-        assert spelled.lower() == fast.lower()
-    except AssertionError:
-        raise
-    except Exception as e:
-        fast = ("EXC", _kind(e))
+    # Whether a user name is a secret depends on the registered class; this
+    # compares the composer with uritools for a scheme whose user name shows.
+    with mock.patch("uripath.schemes._path._userinfo_is_secret", return_value=False):
+        try:
+            # uricompose folds a host name and the composer keeps its spelling: the
+            # two texts differ in the case of the host and nowhere else.
+            spelled = URI._format_parsed_parts(
+                source, path, query, fragment, sanitize=sanitize
+            )
+            fast = URI._format_parsed_parts(
+                source._replace(host=fold_host(host)),
+                path,
+                query,
+                fragment,
+                sanitize=sanitize,
+            )
+            assert spelled.lower() == fast.lower()
+        except AssertionError:
+            raise
+        except Exception as e:
+            fast = ("EXC", _kind(e))
     try:
         oracle = _oracle_format_parsed_parts(source, path, query, fragment, sanitize)
     except Exception as e:

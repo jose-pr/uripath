@@ -21,6 +21,7 @@ import pytest
 import pathapi
 from pathapi.mempath import MemPath
 from uripath import URI, URIPath
+from uripath.schemes._unregistered import UnregisteredURIPath
 from uripath.query import Query
 from uripath.schemes import FileURIPath
 
@@ -181,7 +182,7 @@ def test_unregistered_scheme_scans_entry_points_once():
 
     with mock.patch("importlib.metadata.entry_points", side_effect=entry_points):
         for _ in range(3):
-            assert type(URIPath("nosuch-g5:x")) is URIPath
+            assert type(URIPath("nosuch-g5:x")) is UnregisteredURIPath
     assert len(calls) == 1
 
 

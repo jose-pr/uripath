@@ -43,10 +43,10 @@ def test_a_digit_host_names_the_bucket_of_an_object_store_path():
 
 
 def test_an_escaped_colon_in_the_user_name_is_not_the_separator():
-    uri = URI("sftp://us%3Aer:S3CRET@h/p")
+    uri = URI("ftp://us%3Aer:S3CRET@h/p")
     assert uri.source.parsed_userinfo() == ("us:er", "S3CRET")
-    assert uri.as_uri() == "sftp://us%3Aer:S3CRET@h/p"
-    assert str(uri) == "sftp://us%3Aer@h/p"
+    assert uri.as_uri() == "ftp://us%3Aer:S3CRET@h/p"
+    assert str(uri) == "ftp://us%3Aer@h/p"
 
 
 def test_an_escaped_colon_in_the_password_stays_in_the_password():

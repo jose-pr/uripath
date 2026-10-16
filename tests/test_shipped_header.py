@@ -354,7 +354,7 @@ def test_the_sections_come_in_the_order_a_user_meets_them():
         "For scheme implementers",
     ]
     assert titles[5:] == [
-        "Provided by other distributions",
+        "Schemes without a class",
         "Exceptions",
         "Command line",
         "Environment variables",

@@ -79,6 +79,16 @@ def _rebuild_path(cls, uri, options, backend, schemesmap):
     return cls(uri, **options)
 
 
+def _userinfo_is_secret(scheme: str) -> bool:
+    """Whether the user name of `scheme` may be a secret: a class says so, and
+    so is a scheme no class registered or one whose class fails to load."""
+    try:
+        found = URIPath._find_scheme(scheme)
+    except Exception:
+        return True
+    return found is None or bool(found._SECRET_USERINFO)
+
+
 def _looks_like_uri(value: str, schemesmap=None) -> bool:
     """Whether a destination string is URI syntax rather than a path.
 
@@ -136,6 +146,9 @@ class URIPath(URI, Path):
     __SCHEMES: _ty.Sequence[str] = ()
     #: A scheme that takes keyword arguments of its own adds their names.
     _OPTIONS = frozenset({"backend", "schemesmap", "findclass"})
+    #: Whether the user name of a URI of this class's schemes is a secret (a
+    #: token): `str()` and `repr()` of its `Source` then show no userinfo at all.
+    _SECRET_USERINFO = False
 
     def __init_subclass__(cls, replace: bool = False, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -147,9 +160,7 @@ class URIPath(URI, Path):
         """The registered scheme names, sorted: those of every class defined
         so far, every built-in scheme and every entry point of the
         `uripath.schemes` group, whether or not its module is imported
-        yet. The schemes another distribution provides are listed too."""
-        from . import _elsewhere
-
+        yet."""
         with _CLAIMS_LOCK:
             claimed = list(_CLAIMS)
         return tuple(
@@ -157,7 +168,6 @@ class URIPath(URI, Path):
                 {
                     *claimed,
                     *_BUILTIN_SCHEMES,
-                    *_elsewhere.SCHEMES,
                     *_declared_entry_points(),
                 }
             )
@@ -168,41 +178,34 @@ class URIPath(URI, Path):
         """The class registered for the scheme `name` (case-insensitive),
         importing its module or loading its entry point first when needed.
 
-        Raises `UnsupportedSchemeError` naming the registered schemes when there is
-        none, and `ImportError` for a built-in module that cannot be
-        imported and for a scheme another distribution provides that is not
-        installed (the error names what to install).
+        Raises `UnsupportedSchemeError` naming the registered schemes and
+        suggesting where a class could come from when there is none, and
+        `ImportError` for a built-in module that cannot be imported.
         """
         found = cls._find_scheme(name.lower(), strict=True)
         if found is None:
+            from ._unregistered import suggestions
+
             raise UnsupportedSchemeError(
                 f"no URI scheme {name!r} is registered; registered: "
                 + ", ".join(cls.schemes())
+                + "; "
+                + suggestions(name)
             )
         return found
 
     @classmethod
     def _find_scheme(cls, scheme: str, strict: bool = False):
         """The class that registered `scheme`, or `None`: a class already
-        defined, then the built-in module, then an entry point, then the class
-        that stands for a scheme another distribution provides. With `strict`
-        a built-in module that fails to import, and a scheme provided
-        elsewhere that is not installed, raise instead of reading as "no
-        class" and as that stand-in."""
+        defined, then the built-in module, then an entry point. With `strict`
+        a built-in module that fails to import raises instead of reading as
+        "no class"."""
         found = _CLAIMS.get(scheme)
         if found is None and (
             cls._load_builtin_scheme(scheme, strict=strict)
             or cls._load_entry_point(scheme)
         ):
             found = _CLAIMS.get(scheme)
-        if found is None:
-            from . import _elsewhere
-
-            if scheme not in _elsewhere.SCHEMES:
-                return None
-            if strict:
-                raise _elsewhere.not_installed(scheme)
-            found = _elsewhere.ProvidedElsewhere
         return found
 
     @classmethod
@@ -251,6 +254,8 @@ class URIPath(URI, Path):
         if cls is URIPath or findclass:
             uri = URI(*args)
             cls: type[URIPath] = uri.source.get_scheme_cls(schemesmap)
+            if cls is URIPath and uri.source.scheme and schemesmap is None:
+                from ._unregistered import UnregisteredURIPath as cls
             if cls is URIPath:
                 inst = URI.__new__(cls, *args, **kwargs)
             else:

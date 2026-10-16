@@ -3,6 +3,7 @@ import pytest
 from http_fakes import FakeTransport
 from uripath import Source, URI, URIPath
 from uripath.schemes import FileURIPath
+from uripath.schemes._unregistered import UnregisteredURIPath
 from pathapi import FileStat
 
 
@@ -13,7 +14,7 @@ def test_scheme_dispatch_file():
 
 def test_scheme_dispatch_unknown_scheme_falls_back_to_uripath():
     p = URIPath("customscheme://host/a/b")
-    assert type(p) is URIPath
+    assert type(p) is UnregisteredURIPath
 
 
 def test_backend_propagation_on_truediv(tmp_path):
@@ -139,7 +140,7 @@ def test_uri_with_fragment_and_segments():
 
 def test_uripath_unimplemented_unlink():
     # URIPath itself is abstract and doesn't implement unlink
-    p = URIPath("custom://host/a")
+    p = URIPath("a/b")
     with pytest.raises(NotImplementedError):
         p.unlink()
 
@@ -259,16 +260,16 @@ def test_join_keeps_the_query_of_a_uri_argument():
 @pytest.mark.parametrize(
     "target,expected",
     [
-        ("b.txt", "sftp://user@host/mnt/b.txt"),
-        ("sub/b.txt", "sftp://user@host/mnt/sub/b.txt"),
-        ("/other/b.txt", "sftp://user@host/other/b.txt"),
-        ("C:/Temp/x", "sftp://user@host/mnt/C:/Temp/x"),
+        ("b.txt", "ftp://user@host/mnt/b.txt"),
+        ("sub/b.txt", "ftp://user@host/mnt/sub/b.txt"),
+        ("/other/b.txt", "ftp://user@host/other/b.txt"),
+        ("C:/Temp/x", "ftp://user@host/mnt/C:/Temp/x"),
     ],
 )
 def test_str_destination_without_a_scheme_stays_on_this_endpoint(target, expected):
     """A plain path names a file on the same URI, as `rename()` does --
     before, it built a sourceless path that could not do I/O at all."""
-    src = URIPath("sftp://user@host/mnt/a.txt")
+    src = URIPath("ftp://user@host/mnt/a.txt")
     coerced = src._coerce_target(target)
     assert str(coerced) == expected
     assert coerced.source == src.source

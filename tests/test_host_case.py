@@ -22,14 +22,14 @@ TOKEN = "Bearer SECRET-TOKEN"
 
 
 def test_a_host_keeps_the_spelling_it_was_given():
-    source = Source.parse("wss://root:pw@nasA:8443")
+    source = Source.parse("ftps://root:pw@nasA:8443")
     assert source.host == "nasA"
-    assert str(source) == "wss://root@nasA:8443"
-    assert source.reveal() == "wss://root:pw@nasA:8443"
-    uri = URI("wss://root:pw@nasA:8443/api")
+    assert str(source) == "ftps://root@nasA:8443"
+    assert source.reveal() == "ftps://root:pw@nasA:8443"
+    uri = URI("ftps://root:pw@nasA:8443/api")
     assert uri.source.host == "nasA"
-    assert str(uri) == "wss://root@nasA:8443/api"
-    assert uri.as_uri(sanitize=False) == "wss://root:pw@nasA:8443/api"
+    assert str(uri) == "ftps://root@nasA:8443/api"
+    assert uri.as_uri(sanitize=False) == "ftps://root:pw@nasA:8443/api"
     assert repr(URIPath("http://NasA/x")) == "HTTPURIPath('http://NasA/x')"
 
 

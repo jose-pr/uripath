@@ -22,9 +22,8 @@ scheme lives in a private module.
 `netimps>=0.4.0,<0.5`; parsing and percent-coding use only the standard library
 (`urllib.parse`), and `netimps` is imported where it is used. The one extra, `cli`
 (`duho>=0.7.3,<0.8`), adds the `uripath` command ("Command line"); every scheme
-in this package runs on the standard library and on `pathapi`. `sftp:`,
-`s3:`, `gs:` and `az:` are provided by other distributions ("Provided by other
-distributions"), and so is the `requests` HTTP transport.
+in this package runs on the standard library and on `pathapi`. Any other
+scheme is a class that a distribution registers ("Schemes without a class").
 
 `uripath.__version__` is the version of the installed distribution, read from
 its metadata. The rendered documentation is at
@@ -185,13 +184,14 @@ class URIPath(URI, Path):
 ```
 
 `URI` + `Path`. The bare class (or `findclass=True`)
-returns the subclass registered for the scheme, or plain `URIPath` for an
-unknown scheme (its I/O raises `NotImplementedError`). The keywords are
+returns the subclass registered for the scheme; for a scheme no class
+registers it returns a stand-in whose I/O raises `ImportError` ("Schemes without
+a class"); with no scheme it is plain `URIPath`. The keywords are
 `schemesmap`, `findclass`, `backend=` (see `backend` below) and the ones the
 scheme class names in `_OPTIONS`; any other is a `TypeError` naming it, so a
-misspelt `backend=` is never read as "use the default". The class of a scheme
-that another distribution implements and that is not installed takes any
-keyword: they are that distribution's to name. Resolution: classes
+misspelt `backend=` is never read as "use the default". The stand-in for a
+scheme with no class takes any keyword: they are the missing class's to name.
+Resolution: classes
 already imported → built-in `uripath.schemes.*` module → entry point
 in group `uripath.schemes`, and an entry point never takes a built-in
 name. An explicit `schemesmap` is the only map consulted. It is an allow-list of classes for dispatch, not a sandbox:
@@ -219,11 +219,11 @@ class does.
   defined after a replacement leaves the replacement in place.
 - `schemes() -> tuple[str, ...]` — the registered names, sorted: every
   class defined so far, every built-in scheme and every entry point of the
-  group, whether or not its module is imported yet, and the schemes another
-  distribution provides (`sftp`, `s3`, `gs`, `az`).
+  group, whether or not its module is imported yet.
   `scheme_class(name)` — the class for `name` (case-insensitive), importing
   its module or loading its entry point first; `UnsupportedSchemeError` naming
-  the registered schemes when there is none, and the `ImportError` of a
+  the registered schemes and suggesting where a class could come from when
+  there is none, and the `ImportError` of a
   built-in module that cannot be imported. Both are classmethods of the
   one registry, whichever class they are called on.
 - `backend` — per-instance connection state from `_initbackend()` (base:
@@ -303,10 +303,10 @@ def copy_stream(
 `as_path(text)` reads text the way the `uripath` command reads an argument.
 It is a `URIPath` when it starts with an RFC 3986 scheme and either holds
 `://` or the scheme is one a class registers (`data:`, `zip:`, `file:`,
-`sftp:`, ...); anything else is a `LocalPath`, so `C:/data` (a one-letter
-scheme is a drive), `12:30.txt`, `notes:draft` and `./a:b` stay local. A
-scheme another distribution provides gives a `URIPath` whose first I/O raises
-the `ImportError` that names what to install. `TypeError` for what is not a
+...); anything else is a `LocalPath`, so `C:/data` (a one-letter
+scheme is a drive), `12:30.txt`, `notes:draft` and `./a:b` stay local. A text
+with `://` and a scheme no class registers gives a `URIPath` whose first I/O
+raises the `ImportError` that suggests names to look for. `TypeError` for what is not a
 `str`. It reads and connects to nothing.
 
 `copy_stream(source, target)` copies bytes, `chunk_size` at a time, without
@@ -346,8 +346,9 @@ to ask whether they name one endpoint.
 `str(source)` is the canonical text: the composer `URI.as_uri()` uses (`file://`
 for an empty host and `file:` for none; an invalid scheme or port is a
 `ValueError`), without the
-password; `repr()` redacts it too, and both drop the whole userinfo for
-`repo:`/`github:`/`gitlab:` (the fields keep it). `reveal()` is the text with
+password; `repr()` redacts it too, and both drop the whole userinfo for a
+scheme no class registers and for a scheme whose class sets
+`_SECRET_USERINFO = True` (the fields keep it). `reveal()` is the text with
 the password, as `URI.as_uri(sanitize=False)` is for a URI; it is named as an
 action because its result carries the secret. `Source.parse(text, *,
 strict=True)` reads the authority as `URI` does (`URISyntaxError` for a
@@ -513,9 +514,9 @@ header under "HTTP requests". This section is what the paths add.
   contract says; the caller closes it). `path.with_session(session,
   write_method="PUT", append_mode="rewrite", **requests_args)` is the same over
   a `requests.Session` (`None` makes a new one): `headers` and `timeout` in
-  `requests_args` are the backend's, the rest go to the `requests` transport,
-  which the distribution `pathapi-requests` provides. Without that
-  distribution the call raises `ImportError` naming it. Without either, a
+  `requests_args` are the backend's, the rest go to the transport named
+  `requests` of `pathapi`. Without such a transport the call raises
+  `ImportError`. Without either, a
   path's backend builds the built-in transport on first use (`HTTPBackend.close()`
   or leaving its `with` block closes a transport the backend built); the
   environment variable `PATHAPI_HTTP_TRANSPORT` (`builtin`, or the name of an
@@ -899,8 +900,8 @@ backend, as the archives do):
   `"__weakref__"` in `__slots__`, `_same_filesystem()` reads it as supplied.
 
 Delegating to a path that needs no URI (`uripath.schemes.DelegatingURIPath`,
-the base of `file:`, `ftp:` and the archive schemes, and of `sftp:` in the
-distribution that provides it):
+the base of `file:`, `ftp:` and the archive schemes, and of the classes that
+other distributions register):
 
 - `_make_core()` — the `pathapi.Path` this URI names, built from `source`
   and `path` and performing no I/O; it is made once per instance and is the
@@ -940,35 +941,43 @@ Composing text:
   (`"surrogateescape"`: a byte that is not UTF-8 survives the round trip).
 - `is_drive(segment)` — whether a segment is a Windows drive (`"C:"`).
 
-## Provided by other distributions
+## Schemes without a class
 
-`uripath` knows these schemes and this transport by name and does not contain
-them:
+`uripath` contains the classes of the schemes listed under "Built-in schemes"
+and no others. A distribution adds a scheme by registering a `URIPath`
+subclass in the entry-point group `uripath.schemes`; installing it is enough,
+and `URIPath.schemes()` then lists the name.
 
-| Name | Distribution | Install |
-| --- | --- | --- |
-| `sftp:` | `sftppath` | `pip install "sftppath[paramiko]"` (or `[asyncssh]`) |
-| `s3:`, `gs:`, `az:` | `objpath` | `pip install "objpath[s3]"` (or `[gs]`, `[az]`) |
-| `repo:`, `github:`, `gitlab:` | `repopath` | `pip install repopath` |
-| the `requests` HTTP transport | `pathapi-requests` | `pip install pathapi-requests` |
+A path of a scheme no class registers builds, joins, compares and prints. Every
+operation that needs the server (`stat()`, `exists()`, `open()`, `iterdir()`, a
+write, `rename()`, `chmod()`, ...) raises `ImportError`. Its message names the
+scheme, the entry-point group and three names to look for, never the URI (it can
+carry a password):
 
-A path of one of the schemes builds, joins, compares and prints without its
-distribution, and is listed by `URIPath.schemes()`. Every operation that needs
-the server (`stat()`, `exists()`, `open()`, `iterdir()`, a write, `rename()`,
-`chmod()`, ...) raises `ImportError`, with a message that names the scheme and
-the install command and never the URI (it can carry a password). So does
-`URIPath.scheme_class(name)`. The installed distribution registers its own
-class for the name, through an entry point of the group `uripath.schemes`, and
-that class is used; its constructor takes the keywords that its `_OPTIONS`
-names. An entry point never takes a built-in scheme over: `file`, `http` and
-the other names `URIPath.schemes()` lists as built in keep their classes, and
-a class that names one without `replace=True` is a `ValueError` where it is
-defined.
+```
+no class is registered for the URI scheme 'svn+https'; a distribution that provides it registers a class in the entry-point group 'uripath.schemes'. Names to look for, not known packages: pip install "svnpath[uri]", uripath-svn, svnuripath
+```
 
-For the `requests` transport, `HTTPURIPath.with_session()` and
-`PATHAPI_HTTP_TRANSPORT=requests` use the class that the installed
-`pathapi-requests` declares in the group `pathapi.http_transports`,
-and raise `ImportError` naming it when it is not installed.
+`NAME` is the part of the scheme before its first `+`, lower case; the three
+names are `pip install "NAMEpath[uri]"`, `uripath-NAME` and `NAMEuripath`. They
+are patterns, not packages `uripath` knows. `URIPath.scheme_class(name)` raises
+`UnsupportedSchemeError` with the registered schemes and the same names. A
+class registered later is used from then on; its constructor takes the keywords
+that its `_OPTIONS` names. An entry point never takes a built-in scheme over:
+`file`, `http` and the other names `URIPath.schemes()` lists as built in keep
+their classes, and a class that names one without `replace=True` is a
+`ValueError` where it is defined.
+
+The user name of a scheme no class registers may be a token, so `str()` and
+`repr()` of its `Source` show no userinfo at all (the fields keep it). A class
+whose user name is a secret sets the class attribute `_SECRET_USERINFO = True`
+(default `False`: the user name shows and the password never does); a class
+that fails to load counts as secret.
+
+`HTTPURIPath.with_session()` builds the transport named `requests`, and
+`PATHAPI_HTTP_TRANSPORT=NAME` selects a transport; a transport is a class
+declared in the group `pathapi.http_transports`, and one that is not installed
+raises `ImportError`.
 
 ## Exceptions
 
@@ -1061,10 +1070,10 @@ option is off unless it is passed.
 ### `PATHAPI_HTTP_TRANSPORT` (read by `pathapi.http`)
 
 `builtin` (the default when unset), or the name of a transport an installed
-distribution declares in the group `pathapi.http_transports` (`requests`,
-from `pathapi-requests`): the transport that `http(s):` and `dav(s):`
-build for a backend that was not given one. `requests`
-without that distribution raises `ImportError` naming it. The value is
+distribution declares in the group `pathapi.http_transports` (`requests` is
+the name `with_session()` uses): the transport that `http(s):` and `dav(s):`
+build for a backend that was not given one. A name that is not installed
+raises `ImportError`. The value is
 case-sensitive, and an empty or unrecognised one raises `ValueError` naming the
 choices (`pathapi.http.transport_names()`). It is read when a backend first
 needs its transport, once per backend, so a change reaches backends built
@@ -1089,6 +1098,5 @@ not.
 Importing `uripath` and constructing a path of any scheme does no I/O. A path
 joins, compares and prints without touching a server; the first operation that
 needs one (`exists()`, `stat()`, a read, a listing, `is_local()`) connects.
-That holds for the schemes another distribution provides as well: without the
-distribution their paths join, compare and print, and the first operation that
-needs the server raises `ImportError`.
+That holds for a scheme with no class as well: its paths join, compare and
+print, and the first operation that needs the server raises `ImportError`.

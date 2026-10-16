@@ -181,9 +181,9 @@ def test_network_guard_blocks_non_loopback_hosts(_block_non_loopback_network):
 def test_parse_is_the_only_way_in_from_text_and_reveal_the_only_way_out_with_the_secret():
     assert not hasattr(Source, "from_str")
     assert not hasattr(Source, "as_str")
-    source = Source.parse("sftp://root:secret@nas:22")
-    assert str(source) == "sftp://root@nas:22"
-    assert source.reveal() == "sftp://root:secret@nas:22"
+    source = Source.parse("ftp://root:secret@nas:22")
+    assert str(source) == "ftp://root@nas:22"
+    assert source.reveal() == "ftp://root:secret@nas:22"
     assert Source.parse(source.reveal()) == source
 
 

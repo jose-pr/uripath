@@ -22,12 +22,12 @@ if _ty.TYPE_CHECKING:
 
 
 def _redact_userinfo(userinfo: str, scheme: "str | None") -> "_Userinfo | None":
-    """`userinfo` without its password; nothing at all for a token scheme,
-    where the user name is the secret. An empty user name leaves no
-    userinfo."""
-    from ..schemes._elsewhere import TOKEN_SCHEMES
+    """`userinfo` without its password; nothing at all where the user name may
+    be the secret (a scheme whose class says so, or that no class registered).
+    An empty user name leaves no userinfo."""
+    from ..schemes._path import _userinfo_is_secret
 
-    if scheme in TOKEN_SCHEMES:
+    if scheme and _userinfo_is_secret(scheme):
         return None
     user = _split_userinfo_text(userinfo)[0]
     return _Userinfo(user) if user else None

@@ -12,7 +12,7 @@ import pytest
 
 import uripath
 from uripath import URIPath
-from uripath.schemes import _elsewhere, _registry
+from uripath.schemes import _registry
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 HEADER = pathlib.Path(uripath.__file__).resolve().parent / "AGENTS.md"
@@ -39,7 +39,7 @@ def _section(text, heading):
     return text[start : end if end != -1 else len(text)]
 
 
-def test_the_readme_feature_table_has_a_row_for_every_scheme_the_package_knows():
+def test_the_readme_feature_table_has_a_row_for_every_scheme_the_package_contains():
     table = _section(README.read_text(encoding="utf-8"), "Features")
     rows = [line for line in table.splitlines() if line.startswith("| `")]
     named = {
@@ -47,24 +47,8 @@ def test_the_readme_feature_table_has_a_row_for_every_scheme_the_package_knows()
         for row in rows
         for name in re.findall(r"`([a-z][a-z0-9+.-]*):`", row.split("|")[1])
     }
-    # `URIPath.schemes()` also lists the schemes that other tests define.
-    assert named == set(_registry._BUILTIN_SCHEMES) | set(_elsewhere.SCHEMES)
+    assert named == set(_registry._BUILTIN_SCHEMES)
     assert named <= set(URIPath.schemes())
-
-
-def test_the_readme_names_the_distribution_of_each_scheme_it_does_not_contain():
-    table = _section(README.read_text(encoding="utf-8"), "Features")
-    rows = {
-        re.search(r"`([a-z0-9]+):`", line).group(1): line
-        for line in table.splitlines()
-        if line.startswith("| `")
-        and any(
-            distribution in line for distribution, _, _ in _elsewhere.SCHEMES.values()
-        )
-    }
-    assert set(rows) == set(_elsewhere.SCHEMES)
-    for scheme, (distribution, _package, _install) in _elsewhere.SCHEMES.items():
-        assert distribution in rows[scheme], scheme
 
 
 @pytest.mark.parametrize("module", PUBLIC_MODULES)

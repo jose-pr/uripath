@@ -460,10 +460,10 @@ def test_write_to_a_colon_name_writes_a_local_file(run, tmp_path, monkeypatch):
     assert (tmp_path / "12:30.txt").read_bytes() == b"hi"
 
 
-def test_a_scheme_another_distribution_provides_names_it(run):
+def test_a_scheme_without_a_class_suggests_names_to_look_for(run):
     status, _, err = run("read", "sftp://h/x")
     assert status == 1
-    assert "ImportError" in err and "sftppath" in err
+    assert "ImportError" in err and "sftppath[uri]" in err
 
 
 class _ClosedPipe(io.BytesIO):

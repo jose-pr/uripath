@@ -1,15 +1,14 @@
-"""A scheme that another distribution provides, found through an installed
-distribution's entry point in the `uripath.schemes` group: the class of the
-distribution is used when it is installed, the stand-in that names what to
-install when it is not, a built-in scheme cannot be taken over, and
-`URIPath.schemes()` lists the name either way."""
+"""A scheme found through an installed distribution's entry point in the
+`uripath.schemes` group: the class of the distribution is used when it is
+installed, the stand-in that suggests names to look for when it is not, a
+built-in scheme cannot be taken over, and `URIPath.schemes()` lists the name
+only while a class registers it."""
 
 from __future__ import annotations
 
 import pytest
 
 from fake_distribution import install, run
-from uripath.schemes import _elsewhere
 
 PROVIDED = ("sftp", "s3", "gs", "az")
 
@@ -98,7 +97,7 @@ def test_an_installed_distribution_takes_the_scheme_it_declares(sftp_distributio
         "FakeSFTPPath",
         "FakeSFTPPath",
         "sftp://user@host/dir/file.txt/more",
-        "ProvidedElsewhere",
+        "UnregisteredURIPath",
     ]
 
 
@@ -120,7 +119,7 @@ def test_one_class_serves_every_scheme_a_distribution_declares_for_it(
     assert found == [
         ["FakeObjectStorePath"] * 3,
         "answered by FakeObjectStorePath",
-        "ProvidedElsewhere",
+        "UnregisteredURIPath",
     ]
 
 
@@ -144,7 +143,7 @@ def test_the_keywords_of_the_installed_class_are_accepted_and_others_are_not(
 
 
 @pytest.mark.parametrize("scheme", PROVIDED)
-def test_without_the_distribution_the_scheme_names_what_to_install(scheme):
+def test_without_the_distribution_the_scheme_suggests_names_to_look_for(scheme):
     found = run(f"""
         import json
         from uripath import URIPath
@@ -155,17 +154,13 @@ def test_without_the_distribution_the_scheme_names_what_to_install(scheme):
             message = str(error)
         print(json.dumps([type(path).__name__, message]))
         """)
-    assert found[0] == "ProvidedElsewhere"
-    distribution = _elsewhere.SCHEMES[scheme][0]
-    assert (
-        f"the {scheme!r} scheme is provided by the {distribution} distribution"
-        in found[1]
-    )
-    assert "pip install" in found[1]
+    assert found[0] == "UnregisteredURIPath"
+    assert f"no class is registered for the URI scheme {scheme!r}" in found[1]
+    assert f'pip install "{scheme}path[uri]"' in found[1]
     assert "host" not in found[1]
 
 
-def test_the_provided_schemes_are_listed_with_and_without_the_distribution(
+def test_a_scheme_is_listed_only_while_a_distribution_registers_it(
     sftp_distribution, objstore_distribution
 ):
     code = """
@@ -175,10 +170,10 @@ def test_the_provided_schemes_are_listed_with_and_without_the_distribution(
         print(json.dumps([[n for n in names if n in ("sftp", "s3", "gs", "az")],
                           len(names) == len(set(names))]))
         """
-    expected = [["az", "gs", "s3", "sftp"], True]
-    assert run(code) == expected
-    assert run(code, sftp_distribution) == expected
-    assert run(code, objstore_distribution) == expected
+    assert run(code) == [[], True]
+    # Both fixtures install into one directory.
+    assert sftp_distribution == objstore_distribution
+    assert run(code, sftp_distribution) == [["az", "gs", "s3", "sftp"], True]
 
 
 def test_a_distribution_cannot_take_over_a_built_in_scheme(tmp_path):
@@ -245,4 +240,4 @@ def test_a_distribution_can_add_a_scheme_no_one_listed(tmp_path):
         print(json.dumps([type(URIPath("foo://h/x")).__name__, "foo" in URIPath.schemes()]))
         """
     assert run(code, tmp_path) == ["FooPath", True]
-    assert run(code) == ["URIPath", False]
+    assert run(code) == ["UnregisteredURIPath", False]

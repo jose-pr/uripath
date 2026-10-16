@@ -129,11 +129,11 @@ def test_source_str_and_repr_redact_password():
     # as it is. Both redact the same way URI.__str__() does.
     from uripath.source import Source
 
-    source = Source("sftp", "root:secret", "nas", 22)
+    source = Source("ftp", "root:secret", "nas", 22)
     assert "secret" not in str(source)
     assert "secret" not in repr(source)
-    assert str(source) == "sftp://root@nas:22"
-    assert repr(source) == "Source(scheme='sftp', userinfo='root', host='nas', port=22)"
+    assert str(source) == "ftp://root@nas:22"
+    assert repr(source) == "Source(scheme='ftp', userinfo='root', host='nas', port=22)"
 
 
 def test_source_str_is_not_a_connectable_uri():
@@ -152,8 +152,8 @@ def test_source_str_is_not_a_connectable_uri():
 def test_source_str_is_the_sanitized_text():
     from uripath.source import Source
 
-    source = Source("sftp", "root:secret", "nas", 22)
-    assert str(source) == "sftp://root@nas:22"
+    source = Source("ftp", "root:secret", "nas", 22)
+    assert str(source) == "ftp://root@nas:22"
 
 
 def test_source_userinfo_field_still_carries_password():

@@ -20,6 +20,7 @@ import pytest
 import uripath
 from uripath import URIPath, UnsupportedSchemeError
 from uripath.schemes import DataURIPath
+from uripath.schemes._unregistered import UnregisteredURIPath
 from uripath.schemes import FileURIPath
 
 # The tree this process imports, so a child tests the same code.
@@ -116,7 +117,7 @@ def test_a_class_refused_for_one_name_registers_none_of_its_names():
             __SCHEMES = ("regfree1", "regheld1")
             __slots__ = ()
 
-    assert type(URIPath("regfree1://h/x")) is URIPath
+    assert type(URIPath("regfree1://h/x")) is UnregisteredURIPath
     assert "regfree1" not in URIPath.schemes()
     assert URIPath.scheme_class("regheld1") is Holder
 
@@ -344,7 +345,7 @@ def test_schemes_lists_every_built_in_name_without_importing_its_module():
     assert shape == "True True"
     assert names.split() == sorted(
         "file data zip tar archive archive+zip archive+tar ftp ftps http https "
-        "dav davs sftp s3 gs az repo github gitlab".split()
+        "dav davs".split()
     )
     assert imported == "[]"
 
@@ -356,16 +357,16 @@ def test_a_git_scheme_is_registered_by_nobody(scheme):
         URIPath.scheme_class(scheme)
 
 
-def test_a_git_uri_is_a_plain_path_that_does_no_io():
+def test_a_git_uri_builds_and_prints_and_its_io_names_what_to_look_for():
     path = URIPath("git://github.com/o/r/dir/f.txt?ref=main")
-    assert type(path) is URIPath
+    assert type(path) is UnregisteredURIPath
     assert (path.name, path.parent.name, str(path)) == (
         "f.txt",
         "dir",
         "git://github.com/o/r/dir/f.txt?ref=main",
     )
     for call in (path.stat, path.read_bytes, path.exists, lambda: list(path.iterdir())):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ImportError, match=r"gitpath\[uri\]"):
             call()
 
 
@@ -406,7 +407,10 @@ def test_scheme_class_of_an_unknown_name_names_what_is_registered():
         URIPath.scheme_class("regnosuchscheme")
     message = str(unknown.value)
     assert "'regnosuchscheme'" in message
-    assert message.endswith(", ".join(URIPath.schemes()))
+    assert ", ".join(URIPath.schemes()) in message
+    assert message.endswith(
+        'pip install "regnosuchschemepath[uri]", uripath-regnosuchscheme, regnosuchschemeuripath'
+    )
     assert "ftp" in message and "file" in message
 
 

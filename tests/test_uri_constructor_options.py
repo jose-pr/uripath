@@ -23,7 +23,6 @@ MISSPELT = object()
 
 URIS = {
     "uri": lambda **kw: URI("x/y", **kw),
-    "unknown-scheme": lambda **kw: URIPath("unk://h/x", **kw),
     "bare-class": lambda **kw: URIPath("x/y", **kw),
     "http": lambda **kw: URIPath("http://h/x", **kw),
     "http-class": lambda **kw: HTTPURIPath("http://h/x", **kw),
