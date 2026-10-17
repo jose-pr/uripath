@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-17
+
 ### Changed
 
 - The `uripath` command ends with status 1, and prints nothing, when the reader
@@ -368,5 +370,6 @@ name `pathlib_next`); the old names below are the ones before the move.
   nothing and emits a `ResourceWarning`; `pathlib-next` closed it, and so uploaded it.
   What to do: close the file, or use `with`.
 
-[Unreleased]: https://github.com/jose-pr/uripath/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jose-pr/uripath/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/jose-pr/uripath/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jose-pr/uripath/releases/tag/v0.1.0

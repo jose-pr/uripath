@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pathapi-uri"
-version = "0.1.0"
+version = "0.1.1"
 authors = [{ name = "Jose A" }]
 description = "pathlib-style paths for URIs: file:, data:, ftp:, zip:, tar:, http:, dav:"
 readme = "README.md"
